@@ -2,7 +2,7 @@
 
 **Pick your seat, live.** Movie and concert ticketing with a live seat map: seats are held for 10 minutes the moment you tap them and grey out for everyone else.
 
-> Status: in progress — planning and design stage. One of six portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). Will go live at `frontrow.virajdomadia.com`.
+> Status: in progress — planning and design stage. One of six portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). **Live (landing page):** https://frontrow-viraj.vercel.app — will move to `frontrow.virajdomadia.com` later.
 
 ## What it proves
 Concurrency and seat holds (Redis) · transactions · idempotent payments · realtime updates
