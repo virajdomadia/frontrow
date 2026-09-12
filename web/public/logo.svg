@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 282 64" width="282" height="64">
+<g><rect width="64" height="64" rx="8" fill="#2A0B1E"/>
+<g fill="#F5EFE6"><rect x="10" y="30" width="12" height="16" rx="3"/><rect x="41" y="30" width="12" height="16" rx="3"/></g>
+<rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/>
+<rect x="8" y="48" width="48" height="6" rx="2" fill="#F5EFE6" opacity=".35"/></g>
+<text x="78" y="45" font-family="'Barlow Condensed', Impact, sans-serif" font-weight="700" font-size="40" letter-spacing="0.02em" fill="#2A0B1E">FRONTROW</text>
+</svg>
