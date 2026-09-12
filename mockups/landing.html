@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontrow — pick your seat, live</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%232A0B1E'/%3E%3Cg fill='%23F5EFE6'%3E%3Crect x='10' y='30' width='12' height='16' rx='3'/%3E%3Crect x='41' y='30' width='12' height='16' rx='3'/%3E%3C/g%3E%3Crect x='26' y='26' width='12' height='20' rx='3' fill='%23E63946'/%3E%3Crect x='8' y='48' width='48' height='6' rx='2' fill='%23F5EFE6' opacity='.35'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --plum:#2A0B1E; --plum-2:#3A1230; --screen:#F5EFE6; --red:#E63946; --amber:#F4A261; --muted:#C9B3C1; --sold:#5A3A50;
+  --cond:'Barlow Condensed',Impact,sans-serif; --sans:'Barlow',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--plum);color:var(--screen);font-family:var(--sans);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{width:min(1180px,100% - 48px);margin-inline:auto}
+h1,h2,h3{font-family:var(--cond);font-weight:700;text-transform:uppercase;letter-spacing:.01em;margin:0;line-height:.95}
+p{margin:0}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+
+.nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--cond);font-weight:700;font-size:28px;letter-spacing:.03em}
+.logo svg{width:34px;height:34px}
+.nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:0;font-weight:500;font-size:15px}
+.nav ul a{text-decoration:none;color:var(--muted)}
+.nav ul a:hover{color:var(--screen)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:6px;text-decoration:none;font-family:var(--cond);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.04em;border:2px solid transparent;cursor:pointer}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:#d12f3c}
+.btn-line{border-color:rgba(245,239,230,.4)}
+.btn-line:hover{border-color:var(--screen)}
+
+/* hero */
+.hero{padding:36px 0 40px;display:grid;grid-template-columns:1fr;gap:28px}
+.hero-top{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:end}
+.hero h1{font-size:clamp(56px,9vw,128px)}
+.hero h1 span{color:var(--red)}
+.hero .lede{font-size:19px;color:var(--muted);max-width:40ch}
+.hero .lede strong{color:var(--screen);font-weight:600}
+.hero-actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+
+/* seat map */
+.hall{background:var(--plum-2);border:1px solid rgba(245,239,230,.1);border-radius:14px;padding:26px 26px 22px;position:relative;overflow:hidden}
+.screen{height:6px;border-radius:999px;background:linear-gradient(90deg,transparent,var(--screen),transparent);opacity:.7;margin:0 10% 8px}
+.screen-label{text-align:center;font-family:var(--cond);font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:22px}
+.rows{display:grid;gap:9px;justify-content:center}
+.row{display:flex;gap:7px;align-items:center;justify-content:center}
+.row .lbl{width:18px;font-family:var(--cond);font-size:13px;color:var(--muted);text-align:center}
+.seat{width:22px;height:20px;border-radius:5px 5px 3px 3px;background:transparent;border:1.5px solid rgba(245,239,230,.55);position:relative}
+.seat.aisle{margin-right:14px}
+.seat.sold{border-color:transparent;background:var(--sold)}
+.seat.held{border-color:transparent;background:var(--amber);animation:hold 0s forwards}
+.seat.mine{border-color:transparent;background:var(--red);box-shadow:0 0 0 3px rgba(230,57,70,.35)}
+.seat.h1{animation-delay:1.2s}.seat.h2{animation-delay:2.1s}.seat.h3{animation-delay:2.15s}.seat.h4{animation-delay:3.4s}.seat.h5{animation-delay:4.6s}.seat.h6{animation-delay:4.65s}.seat.h7{animation-delay:5.9s}
+.seat.held{background:transparent;border-color:rgba(245,239,230,.55)}
+@keyframes hold{to{background:var(--amber);border-color:transparent}}
+@media (prefers-reduced-motion:reduce){.seat.held{background:var(--amber);border-color:transparent;animation:none}}
+.legend{display:flex;gap:18px;justify-content:center;margin-top:22px;font-size:14px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:14px;height:12px;border-radius:3px;border:1.5px solid rgba(245,239,230,.55);display:inline-block}
+.legend i.a{background:var(--amber);border-color:transparent}.legend i.s{background:var(--sold);border-color:transparent}.legend i.m{background:var(--red);border-color:transparent}
+.hold-pill{position:absolute;top:22px;right:22px;background:var(--screen);color:var(--plum);border-radius:8px;padding:10px 14px;font-family:var(--cond);font-size:16px;letter-spacing:.04em;text-transform:uppercase;display:flex;gap:12px;align-items:center}
+.hold-pill b{font-size:26px;font-variant-numeric:tabular-nums;color:var(--red)}
+.checkout{position:absolute;bottom:22px;right:22px;left:22px;display:flex;justify-content:space-between;align-items:center;background:var(--plum);border:1px solid rgba(245,239,230,.15);border-radius:10px;padding:12px 16px}
+.checkout .sum{font-size:15px;color:var(--muted)}
+.checkout .sum b{color:var(--screen);font-family:var(--cond);font-size:22px;margin-right:8px}
+
+/* now showing */
+.shows{padding:56px 0}
+.shows h2{font-size:clamp(36px,4.5vw,64px)}
+.shows .sub{color:var(--muted);margin-top:8px;max-width:50ch}
+.posters{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:30px}
+.poster{aspect-ratio:2/3;border-radius:10px;padding:18px;display:flex;flex-direction:column;justify-content:flex-end;text-decoration:none;position:relative;overflow:hidden}
+.poster h3{font-size:34px;font-weight:800}
+.poster .when{font-size:14px;color:rgba(255,255,255,.8);margin-top:6px}
+.poster .fill{position:absolute;top:14px;right:14px;font-family:var(--cond);font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border-radius:5px;background:rgba(0,0,0,.6)}
+.p1{background:linear-gradient(160deg,#7b1e3a,#2b0716 70%)}
+.p2{background:linear-gradient(160deg,#1f4b6e,#0c1a2a 70%)}
+.p3{background:linear-gradient(160deg,#a85f1f,#3a1c0a 70%)}
+.p4{background:linear-gradient(160deg,#3b7d5a,#0e2a1c 70%)}
+
+/* the hard part */
+.hard{background:var(--screen);color:var(--plum);padding:72px 0}
+.hard-in{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
+.hard h2{font-size:clamp(36px,4.5vw,64px)}
+.hard p{margin-top:14px;max-width:46ch;color:#4b2a40}
+.timeline{display:grid;gap:0;border-left:3px solid var(--red);padding-left:22px}
+.tl{padding:12px 0 14px;border-bottom:1px solid rgba(42,11,30,.12)}
+.tl:last-child{border-bottom:0}
+.tl .t{font-family:var(--cond);font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:#7a2f40}
+.tl .e{font-weight:600;margin-top:2px}
+.tl .d{font-size:14px;color:#4b2a40;margin-top:2px}
+
+/* ticket */
+.ticket-sec{padding:72px 0 40px}
+.ticket-in{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.ticket-sec h2{font-size:clamp(36px,4.5vw,64px)}
+.ticket-sec p{color:var(--muted);margin-top:14px;max-width:44ch}
+.ticket{background:var(--screen);color:var(--plum);border-radius:14px;display:grid;grid-template-columns:1fr 150px;overflow:hidden;position:relative}
+.ticket::before,.ticket::after{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:var(--plum);right:137px}
+.ticket::before{top:-13px}.ticket::after{bottom:-13px}
+.tk-main{padding:22px 24px}
+.tk-main .film{font-family:var(--cond);font-size:38px;font-weight:800;text-transform:uppercase;line-height:1}
+.tk-main .meta{display:grid;grid-template-columns:repeat(3,auto);gap:18px;margin-top:16px;font-size:14px}
+.tk-main .meta b{display:block;font-family:var(--cond);font-size:22px}
+.tk-stub{border-left:2px dashed rgba(42,11,30,.3);display:grid;place-items:center;padding:18px}
+.qr{width:96px;height:96px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.qr i{background:var(--plum);border-radius:1px}
+.qr i.o{background:transparent}
+
+.cta{padding:40px 0 96px;text-align:center}
+.cta h2{font-size:clamp(40px,6vw,88px)}
+.cta p{color:var(--muted);margin:12px auto 24px;max-width:44ch}
+.foot{display:flex;justify-content:space-between;align-items:center;padding:24px 0 40px;font-size:14px;color:var(--muted);border-top:1px solid rgba(245,239,230,.15)}
+
+@media (max-width:900px){
+  .hero-top{grid-template-columns:1fr}
+  .nav ul{display:none}
+  .posters{grid-template-columns:repeat(2,1fr)}
+  .hard-in,.ticket-in{grid-template-columns:1fr}
+  .hall{padding:18px 12px 96px}
+  .seat{width:16px;height:15px}.seat.aisle{margin-right:8px}
+  .hold-pill{position:static;margin:0 0 14px;justify-content:center}
+  .checkout{left:12px;right:12px;bottom:12px;flex-direction:column;gap:10px;align-items:stretch;text-align:center}
+}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <nav class="nav" aria-label="Main">
+    <a class="logo" href="#"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="8" fill="#2A0B1E"/><g fill="#F5EFE6"><rect x="10" y="30" width="12" height="16" rx="3"/><rect x="41" y="30" width="12" height="16" rx="3"/></g><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#F5EFE6" opacity=".35"/></svg>Frontrow</a>
+    <ul><li><a href="#shows">Now showing</a></li><li><a href="#how">How holds work</a></li><li><a href="#organisers">For organisers</a></li></ul>
+    <a class="btn btn-line" href="#">My tickets</a>
+  </nav>
+</header>
+
+<main>
+<section class="wrap hero">
+  <div class="hero-top">
+    <h1>The seat you pick<br>is <span>yours</span> for<br>ten minutes</h1>
+    <div>
+      <p class="lede">Choose seats on a live map. The moment you tap one, it's held for you and greys out for everyone else — <strong>no double bookings, no "sorry, that's gone" at checkout.</strong></p>
+      <div class="hero-actions"><a class="btn btn-red" href="#shows">Book seats</a><a class="btn btn-line" href="#how">See how holds work</a></div>
+    </div>
+  </div>
+
+  <div class="hall" aria-label="Live seat map example">
+    <div class="hold-pill">Held for you <b>09:41</b></div>
+    <div class="screen"></div>
+    <div class="screen-label">Screen</div>
+    <div class="rows">
+      <div class="row"><span class="lbl">A</span><i class="seat sold"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat aisle sold"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat aisle sold"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat sold"></i></div>
+      <div class="row"><span class="lbl">B</span><i class="seat sold"></i><i class="seat sold"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat held h1"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat sold"></i><i class="seat sold"></i><i class="seat sold"></i></div>
+      <div class="row"><span class="lbl">C</span><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat held h2"></i><i class="seat held h3"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat sold"></i><i class="seat"></i><i class="seat"></i></div>
+      <div class="row"><span class="lbl">D</span><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat mine"></i><i class="seat mine"></i><i class="seat"></i><i class="seat"></i><i class="seat held h4"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i></div>
+      <div class="row"><span class="lbl">E</span><i class="seat"></i><i class="seat held h5"></i><i class="seat held h6"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i></div>
+      <div class="row"><span class="lbl">F</span><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat held h7"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i></div>
+      <div class="row"><span class="lbl">G</span><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i><i class="seat aisle"></i><i class="seat"></i><i class="seat"></i><i class="seat"></i></div>
+    </div>
+    <div class="legend"><span><i></i> Available</span><span><i class="a"></i> Held by someone</span><span><i class="m"></i> Yours</span><span><i class="s"></i> Sold</span></div>
+    <div class="checkout"><span class="sum"><b>D6, D7</b> 2 × ₹350 · Recliner</span><a class="btn btn-red" href="#">Pay ₹700</a></div>
+  </div>
+</section>
+
+<section class="wrap shows" id="shows">
+  <h2>Now showing</h2>
+  <p class="sub">Films and live shows, one seat map each. The number on the poster is how full it is right now.</p>
+  <div class="posters">
+    <a class="poster p1" href="#"><span class="fill">92% full</span><h3>Kantara 2</h3><p class="when">Fri 7:30 PM · Screen 1</p></a>
+    <a class="poster p2" href="#"><span class="fill">61% full</span><h3>Dune: Part Three</h3><p class="when">Sat 9:00 PM · IMAX</p></a>
+    <a class="poster p3" href="#"><span class="fill">38% full</span><h3>Prateek Kuhad live</h3><p class="when">Sun 8:00 PM · Arena</p></a>
+    <a class="poster p4" href="#"><span class="fill">14% full</span><h3>Zakir Khan</h3><p class="when">Thu 8:30 PM · Hall B</p></a>
+  </div>
+</section>
+
+<section class="hard" id="how">
+  <div class="wrap hard-in">
+    <div>
+      <h2>Two people, one seat, same second</h2>
+      <p>That's the problem every ticketing site quietly gets wrong. Frontrow puts a timed hold on the seat the instant you tap it, and only one hold can ever win. Here's what happens under the hood when you and someone else go for D6 at once.</p>
+    </div>
+    <div class="timeline">
+      <div class="tl"><div class="t">0.000 s</div><div class="e">You tap D6</div><div class="d">A hold key for D6 is written with a 10-minute expiry. Yours is first, so it succeeds.</div></div>
+      <div class="tl"><div class="t">0.004 s</div><div class="e">Someone else taps D6</div><div class="d">Their hold write finds the key already exists. They see "just taken" and pick another seat.</div></div>
+      <div class="tl"><div class="t">0.020 s</div><div class="e">Everyone's map updates</div><div class="d">D6 turns amber for all viewers of this show — no refresh needed.</div></div>
+      <div class="tl"><div class="t">4 min later</div><div class="e">You pay</div><div class="d">Payment confirmed, the seat is written as sold inside a database transaction, and your ticket is issued.</div></div>
+      <div class="tl"><div class="t">If you didn't pay</div><div class="e">The hold expires</div><div class="d">D6 goes back to available for everyone within a second. Nothing is lost.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap ticket-sec" id="organisers">
+  <div class="ticket-in">
+    <div class="ticket" aria-label="Example ticket">
+      <div class="tk-main">
+        <div class="film">Kantara 2</div>
+        <div class="meta"><span>Seats<b>D6, D7</b></span><span>Show<b>Fri 7:30 PM</b></span><span>Screen<b>1 · Recliner</b></span></div>
+      </div>
+      <div class="tk-stub"><div class="qr" aria-hidden="true">
+        <i></i><i></i><i></i><i class="o"></i><i></i><i class="o"></i><i></i><i></i>
+        <i></i><i class="o"></i><i></i><i class="o"></i><i></i><i class="o"></i><i class="o"></i><i></i>
+        <i></i><i class="o"></i><i></i><i></i><i class="o"></i><i></i><i class="o"></i><i></i>
+        <i></i><i></i><i></i><i class="o"></i><i></i><i></i><i></i><i></i>
+        <i class="o"></i><i></i><i class="o"></i><i></i><i class="o"></i><i></i><i class="o"></i><i class="o"></i>
+        <i></i><i></i><i></i><i class="o"></i><i></i><i class="o"></i><i></i><i></i>
+        <i></i><i class="o"></i><i></i><i></i><i class="o"></i><i></i><i class="o"></i><i></i>
+        <i></i><i></i><i></i><i class="o"></i><i></i><i></i><i></i><i class="o"></i>
+      </div></div>
+    </div>
+    <div>
+      <h2>A ticket that can't be faked, and a dashboard that shows every seat</h2>
+      <p>Tickets carry a signed QR that's checked at the door. Organisers create shows from venue templates, set prices per section, and watch sales fill in seat by seat.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap cta">
+  <h2>Grab the good seats</h2>
+  <p>Open the map, tap a seat, and it's yours while you pay.</p>
+  <a class="btn btn-red" href="#shows">Book seats</a>
+</section>
+</main>
+
+<footer class="wrap foot">
+  <span>Frontrow · a portfolio project by Viraj Domadia</span>
+  <span>frontrow.virajdomadia.com</span>
+</footer>
+</body>
+</html>
