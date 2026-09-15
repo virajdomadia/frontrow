@@ -39,7 +39,8 @@ A venue has a **template** and **knobs**; the API generates `seats` rows once at
 Tier per section; price per (showtime, tier). Seat ids are stable UUIDs; the map keys on them.
 
 ## 3. The seat map (web)
-- One `<SeatMap>` component: props `layout`, `state` (sold/held/mine + expiries), `selection`, `onToggle`. Renders **SVG** — `<g>` per section, `<rect rx>` per seat (fast up to ~2k nodes; the arena caps at ~1,500). Seat state is a CSS class, so state changes never re-render geometry.
+- `seat-map/core.ts` is pure TypeScript with no DOM or React: layout → seat positions, hit-test (point → seat id), `SeatState` + `SeatDiff` merge, selection rules (max 10). Web and the v4 app both render it; only the renderer differs.
+- One `<SeatMap>` component over the core: props `layout`, `state` (sold/held/mine + expiries), `selection`, `onToggle`. Renders **SVG** — `<g>` per section, `<rect rx>` per seat (fast up to ~2k nodes; the arena caps at ~1,500). Seat state is a CSS class, so state changes never re-render geometry.
 - Arena: overview shows section polygons with a fill bar; clicking a section animates the `viewBox` to that wedge. Pan/zoom via pointer events + wheel; pinch on touch. Grid/auditorium fit to width with no zoom needed.
 - Keyboard: roving `tabindex` across seats within the focused section; arrows move by row/seat; Enter toggles. A visually-hidden `<ul aria-live>` announces selection and conflicts.
 - Countdown: a single `requestAnimationFrame` clock driving CSS variables (`--t`) on held seats and the footer; tab title shows `mm:ss`.
@@ -131,7 +132,7 @@ Events list and event pages: server-rendered, `Cache-Control: s-maxage=60` on th
 |---|---|---|
 | Framework | **Expo SDK (React Native, TypeScript), Expo Router** in `mobile/` next to `web/` and `api/` | One codebase for iOS + Android; React knowledge carries over; no Swift/Kotlin |
 | API client | Same `openapi.json` → generated types (`mobile/src/lib/api-types.ts`); `fetch` with `Authorization: Bearer` | Zero duplicated contract |
-| Auth | `POST /auth/token` returns an opaque bearer token (row in `sessions` with `kind='mobile'`, 90-day expiry); stored in `expo-secure-store` | Cookies don't fit native; same sessions table |
+| Auth | `POST /auth/token` (shipped in v1, F4) returns an opaque bearer token (row in `sessions` with `kind='mobile'`, 90-day expiry); stored in `expo-secure-store` | Cookies don't fit native; same sessions table |
 | Seat map | `react-native-svg` rendering the same `Layout` JSON; pinch/pan via `react-native-gesture-handler` + `reanimated`; seat state via polling (SSE via `react-native-sse` once v2 exists) | Same geometry as web, native gestures |
 | Payments | `react-native-razorpay` (Checkout SDK); order / verify / webhook unchanged | |
 | Wallet | `expo-sqlite` cache of the user's tickets + QR tokens; `expo-brightness` on the QR screen; `expo-calendar` | Offline is the reason a native app exists here |

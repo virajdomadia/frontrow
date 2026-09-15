@@ -3,7 +3,7 @@
 **Status:** v1 · lifecycle steps 1–7 complete (2026-09-15) — see [docs/](docs/) · next: step 8 Project Setup (= milestone 1.0)
 **Name:** Frontrow · *pick your seat, live*
 **URL:** https://frontrow.virajdomadia.com (landing live at https://frontrow-viraj.vercel.app until DNS)
-**Slot:** #2 · Budget ~53 h (v1 18 · v2 10 · v3 10 · v4 15) · Build second
+**Slot:** #2 · Budget ~52 h (v1 18 · v2 10 · v3 10 · v4 14) · Build second
 
 ## One-liner
 BookMyShow-style ticketing for Bengaluru: pick seats on a live map, they're held for you for 10 minutes and grey out for everyone else, pay with Razorpay, get a QR ticket.
@@ -41,7 +41,7 @@ Every project is cut base → mid → advanced (rule set 2026-09-15); Frontrow a
 | **v1 Box office** (base) | Browse movies & concerts, event page, showtimes, interactive seat map from templates, atomic 10-min Redis holds with countdown, Razorpay checkout, QR ticket, my tickets, customer auth. Organiser: sign up, venue from template, events, showtimes, price tiers, bookings list. Seat state polled every 5 s | Concurrency-safe holds, transactions, idempotent payments — a real ticketing site | 18 |
 | **v2 Live hall** (mid) | Realtime seat state over SSE (the two-tab wow, expiry release ≤ 1 s), live sales dashboard (revenue, occupancy per show), check-in page that validates the QR, ticket email | Realtime on serverless, the demo moment | 10 |
 | **v3 Full house** (advanced) | Waitlist for sold-out showtimes (auto-offer when a hold lapses), "best available" auto-pick, dynamic pricing that rises with occupancy, seat-view preview, ticket transfer to a friend, organiser seat-popularity heatmap | Features no template ticketing site has | 10 |
-| **v4 In your pocket** (mobile app) | Native iOS/Android app on Expo (React Native, TypeScript) against the same API: browse, seat map with pinch/pan, holds, Razorpay, an offline ticket wallet with QR, push notifications (hold expiring, waitlist offer), organiser check-in with the camera. Installable Android build + Expo Go for iOS | The API is a real product core; one more platform, zero new backend logic | 15 |
+| **v4 In your pocket** (mobile app) | Native iOS/Android app on Expo (React Native, TypeScript) against the same API: browse, seat map with pinch/pan, holds, Razorpay, an offline ticket wallet with QR, push notifications (hold expiring, waitlist offer), organiser check-in with the camera. Installable Android build + Expo Go for iOS | The API is a real product core; one more platform, zero new backend logic | 14 |
 
 ### 4. The engine: Redis holds + Postgres guard + SSE
 - **Holds** live only in Redis (Upstash): one Lua script takes all requested seats or none (`SET NX EX 600` per seat + `INCR` a per-showtime version counter); a conflict returns the seats that were taken.

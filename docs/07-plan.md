@@ -1,7 +1,7 @@
 # Frontrow — Development Plan
 
 **Lifecycle step:** 7 of 17 · **Written:** 2026-09-15 · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
-**Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h · v4 ≈ 15 h. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
+**Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h · v4 ≈ 14 h. v1 carries two small app-readiness items (bearer tokens in F4, DOM-free seat-map core in F1) so v4 is a second renderer, not a rewrite. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
 
 **Lean rules in force** (2026-09-15): setup is the minimum to deploy both apps with plain CI; no observability, contract gates, e2e workflows or tracker updates per PR; review findings fixed on the same branch; tests only from 04 §11. Hours saved go to the seat map, motion and content.
 
@@ -25,14 +25,14 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 ### Milestone 1.1 — Seat map + holds (≈ 6 h) 🟢 — the project's core
 | # | Part | Who | web/ | api/ | Est. | Done when |
 |---|---|---|---|---|---|---|
-| F1 | **Seat map renders all three templates** | 🟢 | `components/seat-map/` SVG from `Layout`; tier legend + prices; sold/held/mine classes; arena overview → wedge zoom (`viewbox.ts`), pan/zoom, pinch; keyboard roving + SR list; sticky footer with total; **the chosen motion signature (load moment)** | `GET /showtimes/{id}`, `/venues/{id}/layout`, `GET /showtimes/{id}/seats` (sold from Postgres, held from Redis hash) | 2.5 h | All three seeded venues render at 390 px and 1440 px; states from the API show correctly; reduced-motion honoured |
+| F1 | **Seat map renders all three templates** | 🟢 | `components/seat-map/core.ts` — pure TS, no DOM: layout → positions, hit-test (point → seat id), `SeatState` + diff merge (v4's React Native map reuses it unchanged); `<SeatMap>` renders it as SVG from `Layout`; tier legend + prices; sold/held/mine classes; arena overview → wedge zoom (`viewbox.ts`), pan/zoom, pinch; keyboard roving + SR list; sticky footer with total; **the chosen motion signature (load moment)** | `GET /showtimes/{id}`, `/venues/{id}/layout`, `GET /showtimes/{id}/seats` (sold from Postgres, held from Redis hash) | 2.5 h | All three seeded venues render at 390 px and 1440 px; states from the API show correctly; reduced-motion honoured |
 | F2 | **Hold engine** | ⚪ | `useSeatState` polling 5 s; tap → `POST /holds` with full selection; 409 toast + drop seat; deselect → `DELETE`; countdown (rAF clock, tab title, **hold-moment motion**) | `services/holds.py` Lua acquire/release + `holds:{st}` hash + version; `fr_sid` cookie; rate limit; **tests:** concurrent race, all-or-none, expiry | 2.5 h | Two tabs (5 s poll) can't both hold F7; tests green in CI |
 | F3 | **Fill + polish** | 🟢 | Filling-fast badge uses held+sold; empty/sold-out states on S4; skeleton loading; error states (Redis down → "try again") | `HLEN` merge into fill | 1 h | Sold-out showtime disabled on S3 and explained on S4 |
 
-### Milestone 1.2 — Pay + tickets (≈ 4.5 h) 🟢
+### Milestone 1.2 — Pay + tickets (≈ 4.75 h) 🟢
 | # | Part | Who | web/ | api/ | Est. | Done when |
 |---|---|---|---|---|---|---|
-| F4 | **Auth** | ⚪ | S9 sign-in/up with role picker; inline sign-in on checkout; demo buttons on landing | `/auth/*`, sessions, argon2, `fr_sid` adoption; `/auth/demo` | 1 h | Demo customer signs in from landing in one click; organiser routes 403 for customers |
+| F4 | **Auth** | ⚪ | S9 sign-in/up with role picker; inline sign-in on checkout; demo buttons on landing | `/auth/*`, sessions (`kind` web\|mobile), argon2, `fr_sid` adoption; `/auth/demo`; **`POST/DELETE /auth/token`** bearer flow so v4 needs no auth work | 1.25 h | Demo customer signs in from landing in one click; organiser routes 403 for customers |
 | F5 | **Checkout + Razorpay** | 🟢 | S5 checkout (seats, tiers, fee, total, countdown); Razorpay modal; `verify` fast path; "confirming…" poll; S8 refunded state | `POST /orders` (server totals), `GET /orders/{id}`, `POST /orders/{id}/verify`, `POST /webhooks/razorpay` (HMAC, dedupe, confirm tx, paid-after-expiry refund, `payment.failed`); lazy expiry; **tests:** signature+replay, confirm unique, paid-after-expiry ×2, total | 2.5 h | Test-mode payment produces tickets; replaying the webhook does nothing; both refund branches tested |
 | F6 | **Tickets** | 🟢 | S6 ticket page with QR per seat + calendar link (**confirm-moment motion if chosen**); S7 my tickets upcoming/past | `GET /tickets/{order_id}`, `GET /my/tickets`, token signing | 1 h | QR decodes to a token the API verifies; other user's URL → 404 |
 
@@ -42,7 +42,7 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | F7 | **Venues + events + showtimes** | 🔴 | S10 template picker with knobs and live layout preview (reuses `<SeatMap>`); S11 event form + list; S12 showtime form with tier prices, cancel guard | `/organiser/venues|events|showtimes` CRUD, ownership checks, slug, `has_sales` guard | 2 h | New organiser: sign-up → bookable showtime in < 3 min |
 | F8 | **Bookings + v1 close** | 🔴 | S13 bookings list + CSV; README "how the hold engine works" with diagram; `docs/12-security-performance.md` one-page checklist + Lighthouse numbers | `/organiser/showtimes/{id}/bookings`; security list from 05 §7 walked | 1 h | v1 tagged; portfolio case-study entry drafted |
 
-**v1 total ≈ 18 h**
+**v1 total ≈ 18.25 h**
 
 ---
 
@@ -82,12 +82,12 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 
 ## v4 — In your pocket (≈ 15 h) — Expo app in `mobile/`
 
-### Milestone 4.0 — App browses and books (≈ 8 h)
+### Milestone 4.0 — App browses and books (≈ 6.75 h)
 | # | Part | mobile/ | api/ | Est. | Done when |
 |---|---|---|---|---|---|
-| M1 | **Shell + auth** | Expo Router tabs, brand tokens/splash/icon, sign-in/up/demo, SecureStore token, generated API types | `POST/DELETE /auth/token`, `sessions.kind` | 2 h | Demo login works on a phone against the production API |
+| M1 | **Shell + auth** | Expo Router tabs, brand tokens/splash/icon, sign-in/up/demo, SecureStore token, generated API types | — (token flow shipped in F4) | 1.5 h | Demo login works on a phone against the production API |
 | M2 | **Shows + event page** | Lists, filters, event page, showtimes — same endpoints | — | 1.5 h | Parity with S2/S3 |
-| M3 | **Seat map + holds** | `react-native-svg` map from `Layout`, pinch/pan, tap → hold, countdown header, polling (SSE if v2 shipped); Jest hit-test | — | 3 h | Hold in app greys the seat on web ≤ 1 s |
+| M3 | **Seat map + holds** | `react-native-svg` renderer over the shared `seat-map/core.ts`, pinch/pan, tap → hold, countdown header, polling (SSE if v2 shipped) | — | 2.25 h | Hold in app greys the seat on web ≤ 1 s |
 | M4 | **Pay + tickets** | Razorpay RN SDK, order poll, ticket screen with QR | — | 1.5 h | Test-mode payment → ticket in app |
 
 ### Milestone 4.1 — The native reasons (≈ 7 h)
@@ -98,4 +98,4 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | M7 | **Organiser scanner** | Scan tab: camera, haptics, running count | (uses v2 `POST /checkin`) | 1.5 h | 20 scans/min; duplicate → "already checked in" |
 | M8 | **Ship** | EAS Android build, Expo Go link, landing "Get the app" block with QR, README GIF | — | 1 h | Reviewer installs from the landing page in < 1 min |
 
-**Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 53 h.
+**Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 52 h.
