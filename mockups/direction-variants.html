@@ -74,7 +74,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .tierlist div{display:flex;justify-content:space-between;align-items:center;font-size:15px}
 .tierlist span i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;vertical-align:-1px}
 .picks{display:flex;flex-wrap:wrap;gap:6px}
-.pick{font-family:var(--cond);font-weight:700;font-size:17px;padding:4px 9px;border-radius:5px;background:var(--red);color:#fff;letter-spacing:.04em}
+.pick{font-family:var(--cond);font-weight:700;font-size:17px;padding:6px 11px;border-radius:5px;background:var(--red);color:#fff;letter-spacing:.04em}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;border-radius:6px;font-family:var(--cond);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.05em;border:2px solid transparent}
 .btn-red{background:var(--red);color:#fff}
 .btn-red:hover{background:#d12f3c}
@@ -151,7 +151,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .vB .stub .head::before{left:-11px}.vB .stub .head::after{right:-11px}
 .vB .stub .head h3{font-size:34px;font-weight:800}
 .vB .stub .head p{color:#5A3A50;font-size:14px;font-weight:500}
-.vB .stub .head .tag{position:absolute;top:22px;right:24px;font:800 14px var(--cond);letter-spacing:.14em;color:var(--red);border:2px solid var(--red);padding:3px 8px;border-radius:4px;transform:rotate(-6deg)}
+.vB .stub .head .tag{position:absolute;top:22px;right:24px;font:800 14px var(--cond);letter-spacing:.14em;color:#B8232F;border:2px solid #B8232F;padding:6px 10px;border-radius:4px;transform:rotate(-6deg)}
 .vB .stub .mid{padding:18px 24px;display:grid;gap:16px;flex:1;align-content:start}
 .vB .kv{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .vB .kv div{font-size:13px;color:#5A3A50} .vB .kv b{display:block;font:700 22px var(--cond);color:var(--ink);letter-spacing:.02em}
@@ -186,7 +186,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .vB .syn{font-size:14px;color:#5A3A50}
 .vB .day{border-color:rgba(42,11,30,.25);color:#5A3A50} .vB .day.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .vB .venue{border-top:1px solid rgba(42,11,30,.15)} .vB .venue small{color:#6E5468}
-.vB .tm{border-color:rgba(42,11,30,.3);background:#fff} .vB .tm span{color:#5A3A50} .vB .tm.hot{border-color:var(--red)} .vB .tm.hot span{color:var(--red)}
+.vB .tm{border-color:rgba(42,11,30,.3);background:#fff} .vB .tm span{color:#5A3A50} .vB .tm.hot{border-color:var(--red)} .vB .tm.hot span{color:#B8232F}
 
 /* =================== C · BLUEPRINT =================== */
 .vC .frame{background:#1E0816;
@@ -211,7 +211,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .vC .spec{display:grid;grid-template-columns:auto 1fr;gap:4px 14px}
 .vC .spec span{color:var(--muted-2)} .vC .spec b{color:var(--screen);font-weight:500}
 .vC .fuse{position:relative;height:4px;background:rgba(245,239,230,.12);border-radius:2px;margin-top:10px}
-.vC .fuse i{position:absolute;left:0;top:0;bottom:0;background:var(--red);width:calc(var(--t,1) * 100%);transition:width 1s linear}
+.vC .fuse i{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--red);transform:scaleX(var(--t,1));transform-origin:left;transition:transform 1s linear}
 .vC .fuse i::after{content:"";position:absolute;right:-5px;top:-4px;width:12px;height:12px;border-radius:50%;background:var(--amber);box-shadow:0 0 12px 3px rgba(244,162,97,.7)}
 .vC .fuse-l{display:flex;justify-content:space-between;margin-top:8px}
 .vC .fuse-l b{color:var(--screen);font-weight:500}
@@ -251,12 +251,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .vD .rail{position:absolute;right:0;top:0;bottom:0;width:340px;z-index:4;background:linear-gradient(90deg,rgba(15,2,9,0),rgba(15,2,9,.85) 18%);padding:110px 26px 26px;display:flex;flex-direction:column;gap:20px}
 .vD .rail h3{font-size:13px;letter-spacing:.14em;color:var(--muted-2);font-family:var(--sans);font-weight:600;margin-bottom:8px}
 .vD .view{border-radius:8px;overflow:hidden;position:relative;height:120px;background:url(img/crowd-lights.jpg) center/cover}
-.vD .view span{position:absolute;left:10px;bottom:8px;font:700 15px var(--cond);letter-spacing:.06em;background:rgba(15,2,9,.7);padding:3px 8px;border-radius:4px}
+.vD .view span{position:absolute;left:10px;bottom:8px;font:700 15px var(--cond);letter-spacing:.06em;background:rgba(15,2,9,.7);padding:6px 10px;border-radius:4px}
 .vD .timer{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
 .vD .timer b{font:800 46px/1 var(--cond)}
 .vD .timer small{color:var(--muted);font-size:13px}
 .vD .bar{height:6px;border-radius:3px;background:rgba(245,239,230,.12);overflow:hidden}
-.vD .bar i{display:block;height:100%;width:calc(var(--t,1) * 100%);background:linear-gradient(90deg,var(--red),var(--amber));transition:width 1s linear}
+.vD .bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--red),var(--amber));transform:scaleX(var(--t,1));transform-origin:left;transition:transform 1s linear}
 .vD .foot{margin-top:auto;display:grid;gap:12px}
 .vD .foot .tot{display:flex;justify-content:space-between;align-items:baseline}
 .vD .foot .tot b{font:800 36px/1 var(--cond)}
