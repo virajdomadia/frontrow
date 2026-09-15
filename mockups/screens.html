@@ -1,0 +1,486 @@
+<title>Frontrow Screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --plum:#2A0B1E; --plum-2:#3A1230; --plum-3:#4A1A3E; --screen:#F5EFE6; --red:#E63946; --red-dark:#B8232F;
+  --amber:#F4A261; --muted:#C9B3C1; --muted-2:#AE96A6; --held:#6B5566; --sold:#3A1230;
+  --classic:#8FB8DE; --prime:#E9C46A; --recliner:#C77DFF;
+  --paper:#F5EFE6; --paper-2:#EADFD0; --ink:#2A0B1E; --ink-2:#5A3A50; --ink-3:#6E5468;
+  --cond:'Barlow Condensed',Impact,'Arial Narrow',sans-serif; --sans:'Barlow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;background:var(--plum);color:var(--screen);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-inline:16px;padding-block:0 80px}
+h1,h2,h3,h4{font-family:var(--cond);text-transform:uppercase;letter-spacing:.01em;line-height:.95;margin:0;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select{font:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+::selection{background:var(--amber);color:var(--plum)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- page chrome ---------- */
+.top{max-width:1500px;margin:0 auto;padding-block:22px 14px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:end;justify-content:space-between}
+.top h1{font-size:clamp(34px,5vw,56px);font-weight:800}
+.top h1 span{color:var(--red)}
+.top p{color:var(--muted);max-width:64ch}
+.layout{max-width:1500px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:1100px){.layout{grid-template-columns:200px minmax(0,1fr)}}
+.index{position:sticky;top:16px;align-self:start;display:none;flex-direction:column;gap:2px;font-size:14px}
+@media(min-width:1100px){.index{display:flex}}
+.index a{text-decoration:none;color:var(--muted);padding:6px 10px;border-radius:5px;display:flex;gap:8px}
+.index a b{font-family:var(--cond);color:var(--red);font-size:16px;min-width:30px}
+.index a:hover{background:var(--plum-2);color:var(--screen)}
+.index .grp{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);padding:14px 10px 4px}
+.screens{display:grid;gap:44px;min-width:0}
+.shot{display:grid;gap:10px;min-width:0}
+.shot header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;border-top:1px solid rgba(245,239,230,.12);padding-top:14px}
+.shot header h2{font-size:28px}
+.shot header h2 b{color:var(--red);margin-right:8px}
+.shot header p{color:var(--muted);font-size:14px;max-width:80ch}
+.shot header code{font:500 13px var(--mono);color:var(--muted-2)}
+.stage{position:relative;width:100%}
+.frame{width:1280px;transform-origin:0 0;position:absolute;left:0;top:0;overflow:hidden;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,.5);background:var(--plum);isolation:isolate}
+.frame.h820{height:820px} .frame.h900{height:900px} .frame.h960{height:960px} .frame.h760{height:760px}
+.phones{display:flex;flex-wrap:wrap;gap:28px;justify-content:flex-start}
+.phone{width:390px;max-width:100%;height:800px;border-radius:38px;border:8px solid #120410;background:#000;overflow:hidden;position:relative;box-shadow:0 30px 60px rgba(0,0,0,.5);flex:0 0 auto}
+.phone .scr{position:absolute;inset:0;overflow:hidden;background:var(--plum);color:var(--screen)}
+.phone .scr.paper{background:var(--paper);color:var(--ink)}
+.phone .notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:110px;height:28px;border-radius:16px;background:#000;z-index:5}
+.phone .cap{position:absolute;left:0;right:0;bottom:-30px;text-align:center}
+.cap{font:500 13px var(--sans);color:var(--muted-2);text-transform:uppercase;letter-spacing:.08em}
+
+/* ---------- product primitives (direction B) ---------- */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid rgba(245,239,230,.1);font-family:var(--cond)}
+.logo{display:flex;align-items:center;gap:10px;font-size:26px;font-weight:700;letter-spacing:.03em;text-decoration:none}
+.logo svg{width:30px;height:30px}
+.nav ul{display:flex;gap:24px;list-style:none;margin:0;padding:0;font:500 15px var(--sans);color:var(--muted)}
+.nav ul .on{color:var(--screen);font-weight:600}
+.nav .user{display:flex;align-items:center;gap:10px;font:500 14px var(--sans);color:var(--muted)}
+.nav .user i{width:30px;height:30px;border-radius:50%;background:var(--plum-3);display:inline-grid;place-items:center;font:700 14px var(--cond);color:var(--screen)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:6px;font-family:var(--cond);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.05em;border:2px solid transparent;text-decoration:none;white-space:nowrap}
+.btn-red{background:var(--red);color:#fff} .btn-red:hover{background:#d12f3c}
+.btn-line{border-color:rgba(245,239,230,.35);color:var(--screen)} .btn-line:hover{border-color:var(--screen)}
+.btn-ink{background:var(--ink);color:var(--paper)}
+.btn-paper{background:var(--paper);color:var(--ink)}
+.btn-sm{padding:8px 14px;font-size:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:6px;border:1px solid rgba(245,239,230,.2);font:500 14px var(--sans);color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--screen);color:var(--plum);border-color:var(--screen);font-weight:600}
+.chip.sel{padding-right:8px} .chip.sel::after{content:"▾";font-size:11px;opacity:.7}
+.badge{display:inline-block;font:600 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:4px}
+.badge.fill{background:rgba(244,162,97,.18);color:var(--amber)}
+.badge.ok{background:rgba(143,184,222,.16);color:var(--classic)}
+.badge.out{background:rgba(245,239,230,.1);color:var(--muted-2)}
+.badge.movie{background:rgba(233,196,106,.16);color:var(--prime)}
+.badge.concert{background:rgba(199,125,255,.18);color:var(--recliner)}
+.badge.paid{background:rgba(143,184,222,.2);color:#1F4E79} .badge.pend{background:rgba(244,162,97,.25);color:#7A3B00} .badge.ref{background:rgba(230,57,70,.15);color:var(--red-dark)}
+.pick{font-family:var(--cond);font-weight:700;font-size:17px;padding:6px 11px;border-radius:5px;background:var(--ink);color:var(--paper);letter-spacing:.04em}
+.lbl{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2)}
+.paper .lbl,.paper-card .lbl{color:var(--ink-3)}
+.card{background:var(--plum-2);border-radius:10px;padding:18px 20px}
+.paper-card{background:var(--paper);color:var(--ink);border-radius:10px;padding:18px 20px}
+.field{display:grid;gap:6px}
+.field label{font:600 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2)}
+.paper .field label,.paper-card .field label{color:var(--ink-3)}
+.field .in{border:1px solid rgba(245,239,230,.22);border-radius:6px;padding:11px 12px;background:rgba(0,0,0,.15);font-size:15px;color:var(--screen);display:flex;justify-content:space-between;align-items:center}
+.paper .field .in,.paper-card .field .in{border-color:rgba(42,11,30,.25);background:#fff;color:var(--ink)}
+.field .in.ph{color:var(--muted-2)} .paper .field .in.ph,.paper-card .field .in.ph{color:#7A5F73}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);text-align:left;padding:10px 12px;border-bottom:1px solid rgba(245,239,230,.14)}
+td{padding:12px;border-bottom:1px solid rgba(245,239,230,.08);vertical-align:middle}
+td b{font:700 17px var(--cond);letter-spacing:.02em}
+.paper-card th{color:var(--ink-3);border-color:rgba(42,11,30,.2)} .paper-card td{border-color:rgba(42,11,30,.1)}
+.tiers{display:flex;gap:14px;font-size:13px;color:var(--muted)} .tiers i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+
+/* seat map */
+.map{width:100%;height:100%;display:block}
+.map text{font-family:var(--cond);font-size:13px;fill:var(--muted-2);letter-spacing:.06em;text-anchor:middle;dominant-baseline:central}
+.seat{rx:3;cursor:pointer;transition:fill .18s,transform .18s;transform-box:fill-box;transform-origin:center}
+.seat.t-classic{fill:var(--classic)} .seat.t-prime{fill:var(--prime)} .seat.t-recliner{fill:var(--recliner)}
+.seat:hover{transform:scale(1.14)}
+.seat.held{fill:var(--held) !important;cursor:not-allowed}
+.seat.sold{fill:var(--sold) !important;stroke:rgba(245,239,230,.14);stroke-width:1;cursor:not-allowed}
+.seat.mine{fill:var(--red) !important;filter:drop-shadow(0 0 8px rgba(230,57,70,.75))}
+.screen-arc{fill:none;stroke:var(--screen);stroke-width:3;opacity:.85}
+.aisle{stroke:rgba(245,239,230,.08);stroke-dasharray:2 6}
+.row-g{animation:popIn .4s ease-out both;animation-delay:calc(var(--i) * 40ms)}
+@keyframes popIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+
+/* stub */
+.stub{position:relative;font-family:var(--sans);color:var(--ink)}
+.paper-stub{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;background:var(--paper);border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.stub .head{padding:22px 24px 16px;border-bottom:2px dashed rgba(42,11,30,.25);position:relative}
+.stub .head::before,.stub .head::after{content:"";position:absolute;bottom:-11px;width:22px;height:22px;border-radius:50%;background:var(--plum)}
+.stub .head::before{left:-11px}.stub .head::after{right:-11px}
+.stub .head h3{font-size:34px;font-weight:800}
+.stub .head p{color:var(--ink-2);font-size:14px;font-weight:500}
+.stub .tag{position:absolute;top:22px;right:24px;font:800 14px var(--cond);letter-spacing:.14em;color:var(--red-dark);border:2px solid var(--red-dark);padding:6px 10px;border-radius:4px;transform:rotate(-6deg)}
+.stub .mid{padding:18px 24px;display:grid;gap:16px;flex:1;align-content:start}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kv div{font-size:13px;color:var(--ink-2)} .kv b{display:block;font:700 22px var(--cond);color:var(--ink);letter-spacing:.02em}
+.picks{display:flex;flex-wrap:wrap;gap:6px}
+.clock{display:flex;align-items:baseline;justify-content:space-between;background:var(--paper-2);border-radius:8px;padding:12px 14px}
+.clock b{font:600 30px/1 var(--mono);color:var(--red-dark)}
+.clock span{font-size:12px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.08em}
+.lines{display:grid;gap:6px;font-size:14px;color:var(--ink-2)}
+.lines div{display:flex;justify-content:space-between}
+.lines .tot{border-top:1px solid rgba(42,11,30,.2);padding-top:8px;color:var(--ink);font-weight:600;font-size:17px;align-items:baseline}
+.lines .tot b{font:800 30px/1 var(--cond)}
+.stub .tail{padding:0 24px 24px;margin-top:auto} .stub .tail .btn{width:100%}
+
+/* ticket (paper) */
+.ticket{background:var(--paper);color:var(--ink);border-radius:12px;overflow:hidden;position:relative}
+.ticket .tk-head{background:var(--plum);color:var(--screen);padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
+.ticket .tk-head h3{font-size:30px;font-weight:800}
+.ticket .tk-head span{font:700 12px var(--cond);letter-spacing:.14em;color:var(--amber)}
+.ticket .tk-body{padding:18px 20px;display:grid;gap:14px}
+.ticket .perf{border-top:2px dashed rgba(42,11,30,.25);position:relative;margin:4px -20px}
+.ticket .perf::before,.ticket .perf::after{content:"";position:absolute;top:-12px;width:22px;height:22px;border-radius:50%;background:var(--plum)}
+.ticket .perf::before{left:-11px}.ticket .perf::after{right:-11px}
+.qr{width:140px;height:140px;border:8px solid var(--ink);border-radius:6px;background:
+  repeating-linear-gradient(90deg,var(--ink) 0 9px,transparent 9px 18px),repeating-linear-gradient(var(--ink) 0 9px,transparent 9px 18px);background-blend-mode:difference}
+.seatbig{font:800 54px/1 var(--cond);letter-spacing:.02em}
+
+/* misc B */
+.days{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.day{flex:0 0 auto;padding:8px 12px;border-radius:6px;border:1px solid rgba(245,239,230,.18);font-family:var(--cond);font-size:17px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.day.on{background:var(--screen);color:var(--plum);border-color:var(--screen)}
+.tm{border:1px solid rgba(245,239,230,.22);border-radius:6px;padding:8px 12px;min-width:92px}
+.tm b{display:block;font:700 19px var(--cond);letter-spacing:.03em}
+.tm span{display:block;font-size:11px;color:var(--muted)}
+.tm.hot{border-color:var(--amber)} .tm.hot span{color:var(--amber)}
+.tm.out{opacity:.45;text-decoration:line-through}
+.times{display:flex;gap:8px;flex-wrap:wrap}
+.ev{display:grid;grid-template-rows:auto 1fr;border-radius:10px;overflow:hidden;background:var(--plum-2);text-decoration:none;color:inherit}
+.ev img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block}
+.ev .b{padding:12px 14px;display:grid;gap:6px}
+.ev h3{font-size:22px;font-weight:700}
+.ev .m{font-size:13px;color:var(--muted)}
+.ev .f{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+.ev .f b{font:700 18px var(--cond)} .ev .f span{font-size:12px;color:var(--muted-2)}
+.side{display:grid;gap:22px}
+.hint{font-size:13px;color:var(--muted-2)}
+.paper .hint,.paper-card .hint{color:var(--ink-3)}
+.org-side{background:var(--plum-2);padding:22px 18px;display:flex;flex-direction:column;gap:4px}
+.org-side a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--muted);font-weight:500;font-size:15px}
+.org-side a.on{background:var(--plum);color:var(--screen);font-weight:600}
+.org-side a i{width:8px;height:8px;border-radius:2px;background:currentColor;opacity:.6}
+.org-side .lbl{padding:6px 12px 8px}
+.stat{background:var(--plum-2);border-radius:10px;padding:16px 18px}
+.stat span{display:block;font-size:12px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.1em}
+.stat b{font:800 34px/1.1 var(--cond)}
+.tpl{border:2px solid rgba(245,239,230,.15);border-radius:10px;padding:14px;display:grid;gap:8px;cursor:pointer}
+.tpl.on{border-color:var(--red)}
+.tpl svg{width:100%;height:70px}
+.tpl b{font:700 18px var(--cond);letter-spacing:.03em} .tpl span{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-delay:0s !important;transition-duration:.01ms !important}}
+</style>
+
+<header class="top">
+  <div><h1>Frontrow<span>.</span> Screens</h1><p>Every v1 screen from the screen index in the chosen direction, <strong>B · Box office</strong>. Desktop frames are 1280 wide (scaled to fit), phones 390. Content is the fictional Bengaluru catalogue from the seed plan.</p></div>
+  <div class="tiers"><span><i style="background:var(--classic)"></i>Classic</span><span><i style="background:var(--prime)"></i>Prime</span><span><i style="background:var(--recliner)"></i>Recliner</span><span><i style="background:var(--held)"></i>Held</span><span><i style="background:var(--sold);outline:1px solid rgba(245,239,230,.3)"></i>Sold</span><span><i style="background:var(--red)"></i>Mine</span></div>
+</header>
+
+<div class="layout">
+<nav class="index" aria-label="Screens">
+  <span class="grp">Customer</span>
+  <a href="#s1"><b>S1</b>Landing</a><a href="#s2"><b>S2</b>Events</a><a href="#s3"><b>S3</b>Event page</a><a href="#s4"><b>S4</b>Seat map</a><a href="#s5"><b>S5</b>Checkout</a><a href="#s6"><b>S6</b>Ticket</a><a href="#s7"><b>S7</b>My tickets</a><a href="#s8"><b>S8</b>Refunded</a><a href="#s9"><b>S9</b>Sign in</a>
+  <span class="grp">Organiser</span>
+  <a href="#s10"><b>S10</b>Venues</a><a href="#s11"><b>S11</b>Events</a><a href="#s12"><b>S12</b>Showtimes</a><a href="#s13"><b>S13</b>Bookings</a>
+</nav>
+<main class="screens">
+
+<!-- S1 -->
+<section class="shot" id="s1"><header><h2><b>S1</b>Landing</h2><code>/</code><p>Existing landing keeps its hero; gains a real "Now showing" strip fed from <code>GET /home</code> and the two demo logins.</p></header>
+<div class="stage"><div class="frame h820">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow</a><ul><li class="on">Now showing</li><li>Movies</li><li>Concerts</li><li>For organisers</li></ul><div style="display:flex;gap:10px"><a class="btn btn-line btn-sm" href="#">Sign in</a><a class="btn btn-red btn-sm" href="#">Book now</a></div></div>
+  <div style="padding:34px 40px 0;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:end">
+    <div><h2 style="font-size:104px;font-weight:800">Pick your <span style="color:var(--red)">seat</span>, live.</h2><p style="font-size:19px;color:var(--muted);max-width:42ch;margin-top:14px">Tap a seat and it's yours for 10 minutes — and greyed out for everyone else, instantly. Movies and concerts across Bengaluru.</p>
+      <div style="display:flex;gap:12px;margin-top:22px;flex-wrap:wrap"><a class="btn btn-red" href="#">Browse shows</a><a class="btn btn-line" href="#">How the hold works</a></div></div>
+    <div class="paper-card" style="padding:22px 24px"><div class="lbl">Try the demo</div><p style="font-size:14px;color:var(--ink-2);margin:6px 0 14px">Two accounts, no sign-up. Open the same show in two tabs to see the live hold.</p><div style="display:grid;gap:8px"><a class="btn btn-ink" href="#">Sign in as a customer</a><a class="btn btn-paper" style="border-color:rgba(42,11,30,.3)" href="#">Sign in as an organiser</a></div></div>
+  </div>
+  <div style="padding:40px 40px 0"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><h3 style="font-size:28px">Now showing · Bengaluru</h3><a href="#" style="font-size:14px;color:var(--muted)">All 8 shows →</a></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px">
+      <a class="ev" href="#"><img src="img/poster-neon.jpg" alt=""><div class="b"><h3>Neon Alley</h3><div class="m">Thriller · UA 16+</div><div class="f"><b>from ₹220</b><span>Today 7:30 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-jazz.jpg" alt=""><div class="b"><h3>Midnight Brass</h3><div class="m">Jazz · Cadence Hall</div><div class="f"><b>from ₹450</b><span>Sat 7:00 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-desert.jpg" alt=""><div class="b"><h3>The Last Dune</h3><div class="m">Adventure · U</div><div class="f"><b>from ₹220</b><span>Today 4:00 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-guitar.jpg" alt=""><div class="b"><h3>Static Bloom</h3><div class="m">Indie rock · The Yard</div><div class="f"><b>from ₹799</b><span>Sun 8:00 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-forest.jpg" alt=""><div class="b"><h3>Hollowmere</h3><div class="m">Horror · A</div><div class="f"><b>from ₹220</b><span>Today 10:15 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-drums.jpg" alt=""><div class="b"><h3>Rhythm Collective</h3><div class="m">Percussion · Cadence Hall</div><div class="f"><b>from ₹350</b><span>Fri 26 · 7:30 PM</span></div></div></a>
+    </div></div>
+</div></div></section>
+
+<!-- S2 -->
+<section class="shot" id="s2"><header><h2><b>S2</b>Events list</h2><code>/events?date=today&type=&genre=&venue=&sort=soonest</code><p>Filters live in the URL and render server-side. Cards: poster, title, type/genre, from-price, next showtime.</p></header>
+<div class="stage"><div class="frame h900">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow</a><ul><li class="on">Now showing</li><li>Movies</li><li>Concerts</li><li>For organisers</li></ul><div class="user"><i>D</i>Demo customer</div></div>
+  <div style="padding:28px 40px 0"><h2 style="font-size:56px;font-weight:800">Shows in Bengaluru</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center"><span class="chip on">Today</span><span class="chip">Tomorrow</span><span class="chip">This weekend</span><span class="chip sel">Pick a date</span><span style="width:1px;height:26px;background:rgba(245,239,230,.15);margin:0 6px"></span><span class="chip sel">All types</span><span class="chip sel">Genre</span><span class="chip sel">Venue</span><span style="margin-left:auto" class="chip sel">Sort: soonest</span></div>
+    <p class="hint" style="margin-top:12px">8 shows · 21 showtimes today</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:18px">
+      <a class="ev" href="#"><img src="img/poster-neon.jpg" alt=""><div class="b"><span class="badge movie">Movie</span><h3>Neon Alley</h3><div class="m">Thriller · UA 16+ · 2h 14m</div><div class="f"><b>from ₹220</b><span>4:15 · 7:30 · 10:40</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-desert.jpg" alt=""><div class="b"><span class="badge movie">Movie</span><h3>The Last Dune</h3><div class="m">Adventure · U · 1h 58m</div><div class="f"><b>from ₹220</b><span>1:00 · 4:00 · 7:00</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-forest.jpg" alt=""><div class="b"><span class="badge movie">Movie</span><h3>Hollowmere</h3><div class="m">Horror · A · 1h 41m</div><div class="f"><b>from ₹220</b><span>10:15 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-ocean.jpg" alt=""><div class="b"><span class="badge movie">Movie</span><h3>Undertow</h3><div class="m">Drama · UA · 2h 05m</div><div class="f"><b>from ₹220</b><span>6:00 PM <em style="color:var(--amber)">filling fast</em></span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-rooftop.jpg" alt=""><div class="b"><span class="badge movie">Movie</span><h3>Glass City</h3><div class="m">Sci-fi · UA · 2h 21m</div><div class="f"><b>from ₹220</b><span>9:15 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-jazz.jpg" alt=""><div class="b"><span class="badge concert">Concert</span><h3>Midnight Brass</h3><div class="m">Jazz · Cadence Hall</div><div class="f"><b>from ₹450</b><span>Sat 20 · 7:00 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-drums.jpg" alt=""><div class="b"><span class="badge concert">Concert</span><h3>Rhythm Collective Live</h3><div class="m">Percussion · Cadence Hall</div><div class="f"><b>from ₹350</b><span>Fri 26 · 7:30 PM</span></div></div></a>
+      <a class="ev" href="#"><img src="img/poster-guitar.jpg" alt=""><div class="b"><span class="badge concert">Concert</span><h3>Static Bloom</h3><div class="m">Indie rock · The Yard Arena</div><div class="f"><b>from ₹799</b><span>Sun 21 · 8:00 PM</span></div></div></a>
+    </div></div>
+</div></div></section>
+
+<!-- S3 -->
+<section class="shot" id="s3"><header><h2><b>S3</b>Event page</h2><code>/events/neon-alley</code><p>Showtimes grouped by day → venue with tier range and fill badge. Sold-out showtimes stay visible, disabled. JSON-LD <code>Event</code>.</p></header>
+<div class="stage"><div class="frame h900">
+  <div style="position:absolute;inset:0 0 auto 0;height:380px;background:url(img/poster-neon.jpg) center/cover"></div>
+  <div style="position:absolute;inset:0 0 auto 0;height:380px;background:linear-gradient(rgba(42,11,30,.3),rgba(42,11,30,.55) 50%,var(--plum))"></div>
+  <div class="nav" style="position:relative;border:0"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow</a><ul><li>Now showing</li><li class="on">Movies</li><li>Concerts</li><li>For organisers</li></ul><div class="user"><i>D</i>Demo customer</div></div>
+  <div style="position:relative;padding:150px 40px 0;display:grid;grid-template-columns:260px 1fr;gap:34px;align-items:end">
+    <img src="img/poster-neon.jpg" alt="" style="width:260px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;box-shadow:0 24px 60px rgba(0,0,0,.6)">
+    <div><span class="badge movie">Movie</span><h2 style="font-size:84px;font-weight:800;margin-top:8px">Neon Alley</h2><div style="display:flex;gap:10px;color:var(--muted);font-size:15px;margin-top:8px;flex-wrap:wrap"><b style="color:var(--screen)">UA 16+</b>·<span>Thriller</span>·<span>2h 14m</span>·<span>Kannada, Hindi</span>·<span>Releasing 19 Sep 2026</span></div>
+      <p style="max-width:70ch;color:var(--muted);margin-top:14px;font-size:16px">A courier who only works after dark takes one last job through the alleys of a city that never sleeps — and finds the package is looking for him.</p>
+      <p style="margin-top:10px;font-size:14px;color:var(--muted-2)"><b style="color:var(--muted)">Cast</b> Arjun Kesari · Meera Vaidya · Rohit Pillai — <b style="color:var(--muted)">Director</b> Anil Srinivas</p></div>
+  </div>
+  <div style="position:relative;padding:34px 40px 0;display:grid;grid-template-columns:1fr 320px;gap:40px">
+    <div><h3 style="font-size:28px;margin-bottom:12px">Showtimes</h3>
+      <div class="days"><span class="day on">Fri 19</span><span class="day">Sat 20</span><span class="day">Sun 21</span><span class="day">Mon 22</span><span class="day">Tue 23</span><span class="day">Wed 24</span></div>
+      <div style="display:grid;gap:14px;margin-top:16px">
+        <div class="card" style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:center"><div><b style="font:700 22px var(--cond)">Orbit Cinemas, Indiranagar</b><div class="hint">Screen 1 · 4K Dolby · 234 seats</div></div><div class="times"><div class="tm"><b>4:15 PM</b><span>₹220–560 · Available</span></div><div class="tm hot"><b>7:30 PM</b><span>₹220–560 · Filling fast</span></div><div class="tm"><b>10:40 PM</b><span>₹220–560 · Available</span></div></div></div>
+        <div class="card" style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:center"><div><b style="font:700 22px var(--cond)">Orbit Cinemas, Indiranagar</b><div class="hint">Screen 2 · 180 seats</div></div><div class="times"><div class="tm out"><b>6:00 PM</b><span>Sold out</span></div><div class="tm"><b>9:15 PM</b><span>₹200–480 · Available</span></div></div></div>
+      </div></div>
+    <div class="side"><div class="paper-card"><div class="lbl">Good to know</div><ul style="margin:8px 0 0;padding-left:18px;font-size:14px;color:var(--ink-2);display:grid;gap:6px"><li>Seats are held for <b>10 minutes</b> once you tap them</li><li>Tickets are QR codes — no printing</li><li>Convenience fee ₹30 per ticket</li><li>Max 10 seats per order</li></ul></div><div class="card"><div class="lbl">Gallery</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><img src="img/hall-cinema.jpg" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px"><img src="img/poster-rooftop.jpg" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px"></div></div></div>
+  </div>
+</div></div></section>
+
+<!-- S4 -->
+<section class="shot" id="s4"><header><h2><b>S4</b>Seat map</h2><code>/book/{showtimeId}</code><p>Direction B as chosen. Seats pop in row by row; the stub fills as you pick; countdown in mono. Phone: the map scrolls horizontally inside a fixed-height panel, the stub is a bottom sheet.</p></header>
+<div class="stage"><div class="frame h820">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow</a><div style="display:flex;gap:22px;font:600 17px var(--cond);letter-spacing:.06em;color:var(--muted-2)"><b style="color:var(--screen)"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:8px"></span>1 Seats</b><span>2 Pay</span><span>3 Ticket</span></div><div class="user"><i>D</i>Demo customer</div></div>
+  <div style="display:grid;grid-template-columns:1fr 380px;height:calc(100% - 66px)">
+    <div style="padding:10px 40px 20px;position:relative"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0 6px"><h2 style="font-size:30px">Screen 1 · Neon Alley</h2><span style="color:var(--muted);font-size:14px">Fri 19 Sep · 7:30 PM · Orbit Cinemas, Indiranagar</span></div><div data-map style="height:calc(100% - 60px)"></div>
+      <div class="tiers" style="position:absolute;left:40px;bottom:16px"><span><i style="background:var(--classic)"></i>Classic ₹220</span><span><i style="background:var(--prime)"></i>Prime ₹340</span><span><i style="background:var(--recliner)"></i>Recliner ₹560</span><span><i style="background:var(--held)"></i>Held by someone</span><span><i style="background:var(--sold);outline:1px solid rgba(245,239,230,.3)"></i>Sold</span><span><i style="background:var(--red)"></i>Yours</span></div></div>
+    <div class="stub" style="margin:24px 24px 24px 0"><div class="paper-stub">
+      <div class="head"><h3>Neon Alley</h3><p>Orbit Cinemas, Indiranagar · Screen 1</p><span class="tag">Admit</span></div>
+      <div class="mid"><div class="kv"><div>Date<b>Fri 19 Sep</b></div><div>Show<b>7:30 PM</b></div></div>
+        <div><div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">Seats</div><div class="picks"><span class="pick">G9</span><span class="pick">G10</span></div></div>
+        <div class="clock"><b class="num">09:41</b><span>hold expires</span></div>
+        <div class="lines"><div><span>2 × Prime</span><span class="num">₹680</span></div><div><span>Convenience fee</span><span class="num">₹60</span></div><div class="tot"><span>Total</span><b class="num">₹740</b></div></div></div>
+      <div class="tail"><a class="btn btn-red" href="#">Proceed to pay ₹740</a></div>
+    </div></div>
+  </div>
+</div></div>
+<div class="phones" style="margin-top:38px">
+  <div class="phone"><div class="notch"></div><div class="scr">
+    <div style="padding:52px 16px 8px;display:flex;justify-content:space-between;align-items:baseline"><div><b style="font:800 26px var(--cond)">Neon Alley</b><div class="hint">Screen 1 · Fri 19 · 7:30 PM</div></div><span class="badge fill">Filling fast</span></div>
+    <div style="height:440px;overflow:hidden;position:relative;padding:0 8px"><div data-map-phone style="width:760px;height:440px;margin-left:-190px"></div><div style="position:absolute;right:14px;bottom:10px;font-size:11px;color:var(--muted-2);background:rgba(42,11,30,.8);padding:4px 8px;border-radius:4px">← drag to pan · pinch to zoom</div></div>
+    <div class="tiers" style="padding:8px 16px;font-size:12px;gap:10px"><span><i style="background:var(--classic)"></i>₹220</span><span><i style="background:var(--prime)"></i>₹340</span><span><i style="background:var(--recliner)"></i>₹560</span><span><i style="background:var(--held)"></i>Held</span><span><i style="background:var(--red)"></i>Yours</span></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:var(--paper);color:var(--ink);border-radius:18px 18px 0 0;padding:14px 16px 18px;box-shadow:0 -12px 40px rgba(0,0,0,.4)"><div style="width:40px;height:4px;border-radius:2px;background:rgba(42,11,30,.2);margin:0 auto 12px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="picks"><span class="pick">G9</span><span class="pick">G10</span></div><b style="font:600 22px var(--mono);color:var(--red-dark)" class="num">09:41</b></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><div><div style="font-size:12px;color:var(--ink-2)">2 seats · incl. fee</div><b style="font:800 30px/1 var(--cond)" class="num">₹740</b></div><a class="btn btn-red" href="#">Pay</a></div></div>
+  </div><span class="cap">S4 · phone</span></div>
+</div></section>
+
+<!-- S5 -->
+<section class="shot" id="s5"><header><h2><b>S5</b>Checkout</h2><code>/checkout/{orderId}</code><p>Paper page. Left: the stub, still counting down. Right: inline sign-in for visitors, then the Razorpay button. After payment the right side becomes "Confirming…" and polls the order.</p></header>
+<div class="stage"><div class="frame h820" style="background:var(--paper-2)">
+  <div class="nav" style="background:var(--plum)"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow</a><div style="display:flex;gap:22px;font:600 17px var(--cond);letter-spacing:.06em;color:var(--muted-2)"><span>1 Seats</span><b style="color:var(--screen)"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:8px"></span>2 Pay</b><span>3 Ticket</span></div><div class="user"><i>D</i>Demo customer</div></div>
+  <div class="paper" style="display:grid;grid-template-columns:420px 1fr;gap:40px;padding:40px 60px;color:var(--ink)">
+    <div class="stub" style="height:600px"><div class="paper-stub" style="box-shadow:0 20px 50px rgba(42,11,30,.18)">
+      <div class="head" style="--plum:var(--paper-2)"><h3>Neon Alley</h3><p>Orbit Cinemas, Indiranagar · Screen 1</p><span class="tag">Admit</span></div>
+      <div class="mid"><div class="kv"><div>Date<b>Fri 19 Sep</b></div><div>Show<b>7:30 PM</b></div></div><div><div style="font-size:13px;color:var(--ink-2);margin-bottom:6px">Seats</div><div class="picks"><span class="pick">G9</span><span class="pick">G10</span></div></div>
+        <div class="clock"><b class="num">08:12</b><span>hold expires</span></div>
+        <div class="lines"><div><span>2 × Prime</span><span class="num">₹680</span></div><div><span>Convenience fee</span><span class="num">₹60</span></div><div class="tot"><span>Total</span><b class="num">₹740</b></div></div></div>
+      <div class="tail"><a href="#" style="font-size:13px;color:var(--ink-2)">← Change seats</a></div>
+    </div></div>
+    <div style="display:grid;gap:22px;align-content:start">
+      <div><h2 style="font-size:48px;font-weight:800">Pay ₹740</h2><p style="color:var(--ink-2);margin-top:6px">Your seats stay held while you pay. Tickets arrive on the next screen and by email.</p></div>
+      <div class="paper-card" style="background:#fff;border:1px solid rgba(42,11,30,.12);display:grid;gap:14px"><div class="lbl">Who's booking</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="field"><label>Email</label><div class="in">demo.customer@frontrow.dev</div></div><div class="field"><label>Phone</label><div class="in">+91 98450 12345</div></div></div><p class="hint">Signed in as Demo customer · <a href="#">Not you?</a></p></div>
+      <div class="paper-card" style="background:#fff;border:1px solid rgba(42,11,30,.12);display:grid;gap:14px"><div class="lbl">Payment</div><p style="font-size:14px;color:var(--ink-2)">UPI, cards, net banking and wallets via Razorpay. Test mode — use any UPI id or card <code style="font:500 13px var(--mono)">4111 1111 1111 1111</code>.</p><a class="btn btn-red" href="#" style="justify-self:start">Pay ₹740 with Razorpay</a><p class="hint">By paying you agree to the terms. Convenience fee is non-refundable unless we cancel.</p></div>
+      <div class="paper-card" style="background:var(--paper-2);display:flex;gap:14px;align-items:center"><span style="width:26px;height:26px;border-radius:50%;border:3px solid var(--red-dark);border-right-color:transparent;display:inline-block;flex:0 0 auto"></span><div><b style="font:700 18px var(--cond)">Confirming your seats…</b><div class="hint">State shown after Razorpay succeeds: we wait for the payment webhook (usually &lt; 5 s). After 20 s: "Payment received, still confirming — you can close this page, the ticket will be emailed."</div></div></div>
+    </div>
+  </div>
+</div></div></section>
+
+<!-- S6 / S7 / S8 phones -->
+<section class="shot" id="s6"><header><h2><b>S6</b>Ticket · <b style="margin-left:14px">S7</b>My tickets · <b style="margin-left:14px">S8</b>Refunded</h2><code>/tickets/{orderId} · /my-tickets · /checkout/{orderId} (refunded)</code><p>The paper ticket that tears out of the stub: one QR per seat, add-to-calendar. My tickets groups by showtime. The refunded state explains paid-after-expiry in plain words.</p></header>
+<div class="phones">
+  <div class="phone"><div class="notch"></div><div class="scr">
+    <div style="padding:54px 16px 10px;display:flex;justify-content:space-between;align-items:center"><a href="#" style="font-size:14px;color:var(--muted);text-decoration:none">← My tickets</a><span class="badge ok">Paid · #FR-2K9Q</span></div>
+    <div style="padding:0 16px"><div class="ticket"><div class="tk-head"><div><span>Frontrow · Admit one</span><h3>Neon Alley</h3></div><img src="img/poster-neon.jpg" alt="" style="width:46px;height:64px;object-fit:cover;border-radius:4px"></div>
+      <div class="tk-body"><div class="kv"><div>Venue<b style="font-size:19px">Orbit Cinemas</b><span style="font-size:12px">Indiranagar · Screen 1</span></div><div>Show<b style="font-size:19px">Fri 19 Sep</b><span style="font-size:12px">7:30 PM · doors 7:00</span></div></div>
+        <div class="perf"></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center"><div><div class="lbl">Seat 1 of 2</div><div class="seatbig">G9</div><div style="font-size:13px;color:var(--ink-2)">Prime · ₹340</div></div><div class="qr"></div></div>
+        <div class="hint">Show this QR at the door. Swipe for seat G10 →</div></div></div>
+      <div style="display:flex;gap:8px;margin-top:14px"><a class="btn btn-line btn-sm" href="#" style="flex:1">Add to calendar</a><a class="btn btn-line btn-sm" href="#" style="flex:1">Share</a></div></div>
+  </div><span class="cap">S6 · ticket</span></div>
+  <div class="phone"><div class="notch"></div><div class="scr">
+    <div style="padding:54px 16px 0"><h2 style="font-size:40px;font-weight:800">My tickets</h2><div style="display:flex;gap:8px;margin-top:12px"><span class="chip on">Upcoming · 2</span><span class="chip">Past · 5</span></div></div>
+    <div style="padding:16px;display:grid;gap:12px">
+      <div class="ticket" style="display:grid;grid-template-columns:70px 1fr;gap:12px;padding:12px;align-items:center;background:var(--paper)"><img src="img/poster-neon.jpg" alt="" style="width:70px;height:96px;object-fit:cover;border-radius:5px"><div><div class="lbl">Fri 19 Sep · 7:30 PM</div><b style="font:800 26px/1 var(--cond);display:block;margin:4px 0">Neon Alley</b><div style="font-size:13px;color:var(--ink-2)">Orbit Cinemas · Screen 1</div><div class="picks" style="margin-top:8px"><span class="pick">G9</span><span class="pick">G10</span></div></div></div>
+      <div class="ticket" style="display:grid;grid-template-columns:70px 1fr;gap:12px;padding:12px;align-items:center"><img src="img/poster-jazz.jpg" alt="" style="width:70px;height:96px;object-fit:cover;border-radius:5px"><div><div class="lbl">Sat 20 Sep · 7:00 PM</div><b style="font:800 26px/1 var(--cond);display:block;margin:4px 0">Midnight Brass</b><div style="font-size:13px;color:var(--ink-2)">Cadence Hall · Balcony</div><div class="picks" style="margin-top:8px"><span class="pick">BB4</span></div></div></div>
+      <div class="hint" style="text-align:center;padding-top:8px">Past tickets stay here for a year.</div>
+    </div>
+  </div><span class="cap">S7 · my tickets</span></div>
+  <div class="phone"><div class="notch"></div><div class="scr paper">
+    <div style="padding:54px 18px 0"><span class="badge ref">Refunded</span><h2 style="font-size:40px;font-weight:800;margin-top:10px">Someone got there first.</h2>
+      <p style="margin-top:12px;color:var(--ink-2);font-size:15px">Your 10-minute hold on <b>G9, G10</b> ran out at 7:12 PM and another customer bought G9 before your payment reached us at 7:13 PM.</p>
+      <p style="margin-top:10px;color:var(--ink-2);font-size:15px">We've refunded the full <b class="num">₹740</b> to your UPI. It shows in 2–5 working days. Order <code style="font:500 13px var(--mono)">#FR-2K9Q</code>.</p>
+      <div class="paper-card" style="background:var(--paper-2);margin-top:18px"><div class="lbl">Still 41 seats left for 7:30 PM</div><div class="picks" style="margin-top:10px"><span class="pick" style="background:var(--classic);color:var(--ink)">F7</span><span class="pick" style="background:var(--classic);color:var(--ink)">F8</span><span class="pick" style="background:var(--prime);color:var(--ink)">H11</span><span class="pick" style="background:var(--prime);color:var(--ink)">H12</span></div></div>
+      <div style="display:grid;gap:8px;margin-top:18px"><a class="btn btn-ink" href="#">Pick seats again</a><a class="btn btn-paper" style="border-color:rgba(42,11,30,.3)" href="#">Other showtimes</a></div></div>
+  </div><span class="cap">S8 · refunded</span></div>
+</div></section>
+
+<!-- S9 -->
+<section class="shot" id="s9"><header><h2><b>S9</b>Sign in / Sign up</h2><code>/sign-in · /sign-up</code><p>Role picker on sign-up. Demo buttons on both. Signing in adopts the visitor's held seats.</p></header>
+<div class="stage"><div class="frame h760">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow</a><ul><li>Now showing</li><li>Movies</li><li>Concerts</li><li>For organisers</li></ul></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;height:calc(100% - 66px)">
+    <div style="background:url(img/hall-concert.jpg) center/cover;position:relative"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(42,11,30,.2),var(--plum))"></div><div style="position:absolute;left:40px;bottom:40px;right:40px"><h2 style="font-size:64px;font-weight:800">Your seats are still held.</h2><p style="color:var(--muted);margin-top:10px;font-size:17px">G9 and G10 stay yours for <b class="num" style="color:var(--screen);font-family:var(--mono)">07:58</b> while you sign in.</p></div></div>
+    <div style="display:grid;place-items:center;padding:40px"><div class="paper-card" style="width:420px;display:grid;gap:16px;padding:28px">
+      <div><h3 style="font-size:34px;font-weight:800">Sign up</h3><p class="hint">Already have an account? <a href="#">Sign in</a></p></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><span class="chip on" style="justify-content:center;background:var(--ink);color:var(--paper);border-color:var(--ink)">I'm booking</span><span class="chip" style="justify-content:center;border-color:rgba(42,11,30,.3);color:var(--ink-2)">I run a venue</span></div>
+      <div class="field"><label>Name</label><div class="in ph">Your name</div></div><div class="field"><label>Email</label><div class="in ph">you@example.com</div></div><div class="field"><label>Password</label><div class="in ph">8+ characters</div></div>
+      <a class="btn btn-red" href="#">Create account</a>
+      <div style="display:flex;align-items:center;gap:10px;color:var(--ink-3);font-size:12px"><span style="flex:1;height:1px;background:rgba(42,11,30,.15)"></span>or try the demo<span style="flex:1;height:1px;background:rgba(42,11,30,.15)"></span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn btn-paper btn-sm" style="border-color:rgba(42,11,30,.3)" href="#">Demo customer</a><a class="btn btn-paper btn-sm" style="border-color:rgba(42,11,30,.3)" href="#">Demo organiser</a></div>
+    </div></div>
+  </div>
+</div></div></section>
+
+<!-- S10 -->
+<section class="shot" id="s10"><header><h2><b>S10</b>Organiser · Venues</h2><code>/organiser/venues</code><p>New venue from a template with knobs; the layout preview is the real <code>&lt;SeatMap&gt;</code>. Seats are generated once and stored as rows.</p></header>
+<div class="stage"><div class="frame h960">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow <span style="font:600 12px var(--sans);letter-spacing:.14em;color:var(--amber);margin-left:4px">ORGANISER</span></a><div class="user"><i>O</i>Orbit Cinemas · Demo organiser</div></div>
+  <div style="display:grid;grid-template-columns:220px 1fr;height:calc(100% - 66px)">
+    <aside class="org-side"><span class="lbl">Manage</span><a class="on" href="#"><i></i>Venues</a><a href="#"><i></i>Events</a><a href="#"><i></i>Showtimes</a><a href="#"><i></i>Bookings</a><span class="lbl" style="margin-top:10px">v2</span><a href="#" style="opacity:.5"><i></i>Dashboard</a><a href="#" style="opacity:.5"><i></i>Check-in</a></aside>
+    <div style="padding:28px 36px;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-content:start">
+      <div><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-size:44px;font-weight:800">Venues</h2><span class="hint">2 venues · 414 seats</span></div>
+        <div style="display:grid;gap:10px;margin-top:16px">
+          <div class="card" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><div><b style="font:700 22px var(--cond)">Orbit Cinemas · Screen 1</b><div class="hint">Grid · 14 rows · 234 seats · 3 tiers · Indiranagar</div></div><a class="btn btn-line btn-sm" href="#">Open</a></div>
+          <div class="card" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><div><b style="font:700 22px var(--cond)">Orbit Cinemas · Screen 2</b><div class="hint">Grid · 12 rows · 180 seats · 2 tiers · Indiranagar</div></div><a class="btn btn-line btn-sm" href="#">Open</a></div>
+        </div>
+        <h3 style="font-size:28px;margin:30px 0 12px">New venue</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div class="tpl on"><svg viewBox="0 0 120 60"><path d="M10 6h100" stroke="#F5EFE6" stroke-width="2"/><g fill="#E9C46A"><rect x="10" y="14" width="44" height="6" rx="1"/><rect x="66" y="14" width="44" height="6" rx="1"/><rect x="10" y="24" width="44" height="6" rx="1"/><rect x="66" y="24" width="44" height="6" rx="1"/></g><g fill="#8FB8DE"><rect x="10" y="34" width="44" height="6" rx="1"/><rect x="66" y="34" width="44" height="6" rx="1"/><rect x="10" y="44" width="44" height="6" rx="1"/><rect x="66" y="44" width="44" height="6" rx="1"/></g></svg><b>Grid</b><span>Cinema screen · straight rows · centre aisle</span></div>
+          <div class="tpl"><svg viewBox="0 0 120 60"><path d="M20 8h80" stroke="#F5EFE6" stroke-width="2"/><g fill="none" stroke="#E9C46A" stroke-width="5"><path d="M14 22q46 -10 92 0"/><path d="M12 30q48 -10 96 0"/></g><g fill="none" stroke="#8FB8DE" stroke-width="5"><path d="M10 44q50 -10 100 0"/><path d="M8 52q52 -10 104 0"/></g></svg><b>Stalls + balcony</b><span>Auditorium · curved rows · two blocks</span></div>
+          <div class="tpl"><svg viewBox="0 0 120 60"><circle cx="60" cy="30" r="10" fill="none" stroke="#F5EFE6" stroke-width="2"/><g fill="none" stroke="#C77DFF" stroke-width="7" stroke-dasharray="14 4"><circle cx="60" cy="30" r="18"/></g><g fill="none" stroke="#8FB8DE" stroke-width="7" stroke-dasharray="18 4"><circle cx="60" cy="30" r="27"/></g></svg><b>Arena</b><span>Wedge sections around a floor · pan/zoom</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px"><div class="field"><label>Venue name</label><div class="in">Orbit Cinemas · Screen 3</div></div><div class="field"><label>Address</label><div class="in ph">Street, area</div></div><div class="field"><label>Rows</label><div class="in">14 <span class="hint">8–20</span></div></div><div class="field"><label>Seats per row</label><div class="in">18 <span class="hint">10–24</span></div></div><div class="field"><label>Aisle after seat</label><div class="in">9</div></div><div class="field"><label>Tier bands</label><div class="in">A–D Classic · E–K Prime · L–N Recliner</div></div></div>
+        <a class="btn btn-red" href="#" style="margin-top:14px">Create venue · 234 seats</a></div>
+      <div class="card" style="padding:20px;display:grid;grid-template-rows:auto 1fr"><div class="lbl">Live preview</div><div data-map-preview style="height:620px"></div></div>
+    </div>
+  </div>
+</div></div></section>
+
+<!-- S11 -->
+<section class="shot" id="s11"><header><h2><b>S11</b>Organiser · Events</h2><code>/organiser/events</code><p>Form + list. Draft/live status; slug from title; posters are URL fields in v1 (upload lands in v2).</p></header>
+<div class="stage"><div class="frame h820">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow <span style="font:600 12px var(--sans);letter-spacing:.14em;color:var(--amber);margin-left:4px">ORGANISER</span></a><div class="user"><i>O</i>Orbit Cinemas · Demo organiser</div></div>
+  <div style="display:grid;grid-template-columns:220px 1fr;height:calc(100% - 66px)">
+    <aside class="org-side"><span class="lbl">Manage</span><a href="#"><i></i>Venues</a><a class="on" href="#"><i></i>Events</a><a href="#"><i></i>Showtimes</a><a href="#"><i></i>Bookings</a></aside>
+    <div style="padding:28px 36px;display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-content:start">
+      <div><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-size:44px;font-weight:800">Events</h2><a class="btn btn-red btn-sm" href="#">New event</a></div>
+        <table style="margin-top:16px"><thead><tr><th>Event</th><th>Type</th><th>Genre</th><th>Runtime</th><th>Showtimes</th><th>Status</th></tr></thead><tbody>
+          <tr><td><div style="display:flex;gap:10px;align-items:center"><img src="img/poster-neon.jpg" alt="" style="width:32px;height:44px;object-fit:cover;border-radius:3px"><b>Neon Alley</b></div></td><td><span class="badge movie">Movie</span></td><td>Thriller · UA 16+</td><td>2h 14m</td><td>5 this week</td><td><span class="badge ok">Live</span></td></tr>
+          <tr><td><div style="display:flex;gap:10px;align-items:center"><img src="img/poster-desert.jpg" alt="" style="width:32px;height:44px;object-fit:cover;border-radius:3px"><b>The Last Dune</b></div></td><td><span class="badge movie">Movie</span></td><td>Adventure · U</td><td>1h 58m</td><td>3 this week</td><td><span class="badge ok">Live</span></td></tr>
+          <tr><td><div style="display:flex;gap:10px;align-items:center"><img src="img/poster-forest.jpg" alt="" style="width:32px;height:44px;object-fit:cover;border-radius:3px"><b>Hollowmere</b></div></td><td><span class="badge movie">Movie</span></td><td>Horror · A</td><td>1h 41m</td><td>1 this week</td><td><span class="badge ok">Live</span></td></tr>
+          <tr><td><div style="display:flex;gap:10px;align-items:center"><img src="img/poster-ocean.jpg" alt="" style="width:32px;height:44px;object-fit:cover;border-radius:3px"><b>Undertow</b></div></td><td><span class="badge movie">Movie</span></td><td>Drama · UA</td><td>2h 05m</td><td>2 this week</td><td><span class="badge ok">Live</span></td></tr>
+          <tr style="opacity:.7"><td><div style="display:flex;gap:10px;align-items:center"><img src="img/poster-rooftop.jpg" alt="" style="width:32px;height:44px;object-fit:cover;border-radius:3px"><b>Glass City</b></div></td><td><span class="badge movie">Movie</span></td><td>Sci-fi · UA</td><td>2h 21m</td><td>—</td><td><span class="badge out">Draft</span></td></tr>
+        </tbody></table></div>
+      <div class="card" style="display:grid;gap:14px;align-content:start"><div class="lbl">Edit · Glass City</div>
+        <div class="field"><label>Title</label><div class="in">Glass City</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="field"><label>Type</label><div class="in">Movie ▾</div></div><div class="field"><label>Genre</label><div class="in">Sci-fi</div></div><div class="field"><label>Runtime (min)</label><div class="in">141</div></div><div class="field"><label>Rating</label><div class="in">UA ▾</div></div></div>
+        <div class="field"><label>Synopsis</label><div class="in" style="min-height:74px;align-items:start;font-size:14px;color:var(--muted)">A skyline of towers that never forget. When the city's memory glitches, one archivist has 48 hours to find out what it's hiding.</div></div>
+        <div class="field"><label>Cast / line-up</label><div class="in">Nikhil Rao, Ananya Desai</div></div>
+        <div class="field"><label>Poster URL</label><div class="in" style="font-size:13px;color:var(--muted)">https://…/glass-city.jpg <span class="hint">upload in v2</span></div></div>
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center"><span class="hint">Slug <code style="font:500 12px var(--mono)">glass-city</code></span><div style="display:flex;gap:8px"><a class="btn btn-line btn-sm" href="#">Save draft</a><a class="btn btn-red btn-sm" href="#">Publish</a></div></div></div>
+    </div>
+  </div>
+</div></div></section>
+
+<!-- S12 -->
+<section class="shot" id="s12"><header><h2><b>S12</b>Organiser · Showtimes</h2><code>/organiser/showtimes</code><p>Event + venue + start + price per tier. Cancelling a showtime with sales is blocked in v1 — the guard is visible.</p></header>
+<div class="stage"><div class="frame h820">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow <span style="font:600 12px var(--sans);letter-spacing:.14em;color:var(--amber);margin-left:4px">ORGANISER</span></a><div class="user"><i>O</i>Orbit Cinemas · Demo organiser</div></div>
+  <div style="display:grid;grid-template-columns:220px 1fr;height:calc(100% - 66px)">
+    <aside class="org-side"><span class="lbl">Manage</span><a href="#"><i></i>Venues</a><a href="#"><i></i>Events</a><a class="on" href="#"><i></i>Showtimes</a><a href="#"><i></i>Bookings</a></aside>
+    <div style="padding:28px 36px;display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-content:start">
+      <div><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-size:44px;font-weight:800">Showtimes</h2><div style="display:flex;gap:8px"><span class="chip on">Fri 19</span><span class="chip">Sat 20</span><span class="chip">Sun 21</span><span class="chip sel">Later</span></div></div>
+        <table style="margin-top:16px"><thead><tr><th>Time</th><th>Event</th><th>Screen</th><th>Tiers</th><th>Sold</th><th></th></tr></thead><tbody>
+          <tr><td><b>4:15 PM</b></td><td>Neon Alley</td><td>Screen 1</td><td class="num">₹220 · 340 · 560</td><td><span class="num">61</span> / 234</td><td><a href="#" style="font-size:13px;color:var(--muted)">Edit</a></td></tr>
+          <tr><td><b>7:30 PM</b></td><td>Neon Alley</td><td>Screen 1</td><td class="num">₹220 · 340 · 560</td><td><span class="num">167</span> / 234 <span class="badge fill">71%</span></td><td><a href="#" style="font-size:13px;color:var(--muted)">Edit</a></td></tr>
+          <tr><td><b>10:40 PM</b></td><td>Neon Alley</td><td>Screen 1</td><td class="num">₹220 · 340 · 560</td><td><span class="num">18</span> / 234</td><td><a href="#" style="font-size:13px;color:var(--muted)">Edit</a></td></tr>
+          <tr><td><b>6:00 PM</b></td><td>Undertow</td><td>Screen 2</td><td class="num">₹200 · 480</td><td><span class="num">180</span> / 180 <span class="badge out">Sold out</span></td><td><a href="#" style="font-size:13px;color:var(--muted)">Edit</a></td></tr>
+          <tr><td><b>9:15 PM</b></td><td>Glass City</td><td>Screen 2</td><td class="num">₹200 · 480</td><td><span class="num">0</span> / 180</td><td><a href="#" style="font-size:13px;color:var(--muted)">Edit</a></td></tr>
+        </tbody></table></div>
+      <div class="card" style="display:grid;gap:14px;align-content:start"><div class="lbl">New showtime</div>
+        <div class="field"><label>Event</label><div class="in">Neon Alley ▾</div></div>
+        <div class="field"><label>Venue</label><div class="in">Orbit Cinemas · Screen 1 ▾ <span class="hint">234 seats</span></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="field"><label>Date</label><div class="in">Sat 20 Sep</div></div><div class="field"><label>Start</label><div class="in">7:30 PM</div></div></div>
+        <div class="lbl" style="margin-top:4px">Price per tier</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"><div class="field"><label><i style="display:inline-block;width:9px;height:9px;background:var(--classic);border-radius:2px;margin-right:5px"></i>Classic</label><div class="in num">₹ 220</div></div><div class="field"><label><i style="display:inline-block;width:9px;height:9px;background:var(--prime);border-radius:2px;margin-right:5px"></i>Prime</label><div class="in num">₹ 340</div></div><div class="field"><label><i style="display:inline-block;width:9px;height:9px;background:var(--recliner);border-radius:2px;margin-right:5px"></i>Recliner</label><div class="in num">₹ 560</div></div></div>
+        <a class="btn btn-red" href="#">Publish showtime</a>
+        <div style="border-top:1px solid rgba(245,239,230,.12);padding-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px"><div><b style="font:700 16px var(--cond)">Cancel 7:30 PM?</b><div class="hint">Blocked — 167 tickets sold. Refund tooling arrives in a later version.</div></div><span class="btn btn-line btn-sm" style="opacity:.4;cursor:not-allowed">Cancel</span></div></div>
+    </div>
+  </div>
+</div></div></section>
+
+<!-- S13 -->
+<section class="shot" id="s13"><header><h2><b>S13</b>Organiser · Bookings</h2><code>/organiser/bookings/{showtimeId}?format=csv</code><p>Paid orders per showtime with CSV export. Summary tiles above the table; the live dashboard (S14) arrives in v2.</p></header>
+<div class="stage"><div class="frame h820">
+  <div class="nav"><a class="logo" href="#"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#F5EFE6"/><rect x="10" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="41" y="30" width="12" height="16" rx="3" fill="#2A0B1E"/><rect x="26" y="26" width="12" height="20" rx="3" fill="#E63946"/><rect x="8" y="48" width="48" height="6" rx="2" fill="#2A0B1E" opacity=".4"/></svg>Frontrow <span style="font:600 12px var(--sans);letter-spacing:.14em;color:var(--amber);margin-left:4px">ORGANISER</span></a><div class="user"><i>O</i>Orbit Cinemas · Demo organiser</div></div>
+  <div style="display:grid;grid-template-columns:220px 1fr;height:calc(100% - 66px)">
+    <aside class="org-side"><span class="lbl">Manage</span><a href="#"><i></i>Venues</a><a href="#"><i></i>Events</a><a href="#"><i></i>Showtimes</a><a class="on" href="#"><i></i>Bookings</a></aside>
+    <div style="padding:28px 36px;display:grid;gap:18px;align-content:start">
+      <div style="display:flex;justify-content:space-between;align-items:end;gap:20px"><div><div class="hint">Bookings · Fri 19 Sep</div><h2 style="font-size:44px;font-weight:800">Neon Alley · 7:30 PM</h2><div class="hint">Orbit Cinemas · Screen 1 · <a href="#">other showtimes ▾</a></div></div><a class="btn btn-line btn-sm" href="#">Download CSV</a></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"><div class="stat"><span>Revenue</span><b class="num">₹52,180</b></div><div class="stat"><span>Tickets sold</span><b class="num">167 <small style="font:500 14px var(--sans);color:var(--muted-2)">/ 234</small></b></div><div class="stat"><span>Orders</span><b class="num">74</b></div><div class="stat"><span>Held right now</span><b class="num">6</b></div></div>
+      <div class="paper-card" style="padding:6px 0 0"><table><thead><tr><th>Order</th><th>Customer</th><th>Seats</th><th>Amount</th><th>Paid at</th><th>Status</th></tr></thead><tbody>
+        <tr><td><code style="font:500 13px var(--mono)">FR-2K9Q</code></td><td>Demo customer · demo.customer@…</td><td><div class="picks"><span class="pick" style="font-size:14px;padding:3px 7px">G9</span><span class="pick" style="font-size:14px;padding:3px 7px">G10</span></div></td><td class="num">₹740</td><td class="num">7:13 PM</td><td><span class="badge paid">Paid</span></td></tr>
+        <tr><td><code style="font:500 13px var(--mono)">FR-2K8T</code></td><td>Priya N. · priya…@gmail.com</td><td><div class="picks"><span class="pick" style="font-size:14px;padding:3px 7px">L4</span><span class="pick" style="font-size:14px;padding:3px 7px">L5</span><span class="pick" style="font-size:14px;padding:3px 7px">L6</span></div></td><td class="num">₹1,770</td><td class="num">7:09 PM</td><td><span class="badge paid">Paid</span></td></tr>
+        <tr><td><code style="font:500 13px var(--mono)">FR-2K7M</code></td><td>Karthik S. · ks…@outlook.com</td><td><div class="picks"><span class="pick" style="font-size:14px;padding:3px 7px">C4</span></div></td><td class="num">₹250</td><td class="num">6:58 PM</td><td><span class="badge paid">Paid</span></td></tr>
+        <tr><td><code style="font:500 13px var(--mono)">FR-2K6A</code></td><td>Aisha R. · aisha…@yahoo.in</td><td><div class="picks"><span class="pick" style="font-size:14px;padding:3px 7px">H11</span><span class="pick" style="font-size:14px;padding:3px 7px">H12</span></div></td><td class="num">₹740</td><td class="num">6:41 PM</td><td><span class="badge ref">Refunded · seat sold</span></td></tr>
+        <tr><td><code style="font:500 13px var(--mono)">FR-2K5Z</code></td><td>Vikram D. · vd…@gmail.com</td><td><div class="picks"><span class="pick" style="font-size:14px;padding:3px 7px">F3</span><span class="pick" style="font-size:14px;padding:3px 7px">F4</span></div></td><td class="num">₹740</td><td class="num">6:30 PM</td><td><span class="badge paid">Paid</span></td></tr>
+      </tbody></table><div class="hint" style="padding:12px 12px 10px">Showing 5 of 74 · <a href="#">next</a></div></div>
+    </div>
+  </div>
+</div></div></section>
+
+</main></div>
+
+<script>
+/* shared hall generator — same as direction-variants.html */
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
+const TIERS={classic:{price:220,rows:'ABCD'},prime:{price:340,rows:'EFGHIJK'},recliner:{price:560,rows:'LMN'}};
+const ROWS='ABCDEFGHIJKLMN'.split('');
+function tierOf(r){return Object.keys(TIERS).find(k=>TIERS[k].rows.includes(r))}
+const layout=(()=>{const S=26,G=8,AISLE=44,perRow=18,recPer=12,W=1120;const rows=[];let y=90;
+  ROWS.forEach((r,ri)=>{const tier=tierOf(r);const n=tier==='recliner'?recPer:perRow;const size=tier==='recliner'?S+10:S;const gap=tier==='recliner'?G+8:G;
+    const total=n*size+(n-1)*gap+AISLE;let x=(W-total)/2;const row={label:r,i:ri,seats:[],tier,size};
+    for(let k=1;k<=n;k++){if(k===n/2+1)x+=AISLE;row.seats.push({id:r+k,n:k,x,y,size});x+=size+gap}
+    rows.push(row);y+=size+(tier==='recliner'?18:10);if(r==='D'||r==='K')y+=14});
+  return {W,H:y+20,rows}})();
+const state=(()=>{const R=rng(20260915);const sold=new Set(),held=new Set();
+  layout.rows.forEach(row=>row.seats.forEach(s=>{const centre=Math.abs(s.n-(row.seats.length+1)/2)/(row.seats.length/2);const p=row.tier==='recliner'?.55:(row.tier==='prime'?.42-centre*.25:.22);if(R()<Math.max(.08,p))sold.add(s.id)}));
+  ['F8','F9','H12','C4','J7','K10'].forEach(id=>{if(!sold.has(id))held.add(id)});
+  const mine=new Set(['G9','G10']);mine.forEach(id=>{sold.delete(id);held.delete(id)});return {sold,held,mine}})();
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e}
+function svgMap(opts={}){
+  const svg=el('svg',{viewBox:`0 0 ${layout.W} ${layout.H}`,class:'map',preserveAspectRatio:'xMidYMin meet',role:'img','aria-label':'Seat map'});
+  svg.appendChild(el('path',{d:`M 140 44 Q ${layout.W/2} 10 ${layout.W-140} 44`,class:'screen-arc'}));
+  const st=el('text',{x:layout.W/2,y:62});st.textContent='SCREEN';svg.appendChild(st);
+  svg.appendChild(el('line',{x1:layout.W/2,x2:layout.W/2,y1:80,y2:layout.H-10,class:'aisle'}));
+  layout.rows.forEach(row=>{const g=el('g',{class:'row-g'});g.style.setProperty('--i',row.i);
+    const first=row.seats[0],last=row.seats[row.seats.length-1];
+    [first.x-34,last.x+row.size+34].forEach(x=>{const t=el('text',{x,y:first.y+row.size/2});t.textContent=row.label;g.appendChild(t)});
+    row.seats.forEach(s=>{const cls='seat t-'+row.tier+(opts.empty?'':(state.sold.has(s.id)?' sold':state.held.has(s.id)?' held':state.mine.has(s.id)?' mine':''));
+      const r=el('rect',{x:s.x,y:s.y,width:s.size,height:s.size,class:cls});const t=el('title',{});t.textContent=`${row.label}${s.n} · ${row.tier} ₹${TIERS[row.tier].price}`;r.appendChild(t);g.appendChild(r)});
+    svg.appendChild(g)});
+  return svg}
+document.querySelectorAll('[data-map],[data-map-phone]').forEach(w=>w.appendChild(svgMap()));
+document.querySelectorAll('[data-map-preview]').forEach(w=>w.appendChild(svgMap({empty:true})));
+function fit(){document.querySelectorAll('.stage').forEach(st=>{const w=st.clientWidth;const k=Math.min(1,w/1280);const f=st.querySelector('.frame');f.style.transform=`scale(${k})`;st.style.height=(f.offsetHeight*k)+'px'})}
+addEventListener('resize',fit);fit();
+</script>
