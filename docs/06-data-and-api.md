@@ -53,7 +53,7 @@ create view showtime_fill as
 Held counts come from Redis (`HLEN holds:{id}`), merged in the API.
 
 **v2 additions:** `tickets.emailed_at`; posters move to Blob URLs (no schema change).
-**v4 additions:** `sessions.kind` (`web` | `mobile`); `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`; `push_jobs (id, user_id, kind, payload jsonb, due_at, sent_at null)` index (due_at) where sent_at is null.
+**v4 additions** (`sessions.kind` `web` | `mobile` ships in v1): `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`; `push_jobs (id, user_id, kind, payload jsonb, due_at, sent_at null)` index (due_at) where sent_at is null.
 **v3 additions:** `waitlist (id, showtime_id, user_id, seats int, max_price_paise, status, offered_until, created_at)`; `ticket_transfers (id, ticket_id, to_email, claim_token, claimed_at)`; `showtime_pricing_rules (showtime_id, thresholds jsonb)`.
 
 ## B. Redis keys
@@ -98,6 +98,7 @@ Error envelope everywhere: `{ "error": { "code": "seat_taken", "message": "…",
 | POST | `/auth/sign-out` | → 204 |
 | GET | `/auth/me` | `Me { id, name, email, role }` · 401 |
 | POST | `/auth/demo` | `{ as: 'customer' \| 'organiser' }` → `Me` (landing demo buttons) |
+| POST / DELETE | `/auth/token` | `{ email, password }` → `{ token, expires_at, me }` · bearer sessions for the v4 app (built in v1 so the API is client-agnostic from day one) |
 
 ### Organiser 🏟
 | Method | Path | Notes |
@@ -116,7 +117,7 @@ Error envelope everywhere: `{ "error": { "code": "seat_taken", "message": "…",
 | POST | `/webhooks/razorpay` | raw body HMAC; `payment.captured` → confirm; `payment.failed` → order `failed`; always 200 after signature ok |
 
 ### v4 — mobile (sketch; detailed when v4 starts)
-`POST /auth/token` `{ email, password }` → `{ token, expires_at, me }` · `DELETE /auth/token` · `POST /devices` `{ expo_token, platform }` 🔒 · `DELETE /devices/{id}` 🔒 · `POST /internal/push/due` ⚙ (Vercel Cron, `CRON_SECRET`). Every other route is unchanged; the app sends `Authorization: Bearer <token>` instead of the cookie.
+`POST /devices` `{ expo_token, platform }` 🔒 · `DELETE /devices/{id}` 🔒 · `POST /internal/push/due` ⚙ (Vercel Cron, `CRON_SECRET`). Every other route is unchanged; the app sends `Authorization: Bearer <token>` instead of the cookie.
 
 ### v3 (sketch; detailed when v3 starts)
 `POST /showtimes/{id}/waitlist` · `POST /waitlist/{id}/claim` · `GET /showtimes/{id}/best?count=&tier=` · `POST /tickets/{id}/transfer` · `POST /transfers/{token}/claim` · `GET /organiser/venues/{id}/heatmap` · `PATCH /organiser/showtimes/{id}/pricing`.
