@@ -25,7 +25,7 @@ Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard 
 web/        Next.js app — the landing page lives here
 api/        FastAPI backend — folder structure only until milestone 1.0
 docs/       lifecycle steps 3–7
-mockups/    landing.html (ported to web/); direction variants and screens arrive in milestone 1.0
+mockups/    landing.html (ported to web/) · direction-variants.html (A–D, B chosen) · screens.html (all v1 screens) · img/ CC photos
 brand/      logo, mark, favicon
 PRD.md      product requirements v1 with locked decisions
 ```
