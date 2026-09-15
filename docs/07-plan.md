@@ -1,7 +1,7 @@
 # Frontrow — Development Plan
 
 **Lifecycle step:** 7 of 17 · **Written:** 2026-09-15 · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
-**Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
+**Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h · v4 ≈ 15 h. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
 
 **Lean rules in force** (2026-09-15): setup is the minimum to deploy both apps with plain CI; no observability, contract gates, e2e workflows or tracker updates per PR; review findings fixed on the same branch; tests only from 04 §11. Hours saved go to the seat map, motion and content.
 
@@ -78,4 +78,24 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | A4 | **Ticket transfer** | S17 transfer action + claim page | `ticket_transfers`, `token_version` rotate | 1.5 h | Old QR rejected at check-in |
 | A5 | **Heatmap + seat view** | S18 colour scale on `<SeatMap>`; section hover shows "view from here" photo | `/organiser/venues/{id}/heatmap` aggregate; seat-view photos in seed | 2 h | Heatmap matches seeded sales |
 
-**Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 38 h.
+---
+
+## v4 — In your pocket (≈ 15 h) — Expo app in `mobile/`
+
+### Milestone 4.0 — App browses and books (≈ 8 h)
+| # | Part | mobile/ | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| M1 | **Shell + auth** | Expo Router tabs, brand tokens/splash/icon, sign-in/up/demo, SecureStore token, generated API types | `POST/DELETE /auth/token`, `sessions.kind` | 2 h | Demo login works on a phone against the production API |
+| M2 | **Shows + event page** | Lists, filters, event page, showtimes — same endpoints | — | 1.5 h | Parity with S2/S3 |
+| M3 | **Seat map + holds** | `react-native-svg` map from `Layout`, pinch/pan, tap → hold, countdown header, polling (SSE if v2 shipped); Jest hit-test | — | 3 h | Hold in app greys the seat on web ≤ 1 s |
+| M4 | **Pay + tickets** | Razorpay RN SDK, order poll, ticket screen with QR | — | 1.5 h | Test-mode payment → ticket in app |
+
+### Milestone 4.1 — The native reasons (≈ 7 h)
+| # | Part | mobile/ | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| M5 | **Offline wallet** | SQLite cache of tickets + tokens, brightness boost, add-to-calendar | — | 2 h | Airplane mode: ticket opens and scans |
+| M6 | **Push** | expo-notifications registration, deep links | `device_tokens`, `push_jobs`, job at hold time, `POST /internal/push/due` + Vercel Cron | 2.5 h | Backgrounded hold → notification at T-2:00 → deep link lands on the map |
+| M7 | **Organiser scanner** | Scan tab: camera, haptics, running count | (uses v2 `POST /checkin`) | 1.5 h | 20 scans/min; duplicate → "already checked in" |
+| M8 | **Ship** | EAS Android build, Expo Go link, landing "Get the app" block with QR, README GIF | — | 1 h | Reviewer installs from the landing page in < 1 min |
+
+**Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 53 h.

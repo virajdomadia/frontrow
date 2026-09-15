@@ -2,7 +2,7 @@
 
 **Lifecycle step:** 3 of 17 · **Locked:** 2026-09-15 · **Source:** [PRD.md](../PRD.md) locked decisions. Flows and screen index: [03-user-flows.md](03-user-flows.md).
 
-Actors: **Customer** (books), **Organiser** (runs venues/events), **Visitor** (not signed in). Each requirement ends with **Accept:** — the check that closes it. Ids: R = v1, R2 = v2, R3 = v3.
+Actors: **Customer** (books), **Organiser** (runs venues/events), **Visitor** (not signed in). Each requirement ends with **Accept:** — the check that closes it. Ids: R = v1, R2 = v2, R3 = v3, R4 = v4.
 
 ---
 
@@ -111,5 +111,36 @@ Actors: **Customer** (books), **Organiser** (runs venues/events), **Visitor** (n
 
 ---
 
+## v4 — In your pocket (mobile app, ≈ 15 h)
+
+Expo (React Native, TypeScript, Expo Router) app, iOS + Android from one codebase, talking to the same FastAPI through the generated types. No new business logic on the server beyond token auth and push registration.
+
+### R4-1. App shell & auth
+- Tabs: **Shows · Tickets · Account** (+ **Scan** for organisers). Sign in / sign up / demo logins as on web; sessions are bearer tokens (`POST /auth/token`) stored in SecureStore.
+- **Accept:** demo customer signs in in one tap; token survives app restart; sign-out revokes it server-side.
+
+### R4-2. Browse & book
+- Shows list with the same filters, event page, showtimes. Seat map in `react-native-svg` with pinch/pan (gesture-handler + reanimated); same `Layout` JSON and `SeatState` polling/SSE as web; tap = hold, countdown in the header.
+- Razorpay via the React Native SDK; on success the app polls the order like web.
+- **Accept:** hold in the app greys the seat on an open web tab within 1 s (v2 stream); test-mode payment produces tickets.
+
+### R4-3. Ticket wallet (offline)
+- Tickets cached on device (SQLite) with their QR tokens so they open with no network; screen brightness boosts on the QR; add-to-calendar via the native calendar.
+- **Accept:** airplane mode → tonight's ticket still opens and scans at check-in.
+
+### R4-4. Push notifications
+- Expo Push. Events: *hold expiring in 2 min* (only if the app is backgrounded mid-hold), *ticket confirmed*, *waitlist offer* (v3), *show starts in 2 h*. Device tokens registered per user; deep links open the right screen.
+- **Accept:** background the app with a hold → notification at T-2:00; tapping it lands on the seat map with the hold intact.
+
+### R4-5. Organiser scanner
+- Scan tab: camera (expo-camera barcode scanning) → `POST /checkin` → valid / used / wrong showtime with haptic + colour; runs the v2 endpoint. Stays on camera between scans and shows a running count.
+- **Accept:** 20 scans in a minute without leaving the camera; duplicate scan shows "already checked in HH:MM".
+
+### R4-6. Distribution
+- EAS Build: Android APK downloadable from the landing page and README (QR); iOS via Expo Go link (no App Store listing). Same brand tokens, splash and icon from `brand/`.
+- **Accept:** a reviewer installs the Android build from the landing page in under a minute.
+
+---
+
 ## Out of scope (all versions)
-Custom layout editor · refunds UI · native scanner app · real money · multi-city · GA/standing zones · promo codes · full WCAG on the SVG map (keyboard + SR list only) · reserved-seat pricing per seat (tiers only).
+Custom layout editor · refunds UI · store listings (App Store / Play) · real money · multi-city · GA/standing zones · promo codes · full WCAG on the SVG map (keyboard + SR list only) · reserved-seat pricing per seat (tiers only).
