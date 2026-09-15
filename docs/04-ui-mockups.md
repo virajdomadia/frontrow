@@ -1,6 +1,6 @@
 # Frontrow — UI Mockups
 
-**Lifecycle step:** 4 of 17 (UX companion to the technical design) · **Brief locked:** 2026-09-15 · **Variants:** pending — built in their own session, chosen by Viraj from 3–4 full-size variants on one switchable page.
+**Lifecycle step:** 4 of 17 (UX companion to the technical design) · **Brief locked:** 2026-09-15 · **Variants:** built 2026-09-15 — `mockups/direction-variants.html`, published at https://claude.ai/artifact/LFJw5Zg1LEvvYjqdhot2Dr · **awaiting Viraj's pick.**
 **Pairs with:** [03-user-flows.md](03-user-flows.md) — one mockup per v1 screen (S1–S13) after the direction is chosen.
 **Files:** `mockups/landing.html` (exists, already ported to `web/`) → `mockups/direction-variants.html` (S4 seat map + S3 event page, desktop and 390 px) → `mockups/screens.html` (every v1 screen in the chosen direction).
 
@@ -19,8 +19,8 @@
 
 Recommendation: **A + B** as the signature pair (load moment + the hold moment), **D** as a small v2 touch. Viraj picks on the variant page; the winner is written here with tokens.
 
-## Variant page (`mockups/direction-variants.html`) — to build
-Three or four full-size directions of S4 (grid template with ~6 seats held by others, 2 mine, a countdown) and S3, each on desktop and 390 px, switchable by a tab strip; each variant demonstrates its motion candidate live. Real CC photos for posters/backdrops (credits in `mockups/CREDITS.md`). Must run offline except Google Fonts; `prefers-reduced-motion` respected.
+## Variant page (`mockups/direction-variants.html`) — round 1, built
+Four full-size directions of S4 (cinema grid, 14 rows / 234 seats, seeded sold + 6 held by others + G9/G10 mine, shared 10-minute countdown, "someone else" takes or releases a seat every ~7 s) and S3 on a 390 px phone, behind an A/B/C/D tab strip. Each demonstrates its motion candidate live: **A House lights** (sweep + burning ring), **B Box office** (cream stub, press Pay to tear it off), **C Blueprint** (rows plot in, fuse countdown), **D Stage view** (perspective map, ripple on others' holds). Real CC photos in `mockups/img/` (credits in `mockups/img/CREDITS.md`); Google Fonts only; `prefers-reduced-motion` respected.
 
 ## After the pick
 - Record: chosen direction, tokens (colours, radii, seat sizes, motion durations/easings), font loading plan → this file.
