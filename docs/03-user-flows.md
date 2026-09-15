@@ -100,6 +100,21 @@ flowchart LR
   end
 ```
 
+## Flow 7 — App: hold expiring push (v4)
+
+```mermaid
+sequenceDiagram
+  participant A as App (backgrounded)
+  participant API as FastAPI
+  participant P as Expo Push
+  A->>API: POST /showtimes/7/holds [F7]
+  Note over API: push_jobs row due at expires_at - 120 s
+  API->>P: (cron, when due) push "2 minutes left on F7" + deeplink frontrow://book/7
+  P-->>A: notification
+  A->>API: (tap) GET /showtimes/7/seats - hold still mine
+  Note over A: seat map opens, countdown 01:58
+```
+
 ## Screen index
 
 | # | Screen | Route | Who | Version | Notes |
@@ -122,3 +137,6 @@ flowchart LR
 | S16 | Waitlist join + offer | `/book/[showtimeId]` state · email link | customer | v3 | |
 | S17 | Transfer ticket | `/tickets/[orderId]` action · claim page | customer | v3 | |
 | S18 | Organiser · Heatmap | `/organiser/venues/[id]/heatmap` | organiser | v3 | |
+| S19 | App shell (tabs Shows · Tickets · Account · Scan) | Expo Router | all | v4 | Native chrome around the phone screens above |
+| S20 | Ticket wallet | app `/tickets` | customer | v4 | Offline; brightness boost on QR |
+| S21 | Scanner | app `/scan` | organiser | v4 | Camera + haptics, running count |

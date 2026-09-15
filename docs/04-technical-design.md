@@ -126,5 +126,21 @@ Events list and event pages: server-rendered, `Cache-Control: s-maxage=60` on th
 - `test_order_total`.
 - v2: one Playwright test — two pages, hold in one, assert grey in the other ≤ 1.5 s.
 
-## 12. Environment
-`api/`: `DATABASE_URL`, `REDIS_URL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SESSION_SECRET`, `TICKET_SECRET`, `WEB_URL`, v2: `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`. `web/`: `API_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`.
+## 12. v4 — mobile app (Expo)
+| Concern | Choice | Why |
+|---|---|---|
+| Framework | **Expo SDK (React Native, TypeScript), Expo Router** in `mobile/` next to `web/` and `api/` | One codebase for iOS + Android; React knowledge carries over; no Swift/Kotlin |
+| API client | Same `openapi.json` → generated types (`mobile/src/lib/api-types.ts`); `fetch` with `Authorization: Bearer` | Zero duplicated contract |
+| Auth | `POST /auth/token` returns an opaque bearer token (row in `sessions` with `kind='mobile'`, 90-day expiry); stored in `expo-secure-store` | Cookies don't fit native; same sessions table |
+| Seat map | `react-native-svg` rendering the same `Layout` JSON; pinch/pan via `react-native-gesture-handler` + `reanimated`; seat state via polling (SSE via `react-native-sse` once v2 exists) | Same geometry as web, native gestures |
+| Payments | `react-native-razorpay` (Checkout SDK); order / verify / webhook unchanged | |
+| Wallet | `expo-sqlite` cache of the user's tickets + QR tokens; `expo-brightness` on the QR screen; `expo-calendar` | Offline is the reason a native app exists here |
+| Push | `expo-notifications` + Expo Push service; `device_tokens` + `push_jobs` tables; the API inserts a job at hold time (due = expires − 120 s); Vercel Cron calls `POST /internal/push/due` every minute to send due jobs | No always-on process needed |
+| Scanner | `expo-camera` barcode scanning → `POST /checkin`; `expo-haptics` | Reuses the v2 endpoint |
+| Build | EAS Build (free tier): Android APK linked from landing + README; iOS via Expo Go link | No store accounts needed for a portfolio |
+| Tests | One Jest test for the SVG hit-test (tap point → seat id); everything else is API-tested already | Lean |
+
+Deep links: `frontrow://book/{showtimeId}`, `frontrow://tickets/{orderId}`; universal links on `frontrow.virajdomadia.com/app/*` later if hours remain.
+
+## 13. Environment
+`api/`: `DATABASE_URL`, `REDIS_URL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SESSION_SECRET`, `TICKET_SECRET`, `WEB_URL`, v2: `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`. `web/`: `API_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`. v4 `mobile/`: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_RAZORPAY_KEY_ID`; `api/`: `EXPO_ACCESS_TOKEN`, `CRON_SECRET`.
