@@ -1,6 +1,7 @@
 # Frontrow — Development Plan
 
 **Lifecycle step:** 7 of 17 · **Written:** 2026-09-15 · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
+**Tracker:** row status lives at https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA (updated per milestone).
 **Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h · v4 ≈ 14 h. v1 carries two small app-readiness items (bearer tokens in F4, DOM-free seat-map core in F1) so v4 is a second renderer, not a rewrite. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
 
 **Lean rules in force** (2026-09-15): setup is the minimum to deploy both apps with plain CI; no observability, contract gates, e2e workflows or tracker updates per PR; review findings fixed on the same branch; tests only from 04 §11. Hours saved go to the seat map, motion and content. **Accounts and keys are created just-in-time** — in the row that first needs them, never in a setup batch (Viraj, 2026-09-15): Neon in S2, Upstash in F2, Razorpay in F5, Resend + Blob in L5, Expo/EAS in M1/M8, Vercel Cron in M6.

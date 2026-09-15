@@ -4,6 +4,7 @@
 **Name:** Frontrow · *pick your seat, live*
 **URL:** https://frontrow.virajdomadia.com (landing live at https://frontrow-viraj.vercel.app until DNS)
 **Slot:** #2 · Budget ~52 h (v1 18 · v2 10 · v3 10 · v4 14) · Build second
+**Live artifacts:** [Tracker](https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA) (plan rows with status, all docs, mockups, project data) · [Screens](https://claude.ai/artifact/MCedtstCq6C2o7d9vJacPp) (all 13 v1 screens, direction B) · [Direction variants](https://claude.ai/artifact/LFJw5Zg1LEvvYjqdhot2Dr) (A–D, B chosen) · Landing: https://frontrow-viraj.vercel.app
 
 ## One-liner
 BookMyShow-style ticketing for Bengaluru: pick seats on a live map, they're held for you for 10 minutes and grey out for everyone else, pay with Razorpay, get a QR ticket.

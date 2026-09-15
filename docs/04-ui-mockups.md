@@ -3,6 +3,7 @@
 **Lifecycle step:** 4 of 17 (UX companion to the technical design) · **Brief locked:** 2026-09-15 · **Variants:** built 2026-09-15 — `mockups/direction-variants.html`, published at https://claude.ai/artifact/LFJw5Zg1LEvvYjqdhot2Dr · **Chosen: B · Box office** (Viraj, 2026-09-15).
 **Pairs with:** [03-user-flows.md](03-user-flows.md) — one mockup per v1 screen (S1–S13) after the direction is chosen.
 **Files:** `mockups/landing.html` (exists, already ported to `web/`) → `mockups/direction-variants.html` (S4 seat map + S3 event page, desktop and 390 px) → `mockups/screens.html` (every v1 screen in the chosen direction).
+**Published:** [Direction variants](https://claude.ai/artifact/LFJw5Zg1LEvvYjqdhot2Dr) · [Screens](https://claude.ai/artifact/MCedtstCq6C2o7d9vJacPp) · both also viewable inside the [Tracker](https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA) → Mockups tab.
 
 ## Brief
 **Style:** a night at the movies — dark house, lit screen. The existing landing sets it: plum `#2A0B1E` ground, warm off-white "screen" `#F5EFE6`, red `#E63946` for the action, amber `#F4A261` for focus and warnings, Barlow Condensed uppercase headlines with Barlow for UI. Keep it; the variants explore how the **seat map** lives in it, not a new palette.

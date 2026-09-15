@@ -18,6 +18,9 @@ Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard 
 ## Stack
 `web/` Next.js 15 (App Router) · TypeScript · Tailwind 4 — `api/` FastAPI (Python 3.12) · SQLAlchemy + Alembic · Neon Postgres · Upstash Redis · Razorpay · Resend — Vercel for both — `mobile/` (v4) Expo · React Native · TypeScript
 
+## Live artifacts
+[Tracker](https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA) — plan v1–v4 with row status, every doc rendered, mockups live, project data · [Screens](https://claude.ai/artifact/MCedtstCq6C2o7d9vJacPp) — all 13 v1 screens in direction B · [Direction variants](https://claude.ai/artifact/LFJw5Zg1LEvvYjqdhot2Dr) — A/B/C/D, B chosen 2026-09-15
+
 ## Docs (steps 1–7)
 [PRD](PRD.md) · [Requirements](docs/03-requirements.md) · [User flows + screen index](docs/03-user-flows.md) · [Technical design](docs/04-technical-design.md) · [UI mockups](docs/04-ui-mockups.md) · [Architecture](docs/05-architecture.md) · [Data + API](docs/06-data-and-api.md) · [Development plan](docs/07-plan.md)
 
