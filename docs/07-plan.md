@@ -113,7 +113,7 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | Add-ons (in priority order) | A embed widget (4) · B on-sale alerts + calendar (2) · C accessible seating (3) · D organiser refunds (4) · E offline check-in PWA (3) · F group booking, split pay (8) · G season pass (4) · H layout CSV import (4) | up to 32 | up to 84 |
 
 ## Add-ons (only from time saved)
-Taken in this order, each only when its enclosing version is fully done including docs, and only if the version came in under budget. None is a version; none changes the engine. All free to run.
+**Nice-to-have, not priority** (Viraj, 2026-09-17): considered only after v4 is fully done (docs and case study included), in this order, from time saved — and skipping all of them is a fine outcome. None is a version; none changes the engine. All free to run.
 
 | # | Add-on | What | Version it extends | ~h |
 |---|---|---|---|---|
