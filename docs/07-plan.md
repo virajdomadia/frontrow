@@ -100,3 +100,29 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | M8 | **Ship** | EAS Android build, Expo Go link, landing "Get the app" block with QR, README GIF | — | 1 h | Reviewer installs from the landing page in < 1 min |
 
 **Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 52 h.
+
+---
+
+## Whole-product summary
+| Version | Milestones | Hours | Cumulative |
+|---|---|---|---|
+| v1 Box office | 1.0 – 1.3 | 18 | 18 |
+| v2 Live hall | 2.0 – 2.1 | 10 | 28 |
+| v3 Full house | 3.0 – 3.1 | 10 | 38 |
+| v4 In your pocket | 4.0 – 4.1 | 14 | 52 |
+| Add-ons (in priority order) | A embed widget (4) · B on-sale alerts + calendar (2) · C accessible seating (3) · D organiser refunds (4) · E offline check-in PWA (3) · F group booking, split pay (8) · G season pass (4) · H layout CSV import (4) | up to 32 | up to 84 |
+
+## Add-ons (only from time saved)
+Taken in this order, each only when its enclosing version is fully done including docs, and only if the version came in under budget. None is a version; none changes the engine. All free to run.
+
+| # | Add-on | What | Version it extends | ~h |
+|---|---|---|---|---|
+| A | **Embed widget** | A `<script>` tag a cinema pastes into its own site that renders the live seat map + Book flow for one showtime (iframe over `/embed/[showtimeId]`, same API, same SSE) — the map has reach beyond Frontrow | v2 | 4 |
+| B | **On-sale alerts + calendar** | "Notify me when tickets go on sale" for a draft event (Resend); `.ics` per ticket and an iCal feed per venue | v2 | 2 |
+| C | **Accessible seating** | Wheelchair + companion seat pairs in the layout templates, a filter on the map, and the full keyboard/screen-reader pass on the SVG (v3's stretch made real) | v3 | 3 |
+| D | **Organiser refunds** | Cancel a showtime → automatic Razorpay refunds for every paid order + email; partial refund per ticket from the bookings list (v1 out-of-scope, lifted) | v3 | 4 |
+| E | **Offline check-in PWA** | The v2 check-in page as an installable PWA that caches the showtime's valid tokens and syncs `checked_in_at` when back online — works in a basement hall with no signal | v2 | 3 |
+| F | **Group booking, split pay** | One hold for the group, a share link, each friend pays their seat through Razorpay; the hold extends while ≥ 1 seat is paid; unpaid seats release at expiry | v3 | 8 |
+| G | **Season pass** | Organiser sells a pass (N shows, a price); pass holders redeem seats at checkout without paying; pass QR at check-in | v3 | 4 |
+| H | **Layout CSV import** | Organiser uploads a CSV of sections/rows/seats/tiers for a venue that fits no template; validated, rendered with the same map | v1 | 4 |
+
