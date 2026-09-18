@@ -2,7 +2,7 @@
 
 **Pick your seat, live.** Movie and concert ticketing for Bengaluru with a live seat map: seats are held for 10 minutes the moment you tap them and grey out for everyone else.
 
-> Status: **lifecycle steps 1–7 complete (2026-09-15) · next: step 8 Project Setup = milestone 1.0.** One of six portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). **Live (landing page):** https://frontrow-viraj.vercel.app — will move to `frontrow.virajdomadia.com`.
+> Status: **step 8 in progress — milestone 1.0 (2026-09-18): S1 direction ✅ · S2 API skeleton + DB + seed ✅ · S3 events list + event page next.** One of six portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). **Live (landing page):** https://frontrow-viraj.vercel.app — will move to `frontrow.virajdomadia.com`.
 
 ## What it proves
 Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard on confirm · idempotent Razorpay webhooks incl. paid-after-expiry refunds · realtime over SSE on serverless · a showcase-grade SVG seat map for three venue templates
@@ -26,8 +26,8 @@ Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard 
 
 ## In this repo
 ```
-web/        Next.js app — the landing page lives here
-api/        FastAPI backend — folder structure only until milestone 1.0
+web/        Next.js app — landing page, typed api client (src/lib/api.ts), seed photos (public/img)
+api/        FastAPI backend — models + Alembic, layout generators, seed (python -m app.seed)
 mobile/     Expo app — arrives in v4
 docs/       lifecycle steps 3–7
 mockups/    landing.html (ported to web/) · direction-variants.html (A–D, B chosen) · screens.html (all v1 screens) · img/ CC photos
@@ -35,9 +35,16 @@ brand/      logo, mark, favicon
 PRD.md      product requirements v1 with locked decisions
 ```
 
-### Run the landing page
+### Run it
 ```
-cd web
-pnpm install
-pnpm dev
+# api — needs Postgres (api/.env.example has a local URL); uv installs Python 3.12
+cd api && uv sync && cp .env.example .env.local
+uv run alembic upgrade head && uv run python -m app.seed      # seed is idempotent
+uv run uvicorn app.main:app --reload --port 8000               # http://localhost:8000/docs
+
+# web — proxies /api/* to API_URL (web/.env.example)
+cd web && pnpm install && cp .env.example .env.local && pnpm dev
+
+pnpm gen:api   # in web/: regenerate api/openapi.json + src/lib/api-types.ts after changing the contract
 ```
+Demo logins (seeded): `customer@frontrow.demo` / `organiser@frontrow.demo`, password `frontrow-demo`.
