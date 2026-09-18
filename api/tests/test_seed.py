@@ -59,3 +59,19 @@ async def test_every_showtime_has_a_sold_and_a_free_seat(
     # Everything is in the future relative to the seed's clock.
     earliest = await db.scalar(select(func.min(Showtime.starts_at)))
     assert earliest is not None and earliest > NOW
+
+
+async def test_reset_and_high_fill(db_engine: AsyncEngine, db: AsyncSession) -> None:
+    """`--reset` on an already-seeded database must not trip the venue FK; and the seller
+    reaches its target even for a nearly sold-out show (the leading gap is not lost)."""
+    from unittest.mock import patch
+
+    from app.seed.content import ShowtimeSpec
+
+    await seed(db_engine, now=NOW)
+    near_full = [ShowtimeSpec("neon-alley", "orbit-1", 1, SHOWTIMES[0].at, 0.98)]
+    with patch("app.seed.SHOWTIMES", near_full):
+        report = await seed(db_engine, now=NOW, reset=True)
+    assert report["showtimes"] == 1
+    seat_count, sold = (await db.execute(text("select seat_count, sold from showtime_fill"))).one()
+    assert seat_count == 234 and sold == int(234 * 0.98)

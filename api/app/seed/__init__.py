@@ -46,6 +46,10 @@ async def seed(
     async with factory() as db:
         organiser, customer, bookers = await _users(db)
         if reset:
+            # Showtimes first: showtimes.venue_id is ON DELETE RESTRICT, and their orders /
+            # tickets still reference the seats.
+            owned = select(Venue.id).where(Venue.organiser_id == organiser.id)
+            await db.execute(delete(Showtime).where(Showtime.venue_id.in_(owned)))
             await db.execute(delete(Venue).where(Venue.organiser_id == organiser.id))
         venues = {spec.key: await _venue(db, organiser.id, spec) for spec in VENUES}
         specs = {spec.slug: spec for spec in EVENTS}
@@ -243,7 +247,7 @@ async def _sell(
             if sold >= target:
                 break
             cursor = rng.randrange(0, 3) if gapped else 0
-            skipped: list[str] = []
+            skipped: list[str] = seat_ids[:cursor]  # the leading gap goes back into the pool
             while cursor < len(seat_ids) and sold < target:
                 size = min(rng.choice([1, 2, 2, 3, 4]), target - sold, len(seat_ids) - cursor)
                 run = seat_ids[cursor : cursor + size]
