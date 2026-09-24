@@ -6,6 +6,8 @@ import { Organisers } from "@/components/landing/Organisers";
 import { Cta } from "@/components/landing/Cta";
 import { Footer } from "@/components/landing/Footer";
 
+export const revalidate = 60;
+
 export default function Home() {
   return (
     <>

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Hero() {
   return (
     <section className="wrap hero">
@@ -5,7 +7,7 @@ export function Hero() {
         <h1>The seat you pick<br />is <span>yours</span> for<br />ten minutes</h1>
         <div>
           <p className="lede">Choose seats on a live map. The moment you tap one, it's held for you and greys out for everyone else — <strong>no double bookings, no "sorry, that's gone" at checkout.</strong></p>
-          <div className="hero-actions"><a className="btn btn-red" href="#shows">Book seats</a><a className="btn btn-line" href="#how">See how holds work</a></div>
+          <div className="hero-actions"><Link className="btn btn-red" href="/events">Book seats</Link><a className="btn btn-line" href="#how">See how holds work</a></div>
         </div>
       </div>
 

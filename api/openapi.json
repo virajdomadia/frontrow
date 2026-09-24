@@ -38,6 +38,280 @@
         "title": "ApiErrorResponse",
         "type": "object"
       },
+      "EventCard": {
+        "properties": {
+          "duration_min": {
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "from_price_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cheapest tier across upcoming showtimes.",
+            "title": "From Price Paise"
+          },
+          "genre": {
+            "title": "Genre",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "next_showtime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextShowtime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "poster_url": {
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "movie",
+              "concert"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "upcoming_count": {
+            "description": "Upcoming showtimes matching the list's date filter.",
+            "title": "Upcoming Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "type",
+          "genre",
+          "rating",
+          "duration_min",
+          "poster_url",
+          "from_price_paise",
+          "next_showtime",
+          "upcoming_count"
+        ],
+        "title": "EventCard",
+        "type": "object"
+      },
+      "EventDetail": {
+        "properties": {
+          "cast_lineup": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cast Lineup",
+            "type": "array"
+          },
+          "duration_min": {
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "from_price_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cheapest tier across upcoming showtimes.",
+            "title": "From Price Paise"
+          },
+          "gallery_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Gallery Urls",
+            "type": "array"
+          },
+          "genre": {
+            "title": "Genre",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "next_showtime": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextShowtime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "poster_url": {
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "showtimes": {
+            "items": {
+              "$ref": "#/components/schemas/ShowtimeSummary"
+            },
+            "title": "Showtimes",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "synopsis": {
+            "title": "Synopsis",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "movie",
+              "concert"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "upcoming_count": {
+            "description": "Upcoming showtimes matching the list's date filter.",
+            "title": "Upcoming Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "type",
+          "genre",
+          "rating",
+          "duration_min",
+          "poster_url",
+          "from_price_paise",
+          "next_showtime",
+          "upcoming_count",
+          "synopsis",
+          "cast_lineup",
+          "gallery_urls",
+          "showtimes"
+        ],
+        "title": "EventDetail",
+        "type": "object"
+      },
+      "EventList": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventCard"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "genres": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "title": "Genres",
+            "type": "array"
+          },
+          "showtime_count": {
+            "title": "Showtime Count",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "venues": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "title": "Venues",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events",
+          "total",
+          "showtime_count",
+          "genres",
+          "venues"
+        ],
+        "title": "EventList",
+        "type": "object"
+      },
+      "FilterOption": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "title": "FilterOption",
+        "type": "object"
+      },
       "Health": {
         "properties": {
           "ok": {
@@ -60,6 +334,178 @@
         ],
         "title": "Health",
         "type": "object"
+      },
+      "Home": {
+        "properties": {
+          "now_showing": {
+            "items": {
+              "$ref": "#/components/schemas/EventCard"
+            },
+            "title": "Now Showing",
+            "type": "array"
+          }
+        },
+        "required": [
+          "now_showing"
+        ],
+        "title": "Home",
+        "type": "object"
+      },
+      "NextShowtime": {
+        "properties": {
+          "fill": {
+            "enum": [
+              "available",
+              "filling",
+              "sold_out"
+            ],
+            "title": "Fill",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "venue_name": {
+            "title": "Venue Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "venue_name",
+          "fill"
+        ],
+        "title": "NextShowtime",
+        "type": "object"
+      },
+      "ShowtimeSummary": {
+        "properties": {
+          "fill": {
+            "enum": [
+              "available",
+              "filling",
+              "sold_out"
+            ],
+            "title": "Fill",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "price_max_paise": {
+            "title": "Price Max Paise",
+            "type": "integer"
+          },
+          "price_min_paise": {
+            "title": "Price Min Paise",
+            "type": "integer"
+          },
+          "seats_left": {
+            "title": "Seats Left",
+            "type": "integer"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TierPrice"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/VenueRef"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "venue",
+          "tiers",
+          "price_min_paise",
+          "price_max_paise",
+          "fill",
+          "seats_left"
+        ],
+        "title": "ShowtimeSummary",
+        "type": "object"
+      },
+      "TierPrice": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "price_paise": {
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "tier_key": {
+            "title": "Tier Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier_key",
+          "label",
+          "price_paise"
+        ],
+        "title": "TierPrice",
+        "type": "object"
+      },
+      "VenueRef": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "seat_count",
+          "photo_url"
+        ],
+        "title": "VenueRef",
+        "type": "object"
       }
     }
   },
@@ -69,6 +515,169 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/events": {
+      "get": {
+        "operationId": "list_events_events_get",
+        "parameters": [
+          {
+            "description": "today · tomorrow · weekend · YYYY-MM-DD (IST days)",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(today|tomorrow|weekend|\\d{4}-\\d{2}-\\d{2})$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "today · tomorrow · weekend · YYYY-MM-DD (IST days)",
+              "title": "Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "movie",
+                    "concert"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "genre",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Genre"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "soonest",
+              "enum": [
+                "soonest",
+                "price",
+                "title"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "List Events",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/events/{slug}": {
+      "get": {
+        "operationId": "get_event_events__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Event",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",
@@ -97,6 +706,37 @@
         "summary": "Health",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/home": {
+      "get": {
+        "operationId": "home_home_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Home"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Home",
+        "tags": [
+          "catalog"
         ]
       }
     }

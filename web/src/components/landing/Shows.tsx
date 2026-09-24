@@ -1,14 +1,48 @@
-export function Shows() {
+import Link from "next/link";
+import { EventCard } from "@/components/events/EventCard";
+import { api } from "@/lib/api";
+import type { EventCard as Card } from "@/lib/types";
+
+/** S1 "Now showing" — the six soonest shows from `GET /home`. If the api is unreachable the
+ *  landing still renders (the strip says so) and ISR retries within a minute. */
+export async function Shows() {
+  let shows: Card[] | null = null;
+  try {
+    shows = (await api("/home", { revalidate: 60, tags: ["events"] })).now_showing;
+  } catch {
+    shows = null;
+  }
+  const now = new Date();
+
   return (
     <section className="wrap shows" id="shows">
-      <h2>Now showing</h2>
-      <p className="sub">Films and live shows, one seat map each. The number on the poster is how full it is right now.</p>
-      <div className="posters">
-        <a className="poster p1" href="#"><span className="fill">92% full</span><h3>Kantara 2</h3><p className="when">Fri 7:30 PM · Screen 1</p></a>
-        <a className="poster p2" href="#"><span className="fill">61% full</span><h3>Dune: Part Three</h3><p className="when">Sat 9:00 PM · IMAX</p></a>
-        <a className="poster p3" href="#"><span className="fill">38% full</span><h3>Prateek Kuhad live</h3><p className="when">Sun 8:00 PM · Arena</p></a>
-        <a className="poster p4" href="#"><span className="fill">14% full</span><h3>Zakir Khan</h3><p className="when">Thu 8:30 PM · Hall B</p></a>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2>Now showing</h2>
+          <p className="sub">Films and live shows across Bengaluru, one seat map each.</p>
+        </div>
+        <Link href="/events" className="text-[15px] text-muted-foreground hover:text-screen">
+          All shows →
+        </Link>
       </div>
+      {shows && shows.length > 0 ? (
+        <ul className="mt-7 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
+          {shows.map((e) => (
+            <li key={e.id} className="grid">
+              <EventCard event={e} now={now} showType={false} sizes="(min-width: 1280px) 16vw, (min-width: 640px) 33vw, 50vw" />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-7 rounded-card bg-plum-2 px-5 py-4 text-muted-foreground">
+          {shows ? "No shows scheduled right now — check back soon." : "The listings are taking a moment to load. "}
+          {!shows && (
+            <Link href="/events" className="text-screen">
+              Browse all shows
+            </Link>
+          )}
+        </p>
+      )}
     </section>
   );
 }
