@@ -6,7 +6,7 @@
 | Layer | Choice | Notes |
 |---|---|---|
 | web/ | Next.js 15 App Router · TypeScript strict · Tailwind 4 · pnpm | UI only; `/api/*` rewritten to the API so cookies are same-origin |
-| api/ | FastAPI (Python 3.12, uv) · SQLAlchemy 2.0 async + Alembic · pydantic · pytest | Vercel FastAPI preset, region `bom1`, `maxDuration` 300 for the stream route |
+| api/ | FastAPI (Python 3.12, uv) · SQLAlchemy 2.0 async + Alembic · pydantic · pytest | Vercel FastAPI preset, region `sin1` (next to Neon Singapore; Neon has no Mumbai), `maxDuration` 300 for the stream route |
 | Data | Neon Postgres | Source of truth for everything sold |
 | Holds / realtime | Upstash Redis (TCP client `redis-py` asyncio, not the REST client — Lua needs `EVALSHA`) | Holds, version counters |
 | Payments | Razorpay Checkout + webhooks, test mode | |

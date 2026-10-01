@@ -16,7 +16,7 @@ flowchart LR
   end
   subgraph Vercel
     WEB[web · frontrow<br/>Next.js, static + SSR<br/>rewrites /api/* →]
-    API[api · frontrow-api<br/>FastAPI, bom1<br/>REST + SSE + webhooks]
+    API[api · frontrow-api<br/>FastAPI, sin1<br/>REST + SSE + webhooks]
   end
   PG[(Neon Postgres<br/>users · venues · seats · events<br/>showtimes · orders · tickets)]
   RD[(Upstash Redis<br/>hold:* TTL · holds:{st} hash · st:{st}:v)]
@@ -87,7 +87,7 @@ mobile/app.json · eas.json
 ```
 
 ## 5. Deployment topology
-- Two Vercel projects per repo (as Tripsmith): `frontrow` (root `web/`) and `frontrow-api` (root `api/`, FastAPI preset, `bom1`). `web/next.config.ts` rewrites `/api/:path*` → `API_URL`, so the browser only ever talks to `frontrow.virajdomadia.com`; cookies are first-party; no CORS.
+- Two Vercel projects per repo (as Tripsmith): `frontrow` (root `web/`) and `frontrow-api` (root `api/`, FastAPI preset, `sin1`, next to Neon in Singapore). `web/next.config.ts` rewrites `/api/:path*` → `API_URL`, so the browser only ever talks to `frontrow.virajdomadia.com`; cookies are first-party; no CORS.
 - SSE route sets `maxDuration: 300` in `api/vercel.json`; every other route 30 s.
 - Neon: one project, `main` branch = production, a `dev` branch for local. Upstash: one Redis, region Mumbai. Razorpay webhook URL → `https://frontrow.virajdomadia.com/api/webhooks/razorpay`.
 - Previews: Vercel previews per PR for `web/` (API previews are SSO-gated, so previews point at the production API — acceptable for a portfolio; seeded data is regenerated relative to "now").

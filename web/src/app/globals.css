@@ -1,10 +1,22 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Landing page styles — ported from mockups/landing.html. Brand tokens live in :root. */
+/* The whole site is the dark "house" (direction B), so shadcn's `dark:` styles always apply. */
+@custom-variant dark (&:is(.dark *));
+
+/* Direction B · Box office tokens (docs/04-ui-mockups.md). The landing styles below are the
+   hand-written port of mockups/landing.html; product screens use the Tailwind theme at the end. */
 :root{
-  --plum:#2A0B1E; --plum-2:#3A1230; --screen:#F5EFE6; --red:#E63946; --amber:#F4A261; --muted:#C9B3C1; --sold:#5A3A50;
-  --cond:var(--font-cond),Impact,sans-serif; --sans:var(--font-sans),system-ui,sans-serif;
+  --plum:#2A0B1E; --plum-2:#3A1230; --plum-3:#4A1A3E; --screen:#F5EFE6;
+  --paper:#F5EFE6; --paper-2:#EADFD0; --ink:#2A0B1E; --ink-2:#5A3A50; --ink-3:#6E5468;
+  --red:#E63946; --red-dark:#B8232F; --amber:#F4A261; --muted:#C9B3C1; --muted-2:#AE96A6;
+  --held:#6B5566; --sold:#3A1230; --classic:#8FB8DE; --prime:#E9C46A; --recliner:#C77DFF;
+  --cond:var(--font-barlow-cond),Impact,'Arial Narrow',sans-serif; --sans:var(--font-barlow),system-ui,sans-serif;
+  --mono:var(--font-jetbrains),ui-monospace,monospace;
+  color-scheme:dark;
 }
+@layer components {
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -45,7 +57,7 @@ p{margin:0}
 .row .lbl{width:18px;font-family:var(--cond);font-size:13px;color:var(--muted);text-align:center}
 .seat{width:22px;height:20px;border-radius:5px 5px 3px 3px;background:transparent;border:1.5px solid rgba(245,239,230,.55);position:relative}
 .seat.aisle{margin-right:14px}
-.seat.sold{border-color:transparent;background:var(--sold)}
+.seat.sold{border-color:transparent;background:#5A3A50}
 .seat.held{border-color:transparent;background:var(--amber);animation:hold 0s forwards}
 .seat.mine{border-color:transparent;background:var(--red);box-shadow:0 0 0 3px rgba(230,57,70,.35)}
 .seat.h1{animation-delay:1.2s}.seat.h2{animation-delay:2.1s}.seat.h3{animation-delay:2.15s}.seat.h4{animation-delay:3.4s}.seat.h5{animation-delay:4.6s}.seat.h6{animation-delay:4.65s}.seat.h7{animation-delay:5.9s}
@@ -55,7 +67,7 @@ p{margin:0}
 .legend{display:flex;gap:18px;justify-content:center;margin-top:22px;font-size:14px;color:var(--muted);flex-wrap:wrap}
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend i{width:14px;height:12px;border-radius:3px;border:1.5px solid rgba(245,239,230,.55);display:inline-block}
-.legend i.a{background:var(--amber);border-color:transparent}.legend i.s{background:var(--sold);border-color:transparent}.legend i.m{background:var(--red);border-color:transparent}
+.legend i.a{background:var(--amber);border-color:transparent}.legend i.s{background:#5A3A50;border-color:transparent}.legend i.m{background:var(--red);border-color:transparent}
 .hold-pill{position:absolute;top:22px;right:22px;background:var(--screen);color:var(--plum);border-radius:8px;padding:10px 14px;font-family:var(--cond);font-size:16px;letter-spacing:.04em;text-transform:uppercase;display:flex;gap:12px;align-items:center}
 .hold-pill b{font-size:26px;font-variant-numeric:tabular-nums;color:var(--red)}
 .checkout{position:absolute;bottom:22px;right:22px;left:22px;display:flex;justify-content:space-between;align-items:center;background:var(--plum);border:1px solid rgba(245,239,230,.15);border-radius:10px;padding:12px 16px}
@@ -66,15 +78,15 @@ p{margin:0}
 .shows{padding:56px 0}
 .shows h2{font-size:clamp(36px,4.5vw,64px)}
 .shows .sub{color:var(--muted);margin-top:8px;max-width:50ch}
-.posters{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:30px}
-.poster{aspect-ratio:2/3;border-radius:10px;padding:18px;display:flex;flex-direction:column;justify-content:flex-end;text-decoration:none;position:relative;overflow:hidden}
-.poster h3{font-size:34px;font-weight:800}
-.poster .when{font-size:14px;color:rgba(255,255,255,.8);margin-top:6px}
-.poster .fill{position:absolute;top:14px;right:14px;font-family:var(--cond);font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border-radius:5px;background:rgba(0,0,0,.6)}
-.p1{background:linear-gradient(160deg,#7b1e3a,#2b0716 70%)}
-.p2{background:linear-gradient(160deg,#1f4b6e,#0c1a2a 70%)}
-.p3{background:linear-gradient(160deg,#a85f1f,#3a1c0a 70%)}
-.p4{background:linear-gradient(160deg,#3b7d5a,#0e2a1c 70%)}
+
+
+
+
+
+
+
+
+
 
 /* the hard part */
 .hard{background:var(--screen);color:var(--plum);padding:72px 0}
@@ -113,10 +125,45 @@ p{margin:0}
 @media (max-width:900px){
   .hero-top{grid-template-columns:1fr}
   .nav ul{display:none}
-  .posters{grid-template-columns:repeat(2,1fr)}
+
   .hard-in,.ticket-in{grid-template-columns:1fr}
   .hall{padding:18px 12px 96px}
   .seat{width:16px;height:15px}.seat.aisle{margin-right:8px}
   .hold-pill{position:static;margin:0 0 14px;justify-content:center}
   .checkout{left:12px;right:12px;bottom:12px;flex-direction:column;gap:10px;align-items:stretch;text-align:center}
+}
+}
+
+::selection{background:var(--amber);color:var(--plum)}
+html{scrollbar-color:var(--muted-2) var(--plum-2)}
+body{caret-color:var(--red)}
+
+/* shadcn semantic colours mapped onto the brand, plus the brand palette as utilities
+   (`bg-plum-2`, `text-muted-foreground`, `font-cond` …). `--muted` stays the brand's text
+   colour above, so `muted` here is defined straight from the palette. */
+@theme inline {
+  --font-sans:var(--sans);
+  --font-cond:var(--cond);
+  --font-heading:var(--cond);
+  --font-mono:var(--mono);
+
+  --color-plum:var(--plum); --color-plum-2:var(--plum-2); --color-plum-3:var(--plum-3);
+  --color-screen:var(--screen); --color-paper:var(--paper); --color-paper-2:var(--paper-2);
+  --color-ink:var(--ink); --color-ink-2:var(--ink-2); --color-ink-3:var(--ink-3);
+  --color-red:var(--red); --color-red-dark:var(--red-dark); --color-amber:var(--amber);
+  --color-faint:var(--muted-2); --color-held:var(--held); --color-sold:var(--sold);
+  --color-classic:var(--classic); --color-prime:var(--prime); --color-recliner:var(--recliner);
+
+  --color-background:var(--plum); --color-foreground:var(--screen);
+  --color-card:var(--plum-2); --color-card-foreground:var(--screen);
+  --color-popover:var(--plum-2); --color-popover-foreground:var(--screen);
+  --color-primary:var(--red); --color-primary-foreground:#fff;
+  --color-secondary:var(--plum-3); --color-secondary-foreground:var(--screen);
+  --color-muted:var(--plum-2); --color-muted-foreground:var(--muted);
+  --color-accent:var(--plum-3); --color-accent-foreground:var(--screen);
+  --color-destructive:var(--red); --color-border:rgb(245 239 230 / .14);
+  --color-input:rgb(245 239 230 / .22); --color-ring:var(--amber);
+
+  --radius-seat:3px; --radius-chip:5px; --radius-btn:6px; --radius-card:10px;
+  --radius-sm:4px; --radius-md:6px; --radius-lg:10px; --radius-xl:14px;
 }

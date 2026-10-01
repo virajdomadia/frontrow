@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Event */
+        get: operations["get_event_events__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -13,6 +47,23 @@ export interface paths {
         };
         /** Health */
         get: operations["health_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home */
+        get: operations["home_home_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -46,6 +97,108 @@ export interface components {
         ApiErrorResponse: {
             error: components["schemas"]["ApiErrorBody"];
         };
+        /** EventCard */
+        EventCard: {
+            /** Duration Min */
+            duration_min: number;
+            /**
+             * From Price Paise
+             * @description Cheapest tier across upcoming showtimes.
+             */
+            from_price_paise: number | null;
+            /** Genre */
+            genre: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            next_showtime: components["schemas"]["NextShowtime"] | null;
+            /** Poster Url */
+            poster_url: string;
+            /** Rating */
+            rating: string | null;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "movie" | "concert";
+            /**
+             * Upcoming Count
+             * @description Upcoming showtimes matching the list's date filter.
+             */
+            upcoming_count: number;
+        };
+        /** EventDetail */
+        EventDetail: {
+            /** Cast Lineup */
+            cast_lineup: string[];
+            /** Duration Min */
+            duration_min: number;
+            /**
+             * From Price Paise
+             * @description Cheapest tier across upcoming showtimes.
+             */
+            from_price_paise: number | null;
+            /** Gallery Urls */
+            gallery_urls: string[];
+            /** Genre */
+            genre: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            next_showtime: components["schemas"]["NextShowtime"] | null;
+            /** Poster Url */
+            poster_url: string;
+            /** Rating */
+            rating: string | null;
+            /** Showtimes */
+            showtimes: components["schemas"]["ShowtimeSummary"][];
+            /** Slug */
+            slug: string;
+            /** Synopsis */
+            synopsis: string;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "movie" | "concert";
+            /**
+             * Upcoming Count
+             * @description Upcoming showtimes matching the list's date filter.
+             */
+            upcoming_count: number;
+        };
+        /** EventList */
+        EventList: {
+            /** Events */
+            events: components["schemas"]["EventCard"][];
+            /** Genres */
+            genres: components["schemas"]["FilterOption"][];
+            /** Showtime Count */
+            showtime_count: number;
+            /** Total */
+            total: number;
+            /** Venues */
+            venues: components["schemas"]["FilterOption"][];
+        };
+        /** FilterOption */
+        FilterOption: {
+            /** Count */
+            count: number;
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
         /** Health */
         Health: {
             /** Ok */
@@ -54,6 +207,83 @@ export interface components {
             service: string;
             /** Version */
             version: string;
+        };
+        /** Home */
+        Home: {
+            /** Now Showing */
+            now_showing: components["schemas"]["EventCard"][];
+        };
+        /** NextShowtime */
+        NextShowtime: {
+            /**
+             * Fill
+             * @enum {string}
+             */
+            fill: "available" | "filling" | "sold_out";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Venue Name */
+            venue_name: string;
+        };
+        /** ShowtimeSummary */
+        ShowtimeSummary: {
+            /**
+             * Fill
+             * @enum {string}
+             */
+            fill: "available" | "filling" | "sold_out";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Price Max Paise */
+            price_max_paise: number;
+            /** Price Min Paise */
+            price_min_paise: number;
+            /** Seats Left */
+            seats_left: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Tiers */
+            tiers: components["schemas"]["TierPrice"][];
+            venue: components["schemas"]["VenueRef"];
+        };
+        /** TierPrice */
+        TierPrice: {
+            /** Label */
+            label: string;
+            /** Price Paise */
+            price_paise: number;
+            /** Tier Key */
+            tier_key: string;
+        };
+        /** VenueRef */
+        VenueRef: {
+            /** Address */
+            address: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Seat Count */
+            seat_count: number;
         };
     };
     responses: never;
@@ -64,6 +294,73 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_events_events_get: {
+        parameters: {
+            query?: {
+                /** @description today · tomorrow · weekend · YYYY-MM-DD (IST days) */
+                date?: string | null;
+                type?: ("movie" | "concert") | null;
+                genre?: string | null;
+                venue?: string | null;
+                sort?: "soonest" | "price" | "title";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventList"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_event_events__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDetail"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     health_health_get: {
         parameters: {
             query?: never;
@@ -80,6 +377,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    home_home_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Home"];
                 };
             };
             /** @description Error envelope (06 §C) */
