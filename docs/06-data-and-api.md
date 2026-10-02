@@ -74,7 +74,7 @@ Error envelope everywhere: `{ "error": { "code": "seat_taken", "message": "…",
 | GET | `/events?date=&type=&genre=&venue=&sort=` | `EventCard[]` (poster, title, type, genre, rating, duration, from_price, next_showtime) |
 | GET | `/events/{slug}` | `EventDetail` + `ShowtimeSummary[]` (venue, starts_at, tiers, fill: available/filling/sold_out) |
 | GET | `/venues/{id}/layout` | `Layout` JSON (cached, immutable per venue) |
-| GET | `/showtimes/{id}` | `ShowtimeDetail` (event, venue, tiers, layout url) |
+| GET | `/showtimes/{id}` | `ShowtimeDetail` (event, venue + template, tiers with prices in legend order, `layout_url`, `fee_paise`, fill, seats_left) |
 | GET | `/showtimes/{id}/seats` | `SeatState` `{ v, server_time, sold: seat_id[], held: {seat_id, expires_at}[], mine: seat_id[] }` |
 | GET | `/showtimes/{id}/stream` | SSE — `snapshot` / `diff` / `ping` (v2) |
 | GET | `/home` | landing strip: 6 `EventCard` |

@@ -55,7 +55,7 @@ def test_layout_json_matches_contract() -> None:
     ids = {key: str(uuid.uuid4()) for key, *_ in seat_rows(gen)}
     layout = Layout.model_validate(layout_json(gen, ids))
     assert layout.template == "arena"
-    assert [t["key"] for t in layout.tiers] == ["floor", "gold", "silver", "bronze"]
+    assert [t.key for t in layout.tiers] == ["floor", "gold", "silver", "bronze"]
     wedges = [s for s in layout.sections if s.shape == "wedge"]
     assert len(wedges) == 8 and all(w.polygon for w in wedges)
     assert {s.tier for s in wedges} == {"gold", "silver", "bronze"}

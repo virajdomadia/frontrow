@@ -11,7 +11,7 @@
   --plum:#2A0B1E; --plum-2:#3A1230; --plum-3:#4A1A3E; --screen:#F5EFE6;
   --paper:#F5EFE6; --paper-2:#EADFD0; --ink:#2A0B1E; --ink-2:#5A3A50; --ink-3:#6E5468;
   --red:#E63946; --red-dark:#B8232F; --amber:#F4A261; --muted:#C9B3C1; --muted-2:#AE96A6;
-  --held:#6B5566; --sold:#3A1230; --classic:#8FB8DE; --prime:#E9C46A; --recliner:#C77DFF;
+  --held:#6B5566; --sold:#3A1230; --classic:#8FB8DE; --prime:#E9C46A; --recliner:#C77DFF; --mint:#7FD1B9;
   --cond:var(--font-barlow-cond),Impact,'Arial Narrow',sans-serif; --sans:var(--font-barlow),system-ui,sans-serif;
   --mono:var(--font-jetbrains),ui-monospace,monospace;
   color-scheme:dark;
@@ -134,6 +134,47 @@ p{margin:0}
 }
 }
 
+/* S4 seat map (components/seat-map). `sm-` keeps it apart from the landing's CSS-only hall above.
+   Motion = direction B's "map load": rows popIn 400 ms, 40 ms per row; the stub slides in. */
+@layer components {
+.sm-map{overflow:visible}
+.sm-map text{font-family:var(--cond);letter-spacing:.06em;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.sm-stage-arc{fill:none;stroke:var(--screen);stroke-width:3;stroke-linecap:round;opacity:.85}
+.sm-stage-block{fill:var(--screen);opacity:.9}
+.sm-stage-label{font-size:14px;fill:var(--muted-2);letter-spacing:.2em}
+.sm-stage-label.on-block{fill:var(--plum);font-weight:800;font-size:24px}
+.sm-row-label{font-size:13px;fill:var(--muted-2)}
+.sm-section polygon,.sm-section rect{fill:currentColor;fill-opacity:.07;stroke:currentColor;stroke-opacity:.25;stroke-width:1.5;transition:fill-opacity .2s}
+.sm-section-label{font-size:52px;font-weight:800;fill:var(--screen);stroke:var(--plum);stroke-width:8px;stroke-linejoin:round;paint-order:stroke;opacity:0;transition:opacity .2s}
+.is-overview .sm-section{cursor:zoom-in}
+.is-overview .sm-section-label{opacity:.95}
+.is-overview .sm-section:hover polygon,.is-overview .sm-section:hover rect{fill-opacity:.2}
+.sm-section.t-classic{color:var(--classic)} .sm-section.t-mint{color:var(--mint)} .sm-section.t-prime{color:var(--prime)} .sm-section.t-recliner{color:var(--recliner)}
+
+.sm-row{animation:sm-pop .4s ease-out both;animation-delay:calc(var(--i) * 40ms);transform-box:fill-box;transform-origin:center}
+@keyframes sm-pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+
+.sm-seat{cursor:pointer;outline:none;transition:fill .18s,transform .18s;transform-box:fill-box;transform-origin:center}
+.sm-seat.t-classic{fill:var(--classic)} .sm-seat.t-mint{fill:var(--mint)} .sm-seat.t-prime{fill:var(--prime)} .sm-seat.t-recliner{fill:var(--recliner)}
+.sm-seat.held{fill:var(--held);cursor:not-allowed}
+.sm-seat.sold{fill:var(--sold);stroke:rgb(245 239 230 / .14);stroke-width:1;cursor:not-allowed}
+.sm-seat.off{fill:transparent;stroke:rgb(245 239 230 / .2);stroke-width:1;cursor:not-allowed}
+.sm-seat.mine{fill:var(--red);filter:drop-shadow(0 0 6px rgb(230 57 70 / .75))}
+.sm-seat:focus-visible{stroke:var(--amber);stroke-width:3;paint-order:stroke}
+.is-overview .sm-seat{cursor:zoom-in}
+@media (hover:hover){.sm-map:not(.is-overview) .sm-seat:is(.free,.mine):hover{transform:scale(1.14)}}
+
+.sm-stub{animation:sm-slide .6s cubic-bezier(.2,.8,.2,1) .2s both}
+@keyframes sm-slide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.sm-sheet{animation:sm-rise .6s cubic-bezier(.2,.8,.2,1) .2s both}
+@keyframes sm-rise{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  .sm-row,.sm-stub,.sm-sheet{animation:none}
+  .sm-seat,.sm-section polygon,.sm-section rect,.sm-section-label{transition:none}
+}
+}
+
 ::selection{background:var(--amber);color:var(--plum)}
 html{scrollbar-color:var(--muted-2) var(--plum-2)}
 body{caret-color:var(--red)}
@@ -152,7 +193,7 @@ body{caret-color:var(--red)}
   --color-ink:var(--ink); --color-ink-2:var(--ink-2); --color-ink-3:var(--ink-3);
   --color-red:var(--red); --color-red-dark:var(--red-dark); --color-amber:var(--amber);
   --color-faint:var(--muted-2); --color-held:var(--held); --color-sold:var(--sold);
-  --color-classic:var(--classic); --color-prime:var(--prime); --color-recliner:var(--recliner);
+  --color-classic:var(--classic); --color-prime:var(--prime); --color-recliner:var(--recliner); --color-mint:var(--mint);
 
   --color-background:var(--plum); --color-foreground:var(--screen);
   --color-card:var(--plum-2); --color-card-foreground:var(--screen);

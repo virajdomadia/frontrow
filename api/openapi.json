@@ -335,6 +335,25 @@
         "title": "Health",
         "type": "object"
       },
+      "HeldSeat": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "seat_id": {
+            "title": "Seat Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seat_id",
+          "expires_at"
+        ],
+        "title": "HeldSeat",
+        "type": "object"
+      },
       "Home": {
         "properties": {
           "now_showing": {
@@ -349,6 +368,207 @@
           "now_showing"
         ],
         "title": "Home",
+        "type": "object"
+      },
+      "Layout": {
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/LayoutStage"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony",
+              "arena"
+            ],
+            "title": "Template",
+            "type": "string"
+          },
+          "tiers": {
+            "description": "`{key, label}` in price order, front to back — the legend.",
+            "items": {
+              "$ref": "#/components/schemas/LayoutTier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "template",
+          "width",
+          "height",
+          "stage",
+          "tiers",
+          "sections"
+        ],
+        "title": "Layout",
+        "type": "object"
+      },
+      "LayoutRow": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "seats": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutSeat"
+            },
+            "title": "Seats",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "seats"
+        ],
+        "title": "LayoutRow",
+        "type": "object"
+      },
+      "LayoutSeat": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "n",
+          "x",
+          "y"
+        ],
+        "title": "LayoutSeat",
+        "type": "object"
+      },
+      "LayoutSection": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "polygon": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Polygon"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "shape": {
+            "enum": [
+              "rows",
+              "wedge"
+            ],
+            "title": "Shape",
+            "type": "string"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "tier",
+          "shape",
+          "rows"
+        ],
+        "title": "LayoutSection",
+        "type": "object"
+      },
+      "LayoutStage": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "w": {
+            "title": "W",
+            "type": "integer"
+          },
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "x",
+          "y",
+          "w"
+        ],
+        "title": "LayoutStage",
+        "type": "object"
+      },
+      "LayoutTier": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "LayoutTier",
         "type": "object"
       },
       "NextShowtime": {
@@ -384,6 +604,185 @@
           "fill"
         ],
         "title": "NextShowtime",
+        "type": "object"
+      },
+      "SeatState": {
+        "properties": {
+          "held": {
+            "description": "Held by someone else (not the caller).",
+            "items": {
+              "$ref": "#/components/schemas/HeldSeat"
+            },
+            "title": "Held",
+            "type": "array"
+          },
+          "mine": {
+            "description": "Held by the caller's session.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Mine",
+            "type": "array"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "sold": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sold",
+            "type": "array"
+          },
+          "v": {
+            "description": "State version; a diff with a lower `v` is stale.",
+            "title": "V",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "v",
+          "server_time",
+          "sold",
+          "held",
+          "mine"
+        ],
+        "title": "SeatState",
+        "type": "object"
+      },
+      "ShowtimeDetail": {
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/ShowtimeEvent"
+          },
+          "fee_paise": {
+            "description": "Convenience fee per ticket (03 R5: flat ₹30).",
+            "title": "Fee Paise",
+            "type": "integer"
+          },
+          "fill": {
+            "enum": [
+              "available",
+              "filling",
+              "sold_out"
+            ],
+            "title": "Fill",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "layout_url": {
+            "description": "`/venues/{id}/layout` — immutable, cache it forever.",
+            "title": "Layout Url",
+            "type": "string"
+          },
+          "seats_left": {
+            "title": "Seats Left",
+            "type": "integer"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tiers": {
+            "description": "Every tier of the venue with this show's price.",
+            "items": {
+              "$ref": "#/components/schemas/TierPrice"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/ShowtimeVenue"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "status",
+          "event",
+          "venue",
+          "tiers",
+          "layout_url",
+          "fee_paise",
+          "fill",
+          "seats_left"
+        ],
+        "title": "ShowtimeDetail",
+        "type": "object"
+      },
+      "ShowtimeEvent": {
+        "properties": {
+          "duration_min": {
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "genre": {
+            "title": "Genre",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "poster_url": {
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "movie",
+              "concert"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "type",
+          "genre",
+          "rating",
+          "duration_min",
+          "poster_url"
+        ],
+        "title": "ShowtimeEvent",
         "type": "object"
       },
       "ShowtimeSummary": {
@@ -441,6 +840,57 @@
           "seats_left"
         ],
         "title": "ShowtimeSummary",
+        "type": "object"
+      },
+      "ShowtimeVenue": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony",
+              "arena"
+            ],
+            "title": "Template",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "seat_count",
+          "photo_url",
+          "template"
+        ],
+        "title": "ShowtimeVenue",
         "type": "object"
       },
       "TierPrice": {
@@ -737,6 +1187,148 @@
         "summary": "Home",
         "tags": [
           "catalog"
+        ]
+      }
+    },
+    "/showtimes/{showtime_id}": {
+      "get": {
+        "operationId": "get_showtime_showtimes__showtime_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "showtime_id",
+            "required": true,
+            "schema": {
+              "title": "Showtime Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShowtimeDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Showtime",
+        "tags": [
+          "seat map"
+        ]
+      }
+    },
+    "/showtimes/{showtime_id}/seats": {
+      "get": {
+        "operationId": "get_seats_showtimes__showtime_id__seats_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "showtime_id",
+            "required": true,
+            "schema": {
+              "title": "Showtime Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "fr_sid",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fr Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Seats",
+        "tags": [
+          "seat map"
+        ]
+      }
+    },
+    "/venues/{venue_id}/layout": {
+      "get": {
+        "operationId": "get_layout_venues__venue_id__layout_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Layout"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Layout",
+        "tags": [
+          "seat map"
         ]
       }
     }
