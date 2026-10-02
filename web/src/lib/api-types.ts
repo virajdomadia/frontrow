@@ -72,6 +72,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/showtimes/{showtime_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Showtime */
+        get: operations["get_showtime_showtimes__showtime_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/showtimes/{showtime_id}/seats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Seats */
+        get: operations["get_seats_showtimes__showtime_id__seats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/venues/{venue_id}/layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Layout */
+        get: operations["get_layout_venues__venue_id__layout_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -208,10 +259,94 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** HeldSeat */
+        HeldSeat: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Seat Id */
+            seat_id: string;
+        };
         /** Home */
         Home: {
             /** Now Showing */
             now_showing: components["schemas"]["EventCard"][];
+        };
+        /** Layout */
+        Layout: {
+            /** Height */
+            height: number;
+            /** Sections */
+            sections: components["schemas"]["LayoutSection"][];
+            stage: components["schemas"]["LayoutStage"];
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "grid" | "stalls_balcony" | "arena";
+            /**
+             * Tiers
+             * @description `{key, label}` in price order, front to back — the legend.
+             */
+            tiers: components["schemas"]["LayoutTier"][];
+            /** Width */
+            width: number;
+        };
+        /** LayoutRow */
+        LayoutRow: {
+            /** Label */
+            label: string;
+            /** Seats */
+            seats: components["schemas"]["LayoutSeat"][];
+        };
+        /** LayoutSeat */
+        LayoutSeat: {
+            /** Id */
+            id: string;
+            /** N */
+            n: number;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
+        /** LayoutSection */
+        LayoutSection: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Polygon */
+            polygon?: number[][] | null;
+            /** Rows */
+            rows: components["schemas"]["LayoutRow"][];
+            /**
+             * Shape
+             * @enum {string}
+             */
+            shape: "rows" | "wedge";
+            /** Tier */
+            tier: string;
+        };
+        /** LayoutStage */
+        LayoutStage: {
+            /** Label */
+            label: string;
+            /** W */
+            w: number;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
+        /** LayoutTier */
+        LayoutTier: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
         };
         /** NextShowtime */
         NextShowtime: {
@@ -232,6 +367,98 @@ export interface components {
             starts_at: string;
             /** Venue Name */
             venue_name: string;
+        };
+        /** SeatState */
+        SeatState: {
+            /**
+             * Held
+             * @description Held by someone else (not the caller).
+             */
+            held: components["schemas"]["HeldSeat"][];
+            /**
+             * Mine
+             * @description Held by the caller's session.
+             */
+            mine: string[];
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
+            /** Sold */
+            sold: string[];
+            /**
+             * V
+             * @description State version; a diff with a lower `v` is stale.
+             */
+            v: number;
+        };
+        /** ShowtimeDetail */
+        ShowtimeDetail: {
+            event: components["schemas"]["ShowtimeEvent"];
+            /**
+             * Fee Paise
+             * @description Convenience fee per ticket (03 R5: flat ₹30).
+             */
+            fee_paise: number;
+            /**
+             * Fill
+             * @enum {string}
+             */
+            fill: "available" | "filling" | "sold_out";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Layout Url
+             * @description `/venues/{id}/layout` — immutable, cache it forever.
+             */
+            layout_url: string;
+            /** Seats Left */
+            seats_left: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /**
+             * Tiers
+             * @description Every tier of the venue with this show's price.
+             */
+            tiers: components["schemas"]["TierPrice"][];
+            venue: components["schemas"]["ShowtimeVenue"];
+        };
+        /** ShowtimeEvent */
+        ShowtimeEvent: {
+            /** Duration Min */
+            duration_min: number;
+            /** Genre */
+            genre: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Poster Url */
+            poster_url: string;
+            /** Rating */
+            rating: string | null;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "movie" | "concert";
         };
         /** ShowtimeSummary */
         ShowtimeSummary: {
@@ -259,6 +486,27 @@ export interface components {
             /** Tiers */
             tiers: components["schemas"]["TierPrice"][];
             venue: components["schemas"]["VenueRef"];
+        };
+        /** ShowtimeVenue */
+        ShowtimeVenue: {
+            /** Address */
+            address: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Seat Count */
+            seat_count: number;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "grid" | "stalls_balcony" | "arena";
         };
         /** TierPrice */
         TierPrice: {
@@ -406,6 +654,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Home"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_showtime_showtimes__showtime_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                showtime_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShowtimeDetail"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_seats_showtimes__showtime_id__seats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                showtime_id: string;
+            };
+            cookie?: {
+                fr_sid?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatState"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_layout_venues__venue_id__layout_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Layout"];
                 };
             };
             /** @description Error envelope (06 §C) */

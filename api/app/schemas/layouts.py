@@ -112,12 +112,17 @@ class LayoutStage(ApiModel):
     w: int
 
 
+class LayoutTier(ApiModel):
+    key: str
+    label: str
+
+
 class Layout(ApiModel):
     template: Literal["grid", "stalls_balcony", "arena"]
     width: int
     height: int
     stage: LayoutStage
-    tiers: list[dict[str, str]] = Field(
+    tiers: list[LayoutTier] = Field(
         description="`{key, label}` in price order, front to back — the legend."
     )
     sections: list[LayoutSection]
