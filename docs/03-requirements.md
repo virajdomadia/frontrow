@@ -1,146 +1,106 @@
 # Frontrow — Requirements & Scope
 
-**Lifecycle step:** 3 of 17 · **Locked:** 2026-09-15 · **Source:** [PRD.md](../PRD.md) locked decisions. Flows and screen index: [03-user-flows.md](03-user-flows.md).
+**Lifecycle step:** 3 of 17 · **Re-planned:** 2026-11-15/16 (movies only, three roles) · **Source:** [PRD.md](../PRD.md). Flows and screen index: [03-user-flows.md](03-user-flows.md). Plan rows: [07-plan.md](07-plan.md).
 
-Actors: **Customer** (books), **Organiser** (runs venues/events), **Visitor** (not signed in). Each requirement ends with **Accept:** — the check that closes it. Ids: R = v1, R2 = v2, R3 = v3, R4 = v4.
-
----
-
-## v1 — Box office (base, ≈ 18 h)
-
-### R1. Browse events
-- `/events` lists live events with poster, title, type (movie/concert), genre, rating/duration, "from ₹" price, next showtime. Filters: date (today / tomorrow / this weekend / pick a date), type, genre, venue; sort by soonest / price. Filters live in the URL.
-- Landing page (already live) gets a real "Now showing" strip fed from the same query.
-- **Accept:** every seeded event appears; a filter URL renders server-side with the right subset; empty state when nothing matches.
-
-### R2. Event page & showtimes
-- `/events/[slug]`: hero (poster/backdrop), synopsis, cast/line-up, duration, genre, rating, gallery; showtimes grouped by day then venue, each showing tier prices and a fill indicator (Available / Filling fast ≥ 70 % held+sold / Sold out).
-- **Accept:** past showtimes hidden; sold-out showtimes visible but disabled; JSON-LD `Event` present.
-
-### R3. Seat map
-- `/book/[showtimeId]`: SVG map generated from the venue's layout JSON — sections, rows, seat numbers, screen/stage marker, tier legend with prices. Seat states: available (tier colour), **held by someone else** (grey), **sold** (dark), **mine** (accent, with countdown). Hover/tap shows row-seat and price. Arena template: section overview → tap a section → zoomed seat view; pan/zoom on touch and wheel.
-- Max 10 seats per order; running total in a sticky footer with a **Proceed** button.
-- Keyboard: arrow keys move between seats, Enter toggles. A visually-hidden list of selected seats for screen readers.
-- Seat state refreshes every 5 s from `GET /showtimes/{id}/seats` (v2 swaps this for SSE).
-- **Accept:** all three templates render correctly at 390 px and 1440 px; a seat that is held/sold cannot be selected; the map never shows a seat as available that the API says is not.
-
-### R4. Holds
-- Tapping seats calls `POST /showtimes/{id}/holds` with the whole current selection; the API grants all or none (Lua, `SET NX EX 600`). On conflict the map shows a toast "Seat F7 was just taken", drops that seat, and keeps the rest.
-- A 10-minute countdown starts at the first successful hold; it is shown on the map, the checkout page and the tab title. Deselecting a seat releases just that hold. Leaving the page keeps holds (they expire on their own).
-- Holds belong to a **session id** (cookie) so a visitor can hold before signing in; signing in at checkout adopts the holds.
-- **Accept:** test — two parallel requests for the same seat: exactly one 200, one 409 naming the seat. Test — hold expires after TTL and the seat is available again. A hold never outlives its TTL by more than 1 s.
-
-### R5. Checkout & payment
-- `/checkout/[orderId]`: seats, tiers, subtotal, convenience fee (flat ₹30/ticket, shown honestly), total; countdown continues. Sign in / sign up inline if a visitor.
-- `POST /orders` verifies every seat is held by this session, creates a Razorpay order, returns the checkout params. Razorpay Checkout modal (test mode). On success the page polls the order until the webhook confirms; after 20 s without confirmation it shows "Payment received, confirming…" and keeps polling.
-- Webhook `payment.captured`: verify signature, dedupe by Razorpay event id, then one DB transaction inserts tickets (`UNIQUE (showtime_id, seat_id)`), marks the order paid, deletes the Redis holds, bumps the version counter.
-- **Paid after expiry:** if the holds are gone but the seats are still free → sell; if any seat is sold to someone else → refund the whole payment via Razorpay, order → `refunded`, customer sees why.
-- Orders with no payment 15 min after creation → `expired` (checked lazily on read; no cron).
-- **Accept:** test — webhook replay is a no-op; test — forged signature rejected; test — paid-after-expiry both branches; total = Σ tier price + fee.
-
-### R6. Tickets
-- `/tickets/[ticketId]`: event, venue, showtime, seat(s), QR code encoding a signed token (`ticket_id.exp.sig`), "Add to calendar" link. One ticket row per seat; one page per order listing all its tickets.
-- `/my-tickets`: upcoming and past, grouped by showtime.
-- **Accept:** the QR decodes to a token the API verifies; another user's ticket URL → 404.
-
-### R7. Auth
-- Email + password, cookie session, roles `customer` | `organiser`. Sign up, sign in, sign out, forgot-password (email link, v2 when Resend lands — v1 shows "contact us"). Demo logins on the landing page.
-- **Accept:** protected routes redirect to sign in and back; organiser routes 403 for customers.
-
-### R8. Organiser console
-- `/organiser`: venues, events, showtimes, bookings.
-- **Venues:** create from a template (grid / stalls+balcony / arena) with name, address, and per-template knobs (rows × seats for grid; section count for arena). Seats are generated and stored as rows.
-- **Events:** create/edit title, type, genre, duration, rating, synopsis, cast, poster + gallery (URL fields in v1; upload is v2), status draft/live.
-- **Showtimes:** pick event + venue + start time + price per tier; status scheduled/cancelled. Cancelling a showtime with sold tickets is blocked in v1.
-- **Bookings:** per showtime, list of paid orders (customer, seats, amount, time); CSV export.
-- **Accept:** a new organiser can go from sign-up to a bookable showtime in under 3 minutes; the seeded organiser sees only their own venues/events.
-
-### R9. Seed & content
-- Seed script (idempotent): platform + demo organiser + demo customer, 3 venues, ~8 events with CC photos and credits file, ~20 showtimes over the next 14 days (regenerated relative to "now" so the demo never goes stale), a scatter of sold seats per showtime so maps don't look empty.
-- **Accept:** `seed` runs twice without duplicates; every showtime has at least one sold and one available seat.
+Roles: **Customer**, **Theatre owner** (a business with one or more cinemas), **Frontrow staff**, and **Visitor** (not signed in). Each requirement ends with **Accept:** — the check that closes it. Row ids in brackets point at [07-plan.md](07-plan.md).
 
 ---
 
-## v2 — Live hall (mid, ≈ 10 h)
+## v1 — Box office
 
-### R2-1. Realtime seat state
-- `GET /showtimes/{id}/stream` (SSE): initial snapshot, then diffs whenever the version counter changes and at each known hold expiry. Server loop reconnects cleanly at Vercel's function limit; the client's `EventSource` resumes with `Last-Event-ID`.
-- Client swaps polling for the stream; falls back to 5 s polling if SSE fails twice.
-- **Accept:** in two tabs, a hold/release/sale is visible in the other tab within 1 s (measured in an e2e test with a 1.5 s tolerance).
+### Everyone
+**R1. Sign-in by email code** [B2]
+- Three doors: `/sign-in` (customers; also opens mid-booking), `/business` (register a business or sign in to one), `/staff` (hidden; seeded staff accounts only).
+- Email → 6-digit code (10-minute life, 5 tries) → signed in for 30 days. A new email at the customer door is asked for a name; at the business door, for business details.
+- Limits: 1 code a minute and 5 an hour per email, plus a per-network limit. The staff door answers the same whether or not the email is staff.
+- One email = one person: every account can book; business access and the staff flag are added on top.
+- Landing demo buttons: Customer, Theatre owner (Orbit Cinemas), Frontrow staff — no email. Demo staff can view, not decide; demo accounts never change real data.
+- **Accept:** each demo signs in with one click; a real email receives a code; access tests pass (another business's id → 404, customer → owner or staff pages refused).
 
-### R2-2. Live sales dashboard
-- `/organiser/dashboard`: today's revenue, tickets sold, occupancy per upcoming showtime (sold / held / free), a live mini seat map per showtime, last 20 orders — updated over the same SSE stream.
-- **Accept:** a purchase in another tab updates the numbers without reload.
+**R2. Look and catalogue that never empties** [B1]
+- Paper pages, oxblood header with the torn-stub edge, Box office style otherwise unchanged; landing page written for movies.
+- Seed: 3 cinema businesses, their cinemas and screens, 8 fictional films with CC photos; shows come from repeating schedules, generated lazily so the next 14 days always exist (no cron, no manual reseed).
+- **Accept:** prod shows films on sale today and a month later without a reseed.
 
-### R2-3. Check-in
-- `/checkin/[showtimeId]` (organiser): paste/scan a ticket token (camera via the browser's BarcodeDetector where available, text field otherwise) → valid / already used / wrong showtime; marks `checked_in_at` once.
-- **Accept:** second scan of the same ticket says "already checked in at HH:MM".
+### Customer
+**R3. Home, search, movie page** [B3]
+- Home: Now showing, search by film title.
+- Movie page: poster, banner, synopsis, cast and crew, certificate (U / UA / A), runtime, genres, trailer link, Book tickets.
+- **Accept:** a search finds a film by title; the page renders at 390 and 1440 px.
 
-### R2-4. Email
-- Ticket email on payment (Resend, React Email template with the QR); forgot-password link.
-- **Accept:** email arrives in test inbox with a working ticket link.
+**R4. Language, format, showtimes** [B4]
+- If a film has more than one language or format, the customer picks one (Hindi · 2D, English · IMAX).
+- Showtimes: a date strip; cinemas listed with their times; each time coloured by availability (available / filling fast ≥ 70 % held + sold / sold out, greyed).
+- **Accept:** colours match the seat state; past times hidden.
 
-### R2-5. Poster upload
-- Organiser uploads poster/gallery images (Vercel Blob) instead of URLs.
+**R5. Seats and holds** [B5]
+- Certificate notice when needed (A: “18+ only, ID may be checked”).
+- “How many seats?” (1–10) before the map. Tapping a seat picks that many together where possible.
+- Seats are held for 10 minutes and grey for everyone else; a countdown shows on the page and the tab title. If two people tap the same seat, exactly one wins; the other sees “F7 was just taken” and keeps the rest. At 0:00: “Your seats were released” with Pick again.
+- Holds work before sign-in and move to the account on sign-in.
+- **Accept:** test — 20 parallel requests for one seat → one success; all-or-none 409 names the seat; a hold expires on time.
+
+**R6. Summary and payment** [B6]
+- Summary: seats, tier prices, convenience fee (₹30 per ticket) shown separately, total; the clock keeps running; a demo note with the test card / UPI id. No add-ons.
+- Razorpay Checkout (test mode). A failed or cancelled payment keeps the seats held. Webhook confirms; deduplicated; paid after the hold expired: seats still free → sell, sold to someone else → full refund and a page explaining it.
+- **Accept:** a test payment produces tickets; a webhook replay does nothing; both refund branches are tested; totals are computed on the server.
+
+**R7. M-ticket, email, my tickets** [B7]
+- Ticket page: QR per seat, booking ID, receipt (price breakdown, payment method), add to calendar, the tear-off motion. Confirmation email with the ticket link.
+- My tickets: upcoming and past.
+- **Accept:** the QR decodes to a token the API verifies; another person's ticket link → 404.
+
+### Theatre owner
+**R8. Register, cinemas, screens** [B8]
+- Business registration (account, then business: name, phone, logo); console shows “Pending verification” until staff approve. Everything can be built while pending; nothing is public until then.
+- Cinemas: name, area, address, facilities. Screens: layout template (grid, or stalls + balcony) with knobs and a live preview, tiers (Classic / Prime / Recliner…), formats (2D / 3D / IMAX).
+- **Accept:** a new owner sets up a cinema with two screens in under three minutes.
+
+**R9. Films, bulk shows, bookings** [B9]
+- Pick a film from the shared catalogue, or request a missing one.
+- Bulk-schedule: film + language + format + screen + days + times + a price per tier. Shows on one screen may not overlap (runtime + cleaning gap).
+- Bookings per show (who, seats, amount) with CSV.
+- **Accept:** scheduled shows appear on the film's page under that cinema once the business is verified; an overlap is refused with the clashing show named.
+
+**R10. Scan at the door** [B10]
+- Check-in page for ushers: phone camera or pasted code. Results: valid (name, seat), already checked in at HH:MM, wrong show, not a ticket. The customer's ticket then shows Checked in.
+- **Accept:** a second scan of the same ticket is refused.
+
+### Frontrow staff
+**R11. Film catalogue, requests, approvals** [B11]
+- Add and edit films (all fields in R3, plus languages, formats, release date); status coming soon → now showing → ended (ended films take no new shows).
+- Film requests from owners: add the film, or decline with a reason.
+- Approvals queue: new businesses with their cinemas; Approve or Reject with a reason. Approval makes their shows public.
+- **Accept:** a new owner's shows go public after approval; a requested film becomes available to the owner after staff add it.
 
 ---
 
-## v3 — Full house (advanced, ≈ 10 h)
+## v2 — Live hall
+**R2-1. Live seat updates** [L1] — other people's holds, releases and sales appear in under a second without refresh; pushed only on change so the free tiers hold; falls back to polling. **Accept:** two tabs — a hold shows in the other in ≤ 1 s.
+**R2-2. Try it live** [L2] — two mini seat maps of one show side by side on the landing page. **Accept:** the effect works without opening two tabs.
+**R2-3. Today board, live sales, blocked seats** [L3] — every show today with fill and a live map; today's revenue, tickets and recent orders updating live; block seats (broken, staff, guests). **Accept:** a purchase in another tab updates the board; blocked seats can't be booked online.
+**R2-4. Counter sales** [L4] — a cashier picks seats on the same live map and marks them paid in cash; the customer gets a QR. **Accept:** online and counter can never sell the same seat.
+**R2-5. Cancel a show** [L5] — with a reason; every buyer is refunded and emailed. **Accept:** each test order refunded exactly once.
+**R2-6. Cinema list and suspend** [L6] — staff see every business and cinema; suspending hides its shows, existing tickets still valid.
+**R2-7. Customer support** [L7] — staff find a booking by ID or email, see seats, payment and scan status, resend the ticket, refund.
+**R2-8. Marketplace view** [L8] — tickets sold, total sales, Frontrow's fee, busiest films and cinemas (today / week / month).
 
-### R3-1. Waitlist
-- Sold-out showtime → "Join waitlist" (seat count, max price). When a hold lapses or an order is refunded, the first matching waitlist entry gets a 10-min exclusive hold and an email/push; unclaimed → next in line.
-- **Accept:** test — lapse → offer → claim flow; offers never double-hold.
+## v3 — Full house
+**R3-1. Reviews** [A1] — only a customer who was scanned in can rate and review the film; the movie page shows the rating. **Accept:** someone not scanned in can't review.
+**R3-2. Waitlist** [A2] — join a sold-out show's waitlist (number of seats); when seats free up, the next person gets a 10-minute exclusive hold by email; unclaimed → next. **Accept:** test lapse → offer → claim; offers never double-hold.
+**R3-3. Sales reports** [A3] — by film, show and day, with CSV.
+**R3-4. Payouts** [A4] — owner: weekly statement (sales − Frontrow fee); staff: what each cinema is owed, mark paid. Ledger only. **Accept:** statement = sales − fee, to the paisa.
+**R3-5. Seat heatmap** [A5] — which seats sell first across shows, on the screen's map.
+**R3-6. Review moderation** [A6] — staff remove abusive reviews with a reason.
 
-### R3-2. Best available
-- "Pick for me": choose N seats together, closest to centre, within a tier; preview then hold.
-- **Accept:** returns contiguous seats when they exist; explains when it can't.
-
-### R3-3. Dynamic pricing
-- Organiser enables per showtime: tier price rises by X % at 50 % / 75 % / 90 % occupancy; the map shows the current price and "price rises at 75 %".
-- **Accept:** price shown = price charged, computed server-side at hold time and frozen for the hold.
-
-### R3-4. Seat-view preview
-- Hovering a section (arena/auditorium) shows a photo "view from here" (CC photos per section).
-
-### R3-5. Ticket transfer
-- Owner enters a friend's email → the friend gets a claim link; the QR token rotates so the old one is void.
-- **Accept:** old QR rejected at check-in after transfer.
-
-### R3-6. Seat heatmap
-- Organiser: per venue, which seats sell first across showtimes (colour scale on the map).
-
----
-
-## v4 — In your pocket (mobile app, ≈ 15 h)
-
-Expo (React Native, TypeScript, Expo Router) app, iOS + Android from one codebase, talking to the same FastAPI through the generated types. No new business logic on the server beyond token auth and push registration.
-
-### R4-1. App shell & auth
-- Tabs: **Shows · Tickets · Account** (+ **Scan** for organisers). Sign in / sign up / demo logins as on web; sessions are bearer tokens (`POST /auth/token`) stored in SecureStore.
-- **Accept:** demo customer signs in in one tap; token survives app restart; sign-out revokes it server-side.
-
-### R4-2. Browse & book
-- Shows list with the same filters, event page, showtimes. Seat map in `react-native-svg` with pinch/pan (gesture-handler + reanimated); same `Layout` JSON and `SeatState` polling/SSE as web; tap = hold, countdown in the header.
-- Razorpay via the React Native SDK; on success the app polls the order like web.
-- **Accept:** hold in the app greys the seat on an open web tab within 1 s (v2 stream); test-mode payment produces tickets.
-
-### R4-3. Ticket wallet (offline)
-- Tickets cached on device (SQLite) with their QR tokens so they open with no network; screen brightness boosts on the QR; add-to-calendar via the native calendar.
-- **Accept:** airplane mode → tonight's ticket still opens and scans at check-in.
-
-### R4-4. Push notifications
-- Expo Push. Events: *hold expiring in 2 min* (only if the app is backgrounded mid-hold), *ticket confirmed*, *waitlist offer* (v3), *show starts in 2 h*. Device tokens registered per user; deep links open the right screen.
-- **Accept:** background the app with a hold → notification at T-2:00; tapping it lands on the seat map with the hold intact.
-
-### R4-5. Organiser scanner
-- Scan tab: camera (expo-camera barcode scanning) → `POST /checkin` → valid / used / wrong showtime with haptic + colour; runs the v2 endpoint. Stays on camera between scans and shows a running count.
-- **Accept:** 20 scans in a minute without leaving the camera; duplicate scan shows "already checked in HH:MM".
-
-### R4-6. Distribution
-- EAS Build: Android APK downloadable from the landing page and README (QR); iOS via Expo Go link (no App Store listing). Same brand tokens, splash and icon from `brand/`.
-- **Accept:** a reviewer installs the Android build from the landing page in under a minute.
+## v4 — In your pocket (one Expo app)
+**R4-1.** Email-code sign-in; tabs by role. [M1]
+**R4-2. Customer:** the whole v1–v3 customer flow including reviews and joining a waitlist [M2]; offline ticket wallet with brightness and calendar [M3]; push — hold reminder at T-2:00 scheduled on the phone, booking confirmed, waitlist offer [M4].
+**R4-3. Theatre owner:** door scanner (camera, haptics, count), today board with live sales, blocked seats, counter sales [M5]. Setup, scheduling, reports and payouts stay on the website.
+**R4-4. Staff:** approvals queue, booking lookup and resend, push for a new cinema to approve [M6]. Everything else stays on the website.
+**R4-5.** Android build + Expo Go, “Get the app” on the landing page [M7].
 
 ---
 
 ## Out of scope (all versions)
-Custom layout editor · refunds UI · store listings (App Store / Play) · real money · multi-city · GA/standing zones · promo codes · full WCAG on the SVG map (keyboard + SR list only) · reserved-seat pricing per seat (tiers only).
+Concerts and events · city selection · add-ons (food, donation, offers, coupons) · customer cancellations · Google or phone sign-in · cinema pages and favourites · reminder emails · coming soon + notify · pick for me · view from your seat · ticket transfer · dynamic pricing · custom layout editor beyond the two templates · real money · store listings.
