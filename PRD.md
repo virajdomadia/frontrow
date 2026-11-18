@@ -3,7 +3,7 @@
 **Status:** v1 · lifecycle steps 1–7 complete (2026-09-15) — see [docs/](docs/) · next: step 8 Project Setup (= milestone 1.0)
 **Name:** Frontrow · *pick your seat, live*
 **URL:** https://frontrow.virajdomadia.com (landing live at https://frontrow-viraj.vercel.app until DNS)
-**Slot:** #2 · Budget ~52 h (v1 18 · v2 10 · v3 10 · v4 14) + add-ons only from time saved (up to 32 h, see [docs/07-plan.md](docs/07-plan.md#add-ons-only-from-time-saved)) · Build second
+**Slot:** #2 · Budget ~54 h (v1 18 · v2 10 · v3 10 · v4 16) + add-ons only from time saved (up to 32 h, see [docs/07-plan.md](docs/07-plan.md#add-ons-only-from-time-saved)) · Build second
 **Live artifacts:** [Tracker](https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA) (plan rows with status, all docs, mockups, project data) · [Screens](https://claude.ai/artifact/MCedtstCq6C2o7d9vJacPp) (all 13 v1 screens, direction B) · [Direction variants](https://claude.ai/artifact/LFJw5Zg1LEvvYjqdhot2Dr) (A–D, B chosen) · Landing: https://frontrow-viraj.vercel.app
 
 ## One-liner
@@ -42,7 +42,7 @@ Every project is cut base → mid → advanced (rule set 2026-09-15); Frontrow a
 | **v1 Box office** (base) | Browse movies & concerts, event page, showtimes, interactive seat map from templates, atomic 10-min Redis holds with countdown, Razorpay checkout, QR ticket, my tickets, customer auth. Organiser: sign up, venue from template, events, showtimes, price tiers, bookings list. Seat state polled every 5 s | Concurrency-safe holds, transactions, idempotent payments — a real ticketing site | 18 |
 | **v2 Live hall** (mid) | Realtime seat state over SSE (the two-tab wow, expiry release ≤ 1 s), live sales dashboard (revenue, occupancy per show), check-in page that validates the QR, ticket email | Realtime on serverless, the demo moment | 10 |
 | **v3 Full house** (advanced) | Waitlist for sold-out showtimes (auto-offer when a hold lapses), "best available" auto-pick, dynamic pricing that rises with occupancy, seat-view preview, ticket transfer to a friend, organiser seat-popularity heatmap | Features no template ticketing site has | 10 |
-| **v4 In your pocket** (mobile app) | Native iOS/Android app on Expo (React Native, TypeScript) against the same API: browse, seat map with pinch/pan, holds, Razorpay, an offline ticket wallet with QR, push notifications (hold expiring, waitlist offer), organiser check-in with the camera. Installable Android build + Expo Go for iOS | The API is a real product core; one more platform, zero new backend logic | 14 |
+| **v4 In your pocket** (mobile app) | Native iOS/Android app on Expo (React Native, TypeScript) against the same API: browse, seat map with pinch/pan, holds, Razorpay, an offline ticket wallet with QR, push notifications (hold expiring, waitlist offer), organiser check-in with the camera — **multi-scanner at the door, provisional offline scans synced and reconciled** (decision 4). Installable Android build + Expo Go for iOS | The API is a real product core; one more platform, almost no new backend logic (push + scan sync only); offline honesty | 16 |
 
 ### 4. The engine: Redis holds + Postgres guard + SSE
 - **Holds** live only in Redis (Upstash): one Lua script takes all requested seats or none (`SET NX EX 600` per seat + `INCR` a per-showtime version counter); a conflict returns the seats that were taken.
@@ -50,6 +50,8 @@ Every project is cut base → mid → advanced (rule set 2026-09-15); Frontrow a
 - **Realtime** is SSE from FastAPI on Vercel (v2): a loop per open seat map checks the version counter once a second and wakes at the next known hold expiry, so releases are visible within ~1 s. No WebSockets, no separately hosted server — Vercel functions can't hold WS, and free long-running hosts spin down and would kill the demo with a cold start.
 - **Payments:** Razorpay Checkout (test mode) + webhook, deduplicated by event id. *Paid after the hold expired:* seats still free → sell them anyway; already sold to someone else → automatic Razorpay refund, order marked refunded.
 - **QR ticket:** signed token; the check-in page (v2) verifies it and marks the ticket used once.
+- **Door scanning, v4 (Viraj, 2026-11-19):** many scanners per showtime. *Online*, the server authorises every scan through that same mark-used-once update — a ticket admits exactly once. Before doors, each scanner downloads the showtime's signed ticket list; *offline*, a scan that matches the list is accepted **provisionally** and queued (ticket id, scanner id, `scanned_at`); the device's own list blocks a re-scan on the same phone. On reconnect the queue syncs and the server reconciles. Each scan is `confirmed` (server committed first use), `pending_sync` (accepted offline, not yet synced) or `duplicate_flagged` (ticket already admitted by another scan). The first scan the **server commits** wins; offline `scanned_at` is kept for the audit but never picks the winner (device clocks can't be trusted). The organiser counter shows confirmed and pending sync separately — a provisional scan never counts as a confirmed admission — and duplicates go to a flagged list.
+  - **Honest limit:** two scanners that are both offline can't know about each other, so the same ticket *can* get in twice while offline. The system detects and flags it after sync; it cannot prevent it. Strict prevention needs online scanners (partitioning tickets per door is out of scope).
 
 ### 5. Stack and setup — lean
 Shared stack from [`projects/README.md`](../README.md): `web/` Next.js App Router + Tailwind 4, `api/` FastAPI on Vercel (FastAPI preset), Neon Postgres, Upstash Redis, Razorpay, own cookie-session auth, Resend for email (v2). Setup is the minimum to deploy both apps with plain CI (web typecheck + build, api pytest). OpenAPI → TS types generated by a script and committed; no CI freshness gate, no Sentry, no uptime monitor unless a feature needs it.
@@ -60,12 +62,13 @@ Tests only where a demo bug would embarrass: two parallel holds on one seat → 
 Open two tabs on the same showtime. Pick a seat in one — it greys out in the other before your finger leaves the trackpad. Let the timer run out and watch it come back in both.
 
 ## Out of scope (all versions)
-Custom venue-layout editor (templates only) · refunds UI (only the automatic paid-after-expiry refund) · App Store / Play Store listing (v4 ships as an Android build + Expo Go, not a store release) · real-money mode · multi-city · reserved standing/GA zones · promo codes · seat-map accessibility beyond keyboard + screen-reader seat list (full WCAG pass on the SVG map is a v3 stretch).
+Custom venue-layout editor (templates only) · refunds UI (only the automatic paid-after-expiry refund) · App Store / Play Store listing (v4 ships as an Android build + Expo Go, not a store release) · real-money mode · multi-city · reserved standing/GA zones · promo codes · per-door ticket partitioning for scanners (v4 flags offline duplicates, doesn't prevent them) · seat-map accessibility beyond keyboard + screen-reader seat list (full WCAG pass on the SVG map is a v3 stretch).
 
 ## Success criteria
 - Two concurrent requests for the same seat can never both succeed — covered by a test that runs in CI.
 - A confirmed booking always corresponds to exactly one ticket row per seat (unique constraint, tested).
 - v2: a hold expiry or new hold is visible to every open seat map within ~1 s.
+- v4: the same ticket scanned offline on two scanners, then synced (either order), yields exactly one `confirmed` and one `duplicate_flagged` and is counted once — covered by a test.
 - Lighthouse mobile ≥ 90 perf / 100 a11y / 100 SEO on landing, events list and event page.
 - A visible frontend signature: the seat map's authored motion (chosen in step 4), themed browser surfaces, reduced-motion fallbacks.
 
@@ -74,3 +77,4 @@ Custom venue-layout editor (templates only) · refunds UI (only the automatic pa
 - *WebSocket vs SSE?* SSE from FastAPI on Vercel; see decision 4.
 - *Who is the admin?* Organiser accounts (platform model); see decision 1.
 - *Mobile app?* Yes, as v4 on Expo — the web app stays the primary product; the app proves the API core is reusable and adds the two things only native does well: an offline ticket wallet and push.
+- *Offline scanners — first scan wins?* No: the first scan the server commits wins; offline `scanned_at` is audit-only (untrusted clocks), and offline duplicates are detected and flagged after sync, not prevented (Viraj, 2026-11-19; decision 4).

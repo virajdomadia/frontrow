@@ -139,4 +139,4 @@ sequenceDiagram
 | S18 | Organiser · Heatmap | `/organiser/venues/[id]/heatmap` | organiser | v3 | |
 | S19 | App shell (tabs Shows · Tickets · Account · Scan) | Expo Router | all | v4 | Native chrome around the phone screens above |
 | S20 | Ticket wallet | app `/tickets` | customer | v4 | Offline; brightness boost on QR |
-| S21 | Scanner | app `/scan` | organiser | v4 | Camera + haptics, running count |
+| S21 | Scanner | app `/scan` | organiser | v4 | Camera + haptics; counter confirmed · pending sync (shown apart); flagged duplicates list |
