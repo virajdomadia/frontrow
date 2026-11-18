@@ -9,7 +9,11 @@ import {
   neighbour,
   PITCH,
   SEAT,
+  seatLabel,
   sectionAt,
+  sectionText,
+  sectionStart,
+  sectionStep,
   startSeat,
   type Box,
   type Direction,
@@ -29,6 +33,7 @@ import {
   OVERVIEW_PX,
   panBy,
   resize,
+  scaleOf,
   seatPx,
   toLayout,
   zoomAt,
@@ -59,7 +64,7 @@ const KEYS: Record<string, Direction> = {
   End: "end",
 };
 
-const PHONE_PX = 768; // narrower panels start at tap size and pan, wider ones fit the hall
+const PHONE_PX = 768; // narrower panels start fitted to the hall's width, wider ones fit the hall
 const TAP_SLOP = 6;
 const ZOOM_MS = 450;
 
@@ -78,6 +83,11 @@ type Props = {
  * S4's map: SVG from the `Layout`, a camera (`viewbox.ts`) for pan / pinch / wheel / wedge zoom,
  * taps resolved by `core.hitTest`, and roving keyboard focus across the seats. The camera lives
  * in a ref and is written straight to the `viewBox` attribute, so a drag never re-renders rows.
+ *
+ * The zoom buttons sit in their own rail beside the map, never over seats, and one hint line
+ * under it says what a tap does in the current view. In the arena overview each section is a
+ * focusable button (Enter zooms in and puts focus on a seat there); Page Up / Page Down jump
+ * between sections from any seat.
  */
 export function SeatMap({ index, lookOf, onToggle, palette, tierText, className }: Props) {
   const { layout } = index;
@@ -90,6 +100,8 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
   const reduced = useRef(false);
   const [overview, setOverview] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  /** The arena section under the middle of a zoomed view — named under the map. */
+  const [here, setHere] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(() => startSeat(index, (id) => lookOf(id) === "free"));
 
   const isArena = layout.template === "arena";
@@ -103,16 +115,21 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
       const px = seatPx(next, v);
       setOverview(px < OVERVIEW_PX);
       setZoomed(px > seatPx(fit(content, v), v) * 1.05);
+      setHere(isArena && px >= OVERVIEW_PX ? sectionAt(index, next.x + next.w / 2, next.y + next.h / 2) : null);
     },
-    [content.w, content.h],
+    [content.w, content.h, index, isArena],
   );
 
   const home = useCallback((): Box => {
     const v = view.current!;
     const whole = clamp(fit(content, v, PITCH / 2), content, v);
-    if (isArena || v.w >= PHONE_PX || seatPx(whole, v) >= MIN_TAP_PX) return whole;
-    // Phone: seats at full size, the screen end in view, centred — pan for the rest.
-    const b = boxAt({ x: content.w / 2, y: 0 }, 1, v);
+    if (isArena || v.w >= PHONE_PX) return whole;
+    // Phone: the hall's full width — row letters at both edges, no seat cut off — with the
+    // screen end at the top; pan down for the rest. Seats this small are the overview: a tap
+    // zooms into that block (QA 2026-11-19).
+    const scale = v.w / (content.w + PITCH);
+    if (scale <= scaleOf(whole, v)) return whole;
+    const b = boxAt({ x: content.w / 2, y: 0 }, scale, v);
     return clamp({ ...b, y: 0 }, content, v);
   }, [content.w, content.h, isArena]);
 
@@ -269,8 +286,12 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
     if (dir && focusId) {
       e.preventDefault();
       const next = neighbour(index, focusId, dir);
-      setFocusId(next);
-      svg.current?.querySelector<SVGElement>(`[data-id="${next}"]`)?.focus({ preventScroll: true });
+      focusSeat(next);
+      reveal(next);
+    } else if ((e.key === "PageDown" || e.key === "PageUp") && focusId) {
+      e.preventDefault();
+      const next = sectionStep(index, focusId, e.key === "PageDown" ? 1 : -1, isFree);
+      focusSeat(next);
       reveal(next);
     } else if ((e.key === "Enter" || e.key === " ") && focusId) {
       e.preventDefault();
@@ -288,105 +309,164 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
     }
   };
 
+  const isFree = (id: string) => lookOf(id) === "free";
+
+  // Focusing the seat is enough: `onFocus` reveals it, which zooms into its section if needed.
+  const focusSeat = (id: string) => {
+    setFocusId(id);
+    svg.current?.querySelector<SVGElement>(`[data-id="${id}"]`)?.focus({ preventScroll: true });
+  };
+
+  /** An overview section button: Enter / Space zooms in and lands on a seat there. */
+  const onSectionKey = (e: React.KeyboardEvent, key: string) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    e.stopPropagation(); // not the seat-map handler: that would toggle the roving seat
+    const id = sectionStart(index, key, isFree);
+    if (id) focusSeat(id);
+    else zoomToSection(key);
+  };
+
   const stage = layout.stage;
   const stageCx = stage.x + stage.w / 2;
 
+  const sectionName = (key: string) => {
+    const s = index.sections.find((x) => x.key === key);
+    return s ? sectionText(s.label, tierText[s.tier]) : key;
+  };
+  const hereSection = here ? index.sections.find((s) => s.key === here) : null;
+
   return (
-    <div className={cn("relative overflow-hidden", className)}>
-      <div
-        ref={wrap}
-        className="sm-wrap absolute inset-0 touch-none select-none"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        <svg
-          ref={svg}
-          viewBox={`0 0 ${layout.width} ${layout.height}`}
-          preserveAspectRatio="xMidYMid meet"
-          className={cn("sm-map block size-full", overview && "is-overview")}
-          role="group"
-          aria-roledescription="seat map"
-          aria-label="Seat map. Arrow keys move between seats, Enter selects."
-          onKeyDown={onKeyDown}
-          onFocus={onFocus}
-        >
-          {isArena ? (
-            <g aria-hidden="true">
-              <rect x={stage.x} y={stage.y - 12} width={stage.w} height={36} rx={6} className="sm-stage-block" />
-              <text x={stageCx} y={stage.y + 6} className="sm-stage-label on-block">
-                {stage.label}
-              </text>
-            </g>
-          ) : (
-            <g aria-hidden="true">
-              <path
-                d={`M ${stage.x} ${stage.y + 18} Q ${stageCx} ${stage.y - 8} ${stage.x + stage.w} ${stage.y + 18}`}
-                className="sm-stage-arc"
-              />
-              <text x={stageCx} y={stage.y + 38} className="sm-stage-label">
-                {stage.label}
-              </text>
-            </g>
-          )}
+    <>
+      <div className={cn("flex overflow-hidden", className)}>
+        <div className="relative min-w-0 flex-1">
+          <div
+            ref={wrap}
+            className="sm-wrap absolute inset-0 touch-none select-none"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          >
+            <svg
+              ref={svg}
+              viewBox={`0 0 ${layout.width} ${layout.height}`}
+              preserveAspectRatio="xMidYMid meet"
+              className={cn("sm-map block size-full", overview && "is-overview")}
+              role="group"
+              aria-roledescription="seat map"
+              aria-label={
+                isArena
+                  ? "Seat map. Arrow keys move between seats, Page Up and Page Down jump between sections, Enter selects."
+                  : "Seat map. Arrow keys move between seats, Enter selects."
+              }
+              onKeyDown={onKeyDown}
+              onFocus={onFocus}
+            >
+              {isArena ? (
+                <g aria-hidden="true">
+                  <rect x={stage.x} y={stage.y - 12} width={stage.w} height={36} rx={6} className="sm-stage-block" />
+                  <text x={stageCx} y={stage.y + 6} className="sm-stage-label on-block">
+                    {stage.label}
+                  </text>
+                </g>
+              ) : (
+                <g aria-hidden="true">
+                  <path
+                    d={`M ${stage.x} ${stage.y + 18} Q ${stageCx} ${stage.y - 8} ${stage.x + stage.w} ${stage.y + 18}`}
+                    className="sm-stage-arc"
+                  />
+                  <text x={stageCx} y={stage.y + 38} className="sm-stage-label">
+                    {stage.label}
+                  </text>
+                </g>
+              )}
 
-          {isArena &&
-            index.sections.map((s) => (
-              <g key={s.key} aria-hidden="true" className={cn("sm-section", `t-${palette[s.tier]}`)}>
-                {s.polygon ? (
-                  <polygon points={s.polygon.map((p) => `${p.x},${p.y}`).join(" ")} />
-                ) : (
-                  <rect x={s.box.x - 10} y={s.box.y - 10} width={s.box.w + 20} height={s.box.h + 20} rx={18} />
-                )}
-              </g>
-            ))}
+              {/* Arena sections: in the overview each is a button (tap or Enter zooms in). Taps
+                  go through the pointer handlers above, so there is no onClick here. */}
+              {isArena &&
+                index.sections.map((s) => (
+                  <g
+                    key={s.key}
+                    role={overview ? "button" : undefined}
+                    tabIndex={overview ? 0 : undefined}
+                    aria-hidden={overview ? undefined : true}
+                    aria-label={overview ? `${sectionName(s.key)}. Zoom in to pick seats` : undefined}
+                    onKeyDown={overview ? (e) => onSectionKey(e, s.key) : undefined}
+                    className={cn("sm-section", `t-${palette[s.tier]}`)}
+                  >
+                    {s.polygon ? (
+                      <polygon points={s.polygon.map((p) => `${p.x},${p.y}`).join(" ")} />
+                    ) : (
+                      <rect x={s.box.x - 10} y={s.box.y - 10} width={s.box.w + 20} height={s.box.h + 20} rx={18} />
+                    )}
+                  </g>
+                ))}
 
-          {index.rows.map((row, i) => (
-            <Row
-              key={i}
-              row={row}
-              index={index}
-              looks={row.seats.map((id) => CODE[lookOf(id)]).join("")}
-              focusId={focusId && index.byId.get(focusId)?.rowIndex === i ? focusId : null}
-              token={palette[index.byId.get(row.seats[0])?.tier ?? ""] ?? "classic"}
-              tierText={tierText}
-              prefix={isArena ? `${index.sections.find((s) => s.key === row.section)?.label}, ` : ""}
-            />
-          ))}
+              {index.rows.map((row, i) => {
+                const section = index.sections.find((s) => s.key === row.section);
+                return (
+                  <Row
+                    key={i}
+                    row={row}
+                    index={index}
+                    looks={row.seats.map((id) => CODE[lookOf(id)]).join("")}
+                    focusId={focusId && index.byId.get(focusId)?.rowIndex === i ? focusId : null}
+                    token={palette[index.byId.get(row.seats[0])?.tier ?? ""] ?? "classic"}
+                    tierText={tierText}
+                    section={isArena ? (section?.label ?? null) : null}
+                    tags={section?.shape === "wedge"}
+                  />
+                );
+              })}
 
-          {/* Section numbers sit above the seats; they only show in the overview. */}
-          {isArena && (
-            <g aria-hidden="true">
-              {index.sections.map((s) => (
-                <text key={s.key} x={s.centre.x} y={s.centre.y} className="sm-section-label">
-                  {s.label.replace("Section ", "")}
-                </text>
-              ))}
-            </g>
-          )}
-        </svg>
-      </div>
+              {/* Section numbers sit above the seats; they only show in the overview. */}
+              {isArena && (
+                <g aria-hidden="true">
+                  {index.sections.map((s) => (
+                    <text key={s.key} x={s.centre.x} y={s.centre.y} className="sm-section-label">
+                      {s.label.replace("Section ", "")}
+                    </text>
+                  ))}
+                </g>
+              )}
+            </svg>
+          </div>
+        </div>
 
-      <div className="absolute top-2 right-2 flex flex-col gap-1.5">
-        <MapButton label="Zoom in" onClick={() => zoomBy(1.4)}>
-          <Plus />
-        </MapButton>
-        <MapButton label="Zoom out" onClick={() => zoomBy(1 / 1.4)}>
-          <Minus />
-        </MapButton>
-        {zoomed && (
-          <MapButton label={isArena ? "All sections" : "Fit the hall"} onClick={() => moveTo(home())}>
-            {isArena ? <Undo2 /> : <Maximize2 />}
+        {/* The controls' own rail: they never sit on top of a seat. */}
+        <div className="flex w-12 shrink-0 flex-col items-center gap-1.5 border-l border-screen/10 py-2">
+          <MapButton label="Zoom in" onClick={() => zoomBy(1.4)}>
+            <Plus />
           </MapButton>
-        )}
+          <MapButton label="Zoom out" onClick={() => zoomBy(1 / 1.4)}>
+            <Minus />
+          </MapButton>
+          {zoomed && (
+            <MapButton label={isArena ? "All sections" : "Fit the hall"} onClick={() => moveTo(home())}>
+              {isArena ? <Undo2 /> : <Maximize2 />}
+            </MapButton>
+          )}
+        </div>
       </div>
-      {overview && (
-        <p className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-sm bg-plum/85 px-2.5 py-1 text-xs text-faint">
-          Tap a section to pick seats
-        </p>
-      )}
-    </div>
+
+      {/* One hint, for the view on screen. */}
+      <p className="mt-1.5 flex flex-wrap gap-x-3 text-[11px] text-faint">
+        {hereSection && (
+          <span className="font-semibold text-muted-foreground">
+            {sectionName(hereSection.key)} · row A nearest the {hereSection.shape === "wedge" ? "floor" : "stage"}
+          </span>
+        )}
+        {overview ? (
+          <span>{isArena ? "Tap a section to zoom in" : "Tap a block of seats to zoom in"}</span>
+        ) : (
+          <>
+            <span className="lg:hidden">Drag to pan · pinch to zoom · tap a seat</span>
+            <span className="hidden lg:inline">Drag to pan · scroll to zoom · click a seat</span>
+          </>
+        )}
+      </p>
+    </>
   );
 }
 
@@ -411,13 +491,17 @@ type RowProps = {
   focusId: string | null;
   token: TierToken;
   tierText: Record<string, string>;
-  prefix: string;
+  /** The arena section's label, for seat names ("Section 3, B4, …"); null elsewhere. */
+  section: string | null;
+  /** Wedge rows: the row letter is drawn on the end seats (there is no room past them). */
+  tags: boolean;
 };
 
 /** One row = one `<g>`, the unit of the load motion (`--i` staggers it). */
 const Row = memo(
-  function Row({ row, index, looks, focusId, token, tierText, prefix }: RowProps) {
+  function Row({ row, index, looks, focusId, token, tierText, section, tags }: RowProps) {
     const half = SEAT / 2;
+    const last = row.seats.length - 1;
     return (
       <g className="sm-row" style={{ "--i": row.order } as React.CSSProperties}>
         {row.ends?.map((p, k) => (
@@ -441,11 +525,21 @@ const Row = memo(
               role="button"
               aria-pressed={look === "mine"}
               aria-disabled={look !== "free" && look !== "mine"}
-              aria-label={`${prefix}${seat.label}, ${tierText[seat.tier] ?? seat.tier}, ${STATUS_TEXT[look]}`}
+              aria-label={seatLabel(section, seat.label, tierText[seat.tier] ?? seat.tier, STATUS_TEXT[look])}
               className={cn("sm-seat", `t-${token}`, look)}
             />
           );
         })}
+        {tags &&
+          [0, last].filter((k, i, a) => a.indexOf(k) === i).map((k) => {
+            const seat = index.byId.get(row.seats[k])!;
+            const look = LOOK[looks[k]];
+            return (
+              <text key={k} x={seat.x} y={seat.y} aria-hidden="true" className={cn("sm-seat-tag", look !== "free" && "on-dark")}>
+                {row.label}
+              </text>
+            );
+          })}
       </g>
     );
   },

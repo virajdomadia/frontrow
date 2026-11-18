@@ -83,13 +83,13 @@ def date_window(preset: str | None, now: datetime) -> tuple[datetime, datetime |
     if preset == "today":
         return now, _day_end(today)
     if preset == "tomorrow":
-        return _day_start(today + timedelta(days=1)), _day_end(today + timedelta(days=1))
+        return day_start(today + timedelta(days=1)), _day_end(today + timedelta(days=1))
     if preset == "weekend":
         # Saturday + Sunday of this week; from now if the weekend has started.
         saturday = today + timedelta(days=(5 - today.weekday()) % 7)
         if today.weekday() == 6:
             saturday = today - timedelta(days=1)
-        return max(now, _day_start(saturday)), _day_end(saturday + timedelta(days=1))
+        return max(now, day_start(saturday)), _day_end(saturday + timedelta(days=1))
     try:
         day = date.fromisoformat(preset)
     except ValueError as e:
@@ -98,15 +98,15 @@ def date_window(preset: str | None, now: datetime) -> tuple[datetime, datetime |
             "date must be today, tomorrow, weekend or YYYY-MM-DD",
             details={"fields": {"date": "invalid"}},
         ) from e
-    return max(now, _day_start(day)), _day_end(day)
+    return max(now, day_start(day)), _day_end(day)
 
 
-def _day_start(day: date) -> datetime:
+def day_start(day: date) -> datetime:
     return datetime.combine(day, time.min, tzinfo=IST)
 
 
 def _day_end(day: date) -> datetime:
-    return _day_start(day + timedelta(days=1))
+    return day_start(day + timedelta(days=1))
 
 
 # --- loading --------------------------------------------------------------------------------------

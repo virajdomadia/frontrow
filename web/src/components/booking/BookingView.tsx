@@ -120,7 +120,6 @@ export function BookingView({ showtime, layout, snapshot }: { showtime: Showtime
           tierText={tierText}
           className="mt-3 h-[440px] rounded-card border border-border bg-plum lg:h-auto lg:min-h-0 lg:flex-1 lg:border-0"
         />
-        <p className="mt-1.5 text-[11px] text-faint lg:hidden">Drag to pan · pinch to zoom · tap a seat</p>
         <Legend tiers={showtime.tiers} palette={palette} />
         <SeatList index={index} lookOf={lookOf} onToggle={toggle} tierText={tierText} />
       </section>

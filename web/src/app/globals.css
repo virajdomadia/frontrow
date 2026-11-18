@@ -144,9 +144,14 @@ p{margin:0}
 .sm-stage-label{font-size:14px;fill:var(--muted-2);letter-spacing:.2em}
 .sm-stage-label.on-block{fill:var(--plum);font-weight:800;font-size:24px}
 .sm-row-label{font-size:13px;fill:var(--muted-2)}
+/* Wedge row letters sit on the end seats (no room between wedges); only once zoomed in. */
+.sm-seat-tag{font-size:12px;font-weight:700;fill:var(--plum);opacity:.85;transition:opacity .2s}
+.sm-seat-tag.on-dark{fill:var(--screen)}
+.is-overview .sm-seat-tag{opacity:0}
 .sm-section polygon,.sm-section rect{fill:currentColor;fill-opacity:.07;stroke:currentColor;stroke-opacity:.25;stroke-width:1.5;transition:fill-opacity .2s}
 .sm-section-label{font-size:52px;font-weight:800;fill:var(--screen);stroke:var(--plum);stroke-width:8px;stroke-linejoin:round;paint-order:stroke;opacity:0;transition:opacity .2s}
-.is-overview .sm-section{cursor:zoom-in}
+.is-overview .sm-section{cursor:zoom-in;outline:none}
+.is-overview .sm-section:focus-visible polygon,.is-overview .sm-section:focus-visible rect{fill-opacity:.25;stroke:var(--amber);stroke-opacity:1;stroke-width:6}
 .is-overview .sm-section-label{opacity:.95}
 .is-overview .sm-section:hover polygon,.is-overview .sm-section:hover rect{fill-opacity:.2}
 .sm-section.t-classic{color:var(--classic)} .sm-section.t-mint{color:var(--mint)} .sm-section.t-prime{color:var(--prime)} .sm-section.t-recliner{color:var(--recliner)}
@@ -171,7 +176,7 @@ p{margin:0}
 
 @media (prefers-reduced-motion:reduce){
   .sm-row,.sm-stub,.sm-sheet{animation:none}
-  .sm-seat,.sm-section polygon,.sm-section rect,.sm-section-label{transition:none}
+  .sm-seat,.sm-section polygon,.sm-section rect,.sm-section-label,.sm-seat-tag{transition:none}
 }
 }
 
