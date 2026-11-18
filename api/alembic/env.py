@@ -8,6 +8,7 @@ from alembic import context
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import get_settings
+from app.db import asyncpg_url
 from app.models import Base
 
 config = context.config
@@ -17,11 +18,11 @@ target_metadata = Base.metadata
 def database_url() -> str:
     url = os.environ.get("ALEMBIC_URL")
     if url:
-        return url
+        return asyncpg_url(url)
     secret = get_settings().database_url
     if secret is None:
         raise SystemExit("Set DATABASE_URL (api/.env.local) or ALEMBIC_URL to run migrations.")
-    return secret.get_secret_value()
+    return asyncpg_url(secret.get_secret_value())
 
 
 def run_migrations_offline() -> None:

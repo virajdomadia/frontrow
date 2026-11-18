@@ -23,7 +23,7 @@ from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.config import get_settings
-from app.db import make_engine
+from app.db import asyncpg_url, make_engine
 from app.models import Event, Order, OrderSeat, PriceTier, Seat, Showtime, Ticket, User, Venue
 from app.models.enums import EventStatus, EventType, OrderStatus, ShowtimeStatus, UserRole
 from app.seed import content
@@ -329,7 +329,7 @@ def main(argv: list[str] | None = None) -> int:
         url = secret.get_secret_value()
 
     async def run() -> SeedReport:
-        engine = make_engine(url)
+        engine = make_engine(asyncpg_url(url))
         try:
             return await seed(engine, reset=args.reset)
         finally:
