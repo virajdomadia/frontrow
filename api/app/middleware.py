@@ -3,6 +3,9 @@
 - RequestIdMiddleware: honour a well-formed incoming `X-Request-Id`, else uuid4; echo it back.
 - BlankQueryParamsMiddleware: `?date=&type=` → params absent, so no-JS GET filter forms that
   submit empty selects validate as "not provided" rather than as bad input.
+- NoSniffMiddleware: `X-Content-Type-Options: nosniff` on every response, so nothing the api
+  sends is ever content-sniffed into something executable. (500s render outside the middleware
+  stack; `errors.envelope` sets it on those itself.)
 """
 
 import re
@@ -13,6 +16,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 REQUEST_ID_HEADER = b"x-request-id"
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+NOSNIFF = (b"x-content-type-options", b"nosniff")
 
 
 class RequestIdMiddleware:
@@ -51,3 +55,23 @@ class BlankQueryParamsMiddleware:
             if len(kept) != len(pairs):
                 scope["query_string"] = urlencode(kept).encode("latin-1")
         await self.app(scope, receive, send)
+
+
+class NoSniffMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_nosniff(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                if not any(k.lower() == NOSNIFF[0] for k, _ in headers):
+                    headers.append(NOSNIFF)
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_nosniff)

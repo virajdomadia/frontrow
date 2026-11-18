@@ -23,6 +23,10 @@ const variants = cva(
         lg: "px-6 py-3.5 text-2xl",
       },
     },
+    // Small text (16 px) on brand red is 4.17:1, under AA's 4.5:1; the larger sizes are bold
+    // large text (≥ 18.66 px), where 3:1 applies. So only `sm` takes the deeper red — 5.0:1
+    // (QA 2026-11-19, the mobile header's "Shows").
+    compoundVariants: [{ variant: "default", size: "sm", className: "bg-[#d12f3c] hover:bg-red-dark" }],
     defaultVariants: {
       variant: "default",
       size: "default",

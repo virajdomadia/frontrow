@@ -1,7 +1,8 @@
 """Seat-map routes (06 §C): `/showtimes/{id}`, `/venues/{id}/layout`, `/showtimes/{id}/seats`.
 
 The layout never changes once a venue is generated, so it is cached for a year; the detail is
-catalog-fresh (a minute); the seat state is live and never cached.
+catalog-fresh (a minute, never past the start); the seat state is live and never cached. Both
+showtime reads answer 410 `showtime_closed` once the show has started or was cancelled.
 """
 
 from datetime import UTC, datetime
@@ -11,7 +12,7 @@ from fastapi import APIRouter, Cookie, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.routers.events import CACHE
+from app.routers.events import cache_until
 from app.schemas.layouts import Layout
 from app.schemas.showtimes import SeatState, ShowtimeDetail
 from app.services import showtimes
@@ -25,8 +26,11 @@ IMMUTABLE = "public, max-age=31536000, s-maxage=31536000, immutable"
 async def get_showtime(
     showtime_id: str, response: Response, db: Annotated[AsyncSession, Depends(get_session)]
 ) -> ShowtimeDetail:
-    response.headers["Cache-Control"] = CACHE
-    return await showtimes.get_showtime(db, showtime_id)
+    now = datetime.now(UTC)
+    detail = await showtimes.get_showtime(db, showtime_id, now=now)
+    # Fresh for a minute as the catalog is, but no cache may hand it out once the show starts.
+    response.headers["Cache-Control"] = cache_until(detail.starts_at, now)
+    return detail
 
 
 @router.get("/venues/{venue_id}/layout", response_model=Layout)

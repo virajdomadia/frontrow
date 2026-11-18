@@ -112,10 +112,12 @@ function TimeChip({ t }: { t: ShowtimeDay["venues"][number]["times"][number] }) 
       </span>
     );
   const hot = t.fill === "filling";
+  const status = hot ? `${t.seatsLeft} left` : FILL_LABEL[t.fill];
   return (
     <Link
       href={`/book/${t.id}`}
-      aria-label={`${time}, ${priceRange(t.min, t.max)}, ${FILL_LABEL[t.fill]}${hot ? `, ${t.seatsLeft} seats left` : ""}`}
+      // The visible text, in order (WCAG 2.5.3), plus what the amber border says.
+      aria-label={`${time}, ${priceRange(t.min, t.max)} · ${status}${hot ? `, ${FILL_LABEL.filling.toLowerCase()}` : ""}`}
       className={cn(
         "block min-w-[104px] rounded-btn border px-3 py-2 no-underline transition-colors hover:bg-plum-3",
         hot ? "border-amber" : "border-screen/25 hover:border-screen/60",
@@ -123,7 +125,7 @@ function TimeChip({ t }: { t: ShowtimeDay["venues"][number]["times"][number] }) 
     >
       <b className="block font-cond text-[19px] leading-tight font-bold tracking-[.03em]">{time}</b>
       <span className={cn("block text-[11px]", hot ? "text-amber" : "text-muted-foreground")}>
-        {priceRange(t.min, t.max)} · {hot ? `${t.seatsLeft} left` : FILL_LABEL[t.fill]}
+        {priceRange(t.min, t.max)} · {status}
       </span>
     </Link>
   );

@@ -12,7 +12,7 @@ class ApiErrorBody(ApiModel):
     code: str = Field(
         description="`validation` · `unauthorized` · `forbidden` · `not_found` · `conflict` · "
         "`rate_limited` · `unavailable` · `internal`, plus business codes such as "
-        "`seat_taken`, `hold_missing`, `too_many_seats`, `has_sales`."
+        "`seat_taken`, `hold_missing`, `too_many_seats`, `has_sales`, `showtime_closed` (410)."
     )
     message: str
     # Optional but never null on the wire (the handlers omit the key), hence SkipJsonSchema.

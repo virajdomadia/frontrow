@@ -63,8 +63,11 @@ def envelope(
     error: dict[str, object] = {"code": code, "message": message}
     if details is not None:
         error["details"] = details
+    # nosniff here too: the unhandled-error 500 is rendered outside the middleware stack.
     return JSONResponse(
-        {"error": error}, status_code=status or STATUS_FOR_CODE[code], headers=headers
+        {"error": error},
+        status_code=status or STATUS_FOR_CODE[code],
+        headers={**(headers or {}), "X-Content-Type-Options": "nosniff"},
     )
 
 
