@@ -53,7 +53,7 @@ create view showtime_fill as
 Held counts come from Redis (`HLEN holds:{id}`), merged in the API.
 
 **v2 additions:** `tickets.emailed_at`; posters move to Blob URLs (no schema change).
-**v4 additions** (`sessions.kind` `web` | `mobile` ships in v1): `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`; `push_jobs (id, user_id, kind, payload jsonb, due_at, sent_at null)` index (due_at) where sent_at is null.
+**v4 additions** (`sessions.kind` `web` | `mobile` ships in v1): `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`; `push_jobs (id, user_id, kind, payload jsonb, due_at, sent_at null)` index (due_at) where sent_at is null. Door scanning (Viraj, 2026-11-19): `checkins (id, ticket_id, showtime_id, scanner_id, client_scan_id, scanned_by user_id, scanned_at null, received_at, state confirmed|duplicate_flagged)` unique (scanner_id, client_scan_id) so a re-sent batch is a no-op; index (showtime_id, state). `tickets.checked_in_at` stays the single source of "admitted" — the scan whose mark-used-once update hits 1 row is `confirmed`, 0 rows → `duplicate_flagged`. `scanned_at` is the device clock (audit only, null for online scans); `received_at` is server time. `pending_sync` exists only on the device.
 **v3 additions:** `waitlist (id, showtime_id, user_id, seats int, max_price_paise, status, offered_until, created_at)`; `ticket_transfers (id, ticket_id, to_email, claim_token, claimed_at)`; `showtime_pricing_rules (showtime_id, thresholds jsonb)`.
 
 ## B. Redis keys
@@ -117,7 +117,7 @@ Error envelope everywhere: `{ "error": { "code": "seat_taken", "message": "…",
 | POST | `/webhooks/razorpay` | raw body HMAC; `payment.captured` → confirm; `payment.failed` → order `failed`; always 200 after signature ok |
 
 ### v4 — mobile (sketch; detailed when v4 starts)
-`POST /devices` `{ expo_token, platform }` 🔒 · `DELETE /devices/{id}` 🔒 · `POST /internal/push/due` ⚙ (Vercel Cron, `CRON_SECRET`). Every other route is unchanged; the app sends `Authorization: Bearer <token>` instead of the cookie.
+`POST /devices` `{ expo_token, platform }` 🔒 · `DELETE /devices/{id}` 🔒 · `POST /internal/push/due` ⚙ (Vercel Cron, `CRON_SECRET`). Scanning 🏟: `POST /checkin` gains optional `{ scanner_id, client_scan_id }` and writes a `checkins` row · `GET /organiser/showtimes/{id}/scan-list` → `{ showtime_id, version, issued_at, expires_at, tickets: {ticket_id, seat_label, token_hash}[], sig }` (`sig` = Ed25519 over the canonical JSON of everything else; `version` rises whenever a ticket is sold, transferred or refunded) · `POST /checkins/sync` `{ scanner_id, scans: {client_scan_id, token, scanned_at}[] }` → `{ results: {client_scan_id, state: confirmed \| duplicate_flagged \| invalid, checked_in_at}[] }`, processed in array order · `GET /organiser/showtimes/{id}/checkins` → `{ confirmed, flagged: Checkin[] }`. Every other route is unchanged; the app sends `Authorization: Bearer <token>` instead of the cookie.
 
 ### v3 (sketch; detailed when v3 starts)
 `POST /showtimes/{id}/waitlist` · `POST /waitlist/{id}/claim` · `GET /showtimes/{id}/best?count=&tier=` · `POST /tickets/{id}/transfer` · `POST /transfers/{token}/claim` · `GET /organiser/venues/{id}/heatmap` · `PATCH /organiser/showtimes/{id}/pricing`.

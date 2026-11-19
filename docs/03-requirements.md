@@ -111,9 +111,9 @@ Actors: **Customer** (books), **Organiser** (runs venues/events), **Visitor** (n
 
 ---
 
-## v4 — In your pocket (mobile app, ≈ 15 h)
+## v4 — In your pocket (mobile app, ≈ 16 h)
 
-Expo (React Native, TypeScript, Expo Router) app, iOS + Android from one codebase, talking to the same FastAPI through the generated types. No new business logic on the server beyond token auth and push registration.
+Expo (React Native, TypeScript, Expo Router) app, iOS + Android from one codebase, talking to the same FastAPI through the generated types. No new business logic on the server beyond token auth, push registration and scan sync/reconciliation (R4-5).
 
 ### R4-1. App shell & auth
 - Tabs: **Shows · Tickets · Account** (+ **Scan** for organisers). Sign in / sign up / demo logins as on web; sessions are bearer tokens (`POST /auth/token`) stored in SecureStore.
@@ -132,9 +132,20 @@ Expo (React Native, TypeScript, Expo Router) app, iOS + Android from one codebas
 - Expo Push. Events: *hold expiring in 2 min* (only if the app is backgrounded mid-hold), *ticket confirmed*, *waitlist offer* (v3), *show starts in 2 h*. Device tokens registered per user; deep links open the right screen.
 - **Accept:** background the app with a hold → notification at T-2:00; tapping it lands on the seat map with the hold intact.
 
-### R4-5. Organiser scanner
-- Scan tab: camera (expo-camera barcode scanning) → `POST /checkin` → valid / used / wrong showtime with haptic + colour; runs the v2 endpoint. Stays on camera between scans and shows a running count.
-- **Accept:** 20 scans in a minute without leaving the camera; duplicate scan shows "already checked in HH:MM".
+### R4-5. Organiser scanner — multi-scanner, honest offline (Viraj, 2026-11-19)
+- Scan tab: camera (expo-camera barcode scanning) → valid / used / wrong showtime with haptic + colour. Stays on camera between scans. Any number of devices can scan one showtime.
+- **Online:** every scan goes to the server (`POST /checkin`, the v2 mark-used-once update) — the server authorises it; result `confirmed` or "already checked in HH:MM".
+- **Before doors:** the scanner downloads the showtime's signed ticket list (`GET /organiser/showtimes/{id}/scan-list`) and keeps it in SQLite. The list is signed with Ed25519 (private key on the server, public key in the app; no secret on the device), bound to one showtime, versioned and expiring (showtime end + 2 h). **Accept:** a tampered list, a list for another showtime, an expired list and an older version than the one held are each refused; a ticket refunded after the list was downloaded and scanned offline is accepted provisionally and comes back `duplicate_flagged` (reason: refunded) on sync — the stale-snapshot window is documented, not hidden.
+- **Offline:** a token that matches the list is accepted **provisionally** (`pending_sync`) and queued with ticket id, scanner id, `scanned_at`. The device marks it used locally, so a re-scan on the same phone is blocked even offline.
+- **Reconnect:** the queue syncs (`POST /checkins/sync`, batch, idempotent per scan id). The server commits each scan in arrival order: first commit for a ticket → `confirmed`; any later scan of that ticket → `duplicate_flagged`. `scanned_at` is stored for the audit, never used to pick the winner.
+- **Counter:** confirmed and pending sync shown separately (pending = this device's unsynced queue); pending is never added to confirmed. Duplicates appear in a flagged list (ticket, seat, both scanners, times).
+- **Stated limit:** two offline scanners can each admit the same ticket; that is detected and flagged after sync, not prevented. Strict prevention = keep scanners online (per-door ticket partitioning is out of scope).
+- **Accept:**
+  - (a) Online, two devices scan one ticket concurrently → exactly one `confirmed`, the other "already checked in" (API test, parallel requests).
+  - (b) Two devices scan one ticket offline, then sync in either order → exactly one `confirmed` + one `duplicate_flagged`; confirmed count rises by 1, not 2 (API test, both orders).
+  - (c) Pending scans are never counted as confirmed: with a queue of N unsynced scans the counter shows confirmed unchanged and pending = N until sync.
+  - (d) Same device, offline, scans a ticket twice → second scan rejected locally "already scanned on this device", nothing new queued.
+  - 20 scans in a minute without leaving the camera.
 
 ### R4-6. Distribution
 - EAS Build: Android APK downloadable from the landing page and README (QR); iOS via Expo Go link (no App Store listing). Same brand tokens, splash and icon from `brand/`.
@@ -143,4 +154,4 @@ Expo (React Native, TypeScript, Expo Router) app, iOS + Android from one codebas
 ---
 
 ## Out of scope (all versions)
-Custom layout editor · refunds UI · store listings (App Store / Play) · real money · multi-city · GA/standing zones · promo codes · full WCAG on the SVG map (keyboard + SR list only) · reserved-seat pricing per seat (tiers only).
+Custom layout editor · refunds UI · per-door ticket partitioning for scanners · store listings (App Store / Play) · real money · multi-city · GA/standing zones · promo codes · full WCAG on the SVG map (keyboard + SR list only) · reserved-seat pricing per seat (tiers only).

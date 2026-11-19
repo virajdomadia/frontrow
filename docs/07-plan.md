@@ -2,7 +2,7 @@
 
 **Lifecycle step:** 7 of 17 · **Written:** 2026-09-15 · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
 **Tracker:** row status lives at https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA (updated per milestone).
-**Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h · v4 ≈ 14 h. v1 carries two small app-readiness items (bearer tokens in F4, DOM-free seat-map core in F1) so v4 is a second renderer, not a rewrite. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
+**Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h · v4 ≈ 16 h (total ≈ 54 h; v4 +2 h for multi-scanner offline check-in, Viraj, 2026-11-19). v1 carries two small app-readiness items (bearer tokens in F4, DOM-free seat-map core in F1) so v4 is a second renderer, not a rewrite. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
 
 **Lean rules in force** (2026-09-15): setup is the minimum to deploy both apps with plain CI; no observability, contract gates, e2e workflows or tracker updates per PR; review findings fixed on the same branch; tests only from 04 §11. Hours saved go to the seat map, motion and content. **Accounts and keys are created just-in-time** — in the row that first needs them, never in a setup batch (Viraj, 2026-09-15): Neon in S2, Upstash in F2, Razorpay in F5, Resend + Blob in L5, Expo/EAS in M1/M8, Vercel Cron in M6.
 
@@ -81,7 +81,7 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 
 ---
 
-## v4 — In your pocket (≈ 15 h) — Expo app in `mobile/`
+## v4 — In your pocket (≈ 16 h) — Expo app in `mobile/`
 
 ### Milestone 4.0 — App browses and books (≈ 6.75 h)
 | # | Part | mobile/ | api/ | Est. | Done when |
@@ -91,15 +91,16 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | M3 | **Seat map + holds** | `react-native-svg` renderer over the shared `seat-map/core.ts`, pinch/pan, tap → hold, countdown header, polling (SSE if v2 shipped) | — | 2.25 h | Hold in app greys the seat on web ≤ 1 s |
 | M4 | **Pay + tickets** | Razorpay RN SDK, order poll, ticket screen with QR | — | 1.5 h | Test-mode payment → ticket in app |
 
-### Milestone 4.1 — The native reasons (≈ 7 h)
+### Milestone 4.1 — The native reasons (≈ 9 h)
 | # | Part | mobile/ | api/ | Est. | Done when |
 |---|---|---|---|---|---|
 | M5 | **Offline wallet** | SQLite cache of tickets + tokens, brightness boost, add-to-calendar | — | 2 h | Airplane mode: ticket opens and scans |
 | M6 | **Push** | expo-notifications registration, deep links | `device_tokens`, `push_jobs`, job at hold time, `POST /internal/push/due` + Vercel Cron | 2.5 h | Backgrounded hold → notification at T-2:00 → deep link lands on the map |
-| M7 | **Organiser scanner** | Scan tab: camera, haptics, running count | (uses v2 `POST /checkin`) | 1.5 h | 20 scans/min; duplicate → "already checked in" |
+| M7 | **Organiser scanner** | Scan tab: camera, haptics; online scans via v2 `POST /checkin` (server authorises each) | `checkins` row per scan (`confirmed` / `duplicate_flagged`) written by the same mark-used-once update | 1.5 h | 20 scans/min; two devices, one ticket, concurrent → one `confirmed` (test) |
+| M7b | **Offline scans + sync** (Viraj, 2026-11-19) | Pre-doors scan-list download to SQLite; offline provisional accept + queue (ticket, scanner, `scanned_at`); same-device rescan blocked; counter: confirmed · pending sync; flagged list | `GET /organiser/showtimes/{id}/scan-list`, `POST /checkins/sync` (batch, idempotent per `client_scan_id`), reconcile by server commit order | 2 h | Two offline scans of one ticket, synced in either order → 1 `confirmed` + 1 `duplicate_flagged`, counted once (test); pending never shown as confirmed |
 | M8 | **Ship** | EAS Android build, Expo Go link, landing "Get the app" block with QR, README GIF | — | 1 h | Reviewer installs from the landing page in < 1 min |
 
-**Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 52 h.
+**Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 54 h.
 
 ---
 
@@ -109,8 +110,8 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | v1 Box office | 1.0 – 1.3 | 18 | 18 |
 | v2 Live hall | 2.0 – 2.1 | 10 | 28 |
 | v3 Full house | 3.0 – 3.1 | 10 | 38 |
-| v4 In your pocket | 4.0 – 4.1 | 14 | 52 |
-| Add-ons (in priority order) | A embed widget (4) · B on-sale alerts + calendar (2) · C accessible seating (3) · D organiser refunds (4) · E offline check-in PWA (3) · F group booking, split pay (8) · G season pass (4) · H layout CSV import (4) | up to 32 | up to 84 |
+| v4 In your pocket | 4.0 – 4.1 | 16 | 54 |
+| Add-ons (in priority order) | A embed widget (4) · B on-sale alerts + calendar (2) · C accessible seating (3) · D organiser refunds (4) · E offline check-in PWA (3) · F group booking, split pay (8) · G season pass (4) · H layout CSV import (4) | up to 32 | up to 86 |
 
 ## Add-ons (only from time saved)
 **Nice-to-have, not priority** (Viraj, 2026-09-17): considered only after v4 is fully done (docs and case study included), in this order, from time saved — and skipping all of them is a fine outcome. None is a version; none changes the engine. All free to run.
@@ -121,7 +122,7 @@ Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real
 | B | **On-sale alerts + calendar** | "Notify me when tickets go on sale" for a draft event (Resend); `.ics` per ticket and an iCal feed per venue | v2 | 2 |
 | C | **Accessible seating** | Wheelchair + companion seat pairs in the layout templates, a filter on the map, and the full keyboard/screen-reader pass on the SVG (v3's stretch made real) | v3 | 3 |
 | D | **Organiser refunds** | Cancel a showtime → automatic Razorpay refunds for every paid order + email; partial refund per ticket from the bookings list (v1 out-of-scope, lifted) | v3 | 4 |
-| E | **Offline check-in PWA** | The v2 check-in page as an installable PWA that caches the showtime's valid tokens and syncs `checked_in_at` when back online — works in a basement hall with no signal | v2 | 3 |
+| E | **Offline check-in PWA** | The v2 check-in page as an installable PWA that caches the showtime's valid tokens and syncs `checked_in_at` when back online — works in a basement hall with no signal; reuses v4's scan-list + `POST /checkins/sync` and its provisional / flagged states | v2 | 3 |
 | F | **Group booking, split pay** | One hold for the group, a share link, each friend pays their seat through Razorpay; the hold extends while ≥ 1 seat is paid; unpaid seats release at expiry | v3 | 8 |
 | G | **Season pass** | Organiser sells a pass (N shows, a price); pass holders redeem seats at checkout without paying; pass QR at check-in | v3 | 4 |
 | H | **Layout CSV import** | Organiser uploads a CSV of sections/rows/seats/tiers for a venue that fits no template; validated, rendered with the same map | v1 | 4 |
