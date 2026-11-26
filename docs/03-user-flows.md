@@ -1,142 +1,111 @@
 # Frontrow — User Flows & Screen Index
 
-**Lifecycle step:** 3 of 17 · **Locked:** 2026-09-15 · Pairs with [03-requirements.md](03-requirements.md); every screen below gets a mockup in [04-ui-mockups.md](04-ui-mockups.md).
+**Lifecycle step:** 3 of 17 · **Re-planned:** 2026-11-15/16 · Pairs with [03-requirements.md](03-requirements.md).
 
-## Flow 1 — Book seats (v1, the main path)
+## Flow 1 — Customer books a film (BookMyShow's flow, email code, no city, no add-ons)
 
 ```mermaid
 flowchart LR
-  L[S1 Landing] --> E[S2 Events list]
-  E --> D[S3 Event page]
-  D -->|pick showtime| M[S4 Seat map]
-  M -->|tap seats| H{POST holds}
-  H -->|all granted| M2[Seats mine · 10:00 countdown]
-  H -->|409 taken| T[Toast: seat taken] --> M
-  M2 -->|Proceed| C[S5 Checkout]
-  C -->|visitor| A[S9 Sign in / up] --> C
-  C -->|Pay| R[Razorpay modal]
-  R -->|success| W[Confirming… polls order]
-  W -->|webhook paid| K[S6 Ticket with QR]
-  W -->|refunded| X[Sorry — seat sold, refunded]
-  K --> Y[S7 My tickets]
+  H[C1 Home<br/>Now showing · search] --> M[C2 Movie page]
+  M -->|Book tickets| L{more than one<br/>language/format?}
+  L -->|yes| LF[C3 Language + format] --> S
+  L -->|no| S[C4 Showtimes<br/>date strip · cinemas · colours]
+  S -->|pick a time| N[C5 Certificate notice if A<br/>→ How many seats?]
+  N --> SM[C6 Seat map<br/>picks seats together · 10-min hold]
+  SM -->|Proceed| IN{signed in?}
+  IN -->|no| SI[C7 Email → code → name if new] --> SU
+  IN -->|yes| SU[C8 Summary<br/>fee shown · test card note]
+  SU -->|Pay| RZ[Razorpay]
+  RZ -->|success| CF[Confirming…] --> T[C9 M-ticket · QR per seat · email]
+  RZ -->|failed| SU
+  CF -->|seat sold meanwhile| RF[C10 Refunded page]
+  T --> MT[C11 My tickets]
+  T -->|at the cinema| D[O9 Door scan] --> R[C12 Review · v3]
 ```
 
-## Flow 2 — Hold lifecycle (v1 rules, v2 visibility)
+## Flow 2 — Hold lifecycle
 
 ```mermaid
 stateDiagram-v2
   [*] --> Available
-  Available --> Held: POST holds (Lua all-or-none)
-  Held --> Available: TTL 600 s expires · or deselect · or order refunded
-  Held --> Sold: webhook payment.captured (tx inserts ticket)
-  Sold --> [*]
-  note right of Held
-    Redis hold:{showtime}:{seat} = session
-    every change INCR st:{showtime}:v
-    v1: viewers poll /seats every 5 s
-    v2: SSE stream pushes within 1 s
-  end note
+  Available --> Held: tap (Lua all-or-none, 10 min)
+  Held --> Available: expires · deselect · payment failed and hold ends
+  Held --> Sold: payment confirmed (tickets UNIQUE per show + seat)
+  Available --> Sold: counter sale (v2)
+  Available --> Blocked: owner blocks seat (v2)
+  Blocked --> Available: owner unblocks
+  Sold --> Available: refund (cancel show, staff refund) → waitlist offer (v3)
 ```
 
-## Flow 3 — Paid after hold expired (v1)
+## Flow 3 — Paid after the hold expired
+Webhook → signature + new event id? → holds still ours → sell. Holds gone → seats still free in Postgres → sell anyway. A seat already sold → full Razorpay refund, order `refunded`, customer sees C10.
 
-```mermaid
-flowchart TD
-  W[Webhook payment.captured] --> V{signature ok · event id new?}
-  V -->|no| N[200 no-op]
-  V -->|yes| Hq{holds still ours?}
-  Hq -->|yes| S[Insert tickets · order paid · DEL holds · INCR v]
-  Hq -->|no| F{seats still free in DB?}
-  F -->|yes| S
-  F -->|no| Rf[Razorpay refund · order refunded · email why]
-```
-
-## Flow 4 — Organiser creates a bookable show (v1)
+## Flow 4 — Theatre owner
 
 ```mermaid
 flowchart LR
-  O[S9 Sign up as organiser] --> V[S10 Venues: new from template]
-  V --> Ev[S11 Events: new]
-  Ev --> St[S12 Showtimes: event + venue + time + tier prices]
-  St --> Live[Showtime live on S2/S3]
-  Live --> B[S13 Bookings list]
+  B[O1 Business door] --> RG[O2 Register: email code → business details]
+  RG --> P[Console · Pending verification]
+  P --> CI[O3 Cinemas] --> SC[O4 Screens: template · tiers · formats]
+  SC --> F[O5 Pick films · request a missing one]
+  F --> BS[O6 Bulk schedule: language · format · screen · days · times · prices]
+  BS --> PUB[Published once staff approve]
+  PUB --> BK[O7 Bookings + CSV]
+  PUB --> TD[O8 Today board · live sales · block seats · v2]
+  TD --> CO[Counter sale · v2]
+  TD --> CX[Cancel a show → refunds · v2]
+  PUB --> DR[O9 Door scan]
+  PUB --> MO[O10 Reports · payouts · heatmap · v3]
 ```
 
-## Flow 5 — Live hall (v2)
-
-```mermaid
-sequenceDiagram
-  participant A as Tab A
-  participant API as FastAPI /stream
-  participant R as Redis
-  participant B as Tab B
-  B->>API: GET /showtimes/7/stream (SSE)
-  API-->>B: snapshot {sold, held, expiries}
-  A->>API: POST /holds [F7]
-  API->>R: Lua SET NX EX · INCR v
-  loop every 1 s or at next expiry
-    API->>R: GET st:7:v
-  end
-  API-->>B: diff {held:+F7, expires_at}
-  Note over B: F7 greys out < 1 s
-  Note over API,R: at expires_at: re-read, push {held:-F7}
-```
-
-## Flow 6 — Check-in (v2) and Waitlist (v3)
+## Flow 5 — Frontrow staff
 
 ```mermaid
 flowchart LR
-  subgraph v2 check-in
-    Q[S15 Check-in: scan/paste token] --> Vt{verify sig · showtime · unused}
-    Vt -->|ok| OK[Valid ✓ · mark checked_in_at]
-    Vt -->|used| U[Already checked in HH:MM]
-    Vt -->|bad| Bad[Invalid]
-  end
-  subgraph v3 waitlist
-    SO[S4 sold out] --> J[Join waitlist: seats, max price]
-    Lapse[hold lapses / refund] --> Off[10-min exclusive hold + email]
-    Off -->|claim| C5[S5 Checkout]
-    Off -->|unclaimed| Next[next in line]
-  end
+  SD[T1 Hidden staff door · email code] --> FC[T2 Film catalogue: add · edit · status]
+  SD --> FR[T3 Film requests: add or decline]
+  SD --> AP[T4 Approvals: approve or reject a business]
+  SD --> CL[T5 Cinema list · suspend · v2]
+  SD --> SP[T6 Support: find booking · resend · refund · v2]
+  SD --> MV[T7 Marketplace view · v2]
+  SD --> PO[T8 Payouts · review moderation · v3]
 ```
 
-## Flow 7 — App: hold expiring push (v4)
-
-```mermaid
-sequenceDiagram
-  participant A as App (backgrounded)
-  participant API as FastAPI
-  participant P as Expo Push
-  A->>API: POST /showtimes/7/holds [F7]
-  Note over API: push_jobs row due at expires_at - 120 s
-  API->>P: (cron, when due) push "2 minutes left on F7" + deeplink frontrow://book/7
-  P-->>A: notification
-  A->>API: (tap) GET /showtimes/7/seats - hold still mine
-  Note over A: seat map opens, countdown 01:58
-```
+## Flow 6 — Waitlist (v3)
+Sold-out show → join with a seat count → a seat frees (expiry, refund, cancel) → the first matching entry gets a 10-minute exclusive hold + email → claim → C8 Summary; unclaimed → next in line.
 
 ## Screen index
-
-| # | Screen | Route | Who | Version | Notes |
-|---|---|---|---|---|---|
-| S1 | Landing | `/` | visitor | v1 | Exists; gains real "Now showing" strip + demo logins |
-| S2 | Events list | `/events` | visitor | v1 | Filters in URL |
-| S3 | Event page | `/events/[slug]` | visitor | v1 | Showtimes by day → venue, fill indicator |
-| S4 | Seat map | `/book/[showtimeId]` | visitor/customer | v1 · live in v2 | The signature screen; 3 templates; countdown |
-| S5 | Checkout | `/checkout/[orderId]` | customer | v1 | Inline sign-in; Razorpay modal; confirming state |
-| S6 | Ticket | `/tickets/[orderId]` | customer | v1 | QR per seat; calendar link |
-| S7 | My tickets | `/my-tickets` | customer | v1 | Upcoming / past |
-| S8 | Refunded / failed order | `/checkout/[orderId]` state | customer | v1 | Paid-after-expiry explanation |
-| S9 | Sign in / Sign up | `/sign-in`, `/sign-up` | all | v1 | Role picker on sign-up; demo buttons |
-| S10 | Organiser · Venues | `/organiser/venues` | organiser | v1 | Template picker + knobs; layout preview |
-| S11 | Organiser · Events | `/organiser/events` | organiser | v1 | Form + list |
-| S12 | Organiser · Showtimes | `/organiser/showtimes` | organiser | v1 | Tier prices; cancel guard |
-| S13 | Organiser · Bookings | `/organiser/bookings/[showtimeId]` | organiser | v1 | Paid orders; CSV |
-| S14 | Organiser · Dashboard | `/organiser/dashboard` | organiser | v2 | Live revenue/occupancy, mini maps |
-| S15 | Check-in | `/checkin/[showtimeId]` | organiser | v2 | Camera or paste |
-| S16 | Waitlist join + offer | `/book/[showtimeId]` state · email link | customer | v3 | |
-| S17 | Transfer ticket | `/tickets/[orderId]` action · claim page | customer | v3 | |
-| S18 | Organiser · Heatmap | `/organiser/venues/[id]/heatmap` | organiser | v3 | |
-| S19 | App shell (tabs Shows · Tickets · Account · Scan) | Expo Router | all | v4 | Native chrome around the phone screens above |
-| S20 | Ticket wallet | app `/tickets` | customer | v4 | Offline; brightness boost on QR |
-| S21 | Scanner | app `/scan` | organiser | v4 | Camera + haptics; counter confirmed · pending sync (shown apart); flagged duplicates list |
+| # | Screen | Route | Role | Version |
+|---|---|---|---|---|
+| C1 | Home (Now showing, search) | `/` | all | v1 |
+| C2 | Movie page | `/movies/[slug]` | all | v1 (rating v3) |
+| C3 | Language + format | sheet on C2 | customer | v1 |
+| C4 | Showtimes | `/movies/[slug]/shows?date=&lang=&format=` | customer | v1 |
+| C5 | Certificate notice + how many seats | sheet on C6 | customer | v1 |
+| C6 | Seat map | `/book/[showId]` | customer | v1 · live v2 |
+| C7 | Sign in (email code) | `/sign-in` | customer | v1 |
+| C8 | Summary + pay | `/checkout/[orderId]` | customer | v1 |
+| C9 | M-ticket | `/tickets/[orderId]` | customer | v1 |
+| C10 | Refunded / failed | state of C8/C9 | customer | v1 |
+| C11 | My tickets | `/my-tickets` | customer | v1 |
+| C12 | Review | on C9 after scan-in | customer | v3 |
+| C13 | Waitlist join / offer | state of C6 + email link | customer | v3 |
+| O1 | For business | `/business` | owner | v1 |
+| O2 | Register / business sign-in | `/business/register` · `/business/sign-in` | owner | v1 |
+| O3 | Cinemas | `/owner/cinemas` | owner | v1 |
+| O4 | Screens (template + preview) | `/owner/cinemas/[id]/screens` | owner | v1 |
+| O5 | Films (pick / request) | `/owner/films` | owner | v1 |
+| O6 | Schedule shows | `/owner/shows` | owner | v1 |
+| O7 | Bookings | `/owner/shows/[id]/bookings` | owner | v1 |
+| O8 | Today board · counter · cancel | `/owner/today` | owner | v2 |
+| O9 | Door check-in | `/owner/checkin/[showId]` | owner (usher) | v1 |
+| O10 | Reports · payouts · heatmap | `/owner/reports` · `/owner/payouts` | owner | v3 |
+| T1 | Staff sign-in | `/staff` | staff | v1 |
+| T2 | Film catalogue | `/staff/films` | staff | v1 |
+| T3 | Film requests | `/staff/requests` | staff | v1 |
+| T4 | Approvals | `/staff/businesses?status=pending` | staff | v1 |
+| T5 | Cinema list · suspend | `/staff/businesses` | staff | v2 |
+| T6 | Support | `/staff/bookings` | staff | v2 |
+| T7 | Marketplace | `/staff/marketplace` | staff | v2 |
+| T8 | Payouts · reviews | `/staff/payouts` · `/staff/reviews` | staff | v3 |
+| App | Tabs per role | Expo Router | all | v4 |

@@ -1,133 +1,139 @@
 # Frontrow — Database + API Design
 
-**Lifecycle step:** 6 of 17 · **Locked:** 2026-09-15 · Behaviour in [04-technical-design.md](04-technical-design.md). Alembic `0001_v1` creates everything under **A**; v2/v3 tables get their own migrations.
+**Lifecycle step:** 6 of 17 · **Re-planned:** 2026-11-15/16 (movies only, three roles) · Behaviour in [04-technical-design.md](04-technical-design.md).
+The tables built in S2 (`events`, `venues`, `showtimes`, organiser `users.role`) are reworked into the model below in row **B1** (a new Alembic migration). Seats, layouts, orders, tickets and the hold engine carry over.
 
 ## A. Postgres schema (v1)
 
 ```sql
-create type user_role      as enum ('customer','organiser');
-create type event_type     as enum ('movie','concert');
-create type event_status   as enum ('draft','live');
-create type showtime_status as enum ('scheduled','cancelled');
-create type order_status   as enum ('pending','paid','expired','refunded','failed');
-create type layout_template as enum ('grid','stalls_balcony','arena');
+create type cert            as enum ('U','UA','A');
+create type film_status     as enum ('coming_soon','now_showing','ended');
+create type business_status as enum ('pending','verified','rejected','suspended');
+create type layout_template as enum ('grid','stalls_balcony');
+create type show_status     as enum ('scheduled','cancelled');
+create type order_status    as enum ('pending','paid','expired','refunded','failed');
+create type order_channel   as enum ('online','counter');            -- counter: v2
+create type request_status  as enum ('open','added','declined');
 
-users        (id uuid pk, email citext unique, password_hash text, name text, role user_role, created_at)
-sessions     (id text pk, user_id uuid fk, sid text,            -- sid = the anonymous fr_sid this session adopted
-              expires_at timestamptz, created_at)   index (user_id)
+users        (id uuid pk, email citext unique, name text, is_staff bool default false, created_at)
+sessions     (id text pk, user_id uuid fk, sid text, kind text check (kind in ('web','mobile')),
+              expires_at timestamptz, created_at)                     -- sid = the anonymous fr_sid adopted
+-- sign-in codes live in Redis (B), not Postgres
 
-venues       (id uuid pk, organiser_id uuid fk users, name, address, template layout_template,
-              knobs jsonb, layout jsonb, seat_count int, created_at)   index (organiser_id)
-seats        (id uuid pk, venue_id uuid fk, section_key text, row_label text, number int,
-              tier_key text, x int, y int)
-              unique (venue_id, section_key, row_label, number)   index (venue_id)
+businesses   (id uuid pk, name, slug unique, phone, logo_url, status business_status,
+              review_note text, created_at, verified_at)
+business_members (business_id uuid fk, user_id uuid fk, role text default 'owner',   -- 'usher' later
+              primary key (business_id, user_id))
 
-events       (id uuid pk, organiser_id uuid fk, slug text unique, title, type event_type, genre text,
-              duration_min int, rating text, synopsis text, cast_lineup text[], poster_url, gallery_urls text[],
-              status event_status, created_at)   index (status, type)
-showtimes    (id uuid pk, event_id uuid fk, venue_id uuid fk, starts_at timestamptz, status showtime_status,
-              created_at)   index (starts_at) · index (event_id, starts_at) · index (venue_id, starts_at)
-price_tiers  (showtime_id uuid fk, tier_key text, label text, price_paise int, primary key (showtime_id, tier_key))
+films        (id uuid pk, slug unique, title, synopsis, cast_crew jsonb, runtime_min int, cert cert,
+              genres text[], languages text[], formats text[], poster_url, banner_url, trailer_url,
+              release_date date, status film_status, created_by uuid fk users, created_at)
+film_requests (id uuid pk, business_id uuid fk, title text, note text, status request_status,
+              film_id uuid fk null, reply text, created_at)
 
-orders       (id uuid pk, user_id uuid fk null, sid text, showtime_id uuid fk, status order_status,
-              subtotal_paise int, fee_paise int, total_paise int,
-              razorpay_order_id text unique, razorpay_payment_id text, refund_id text, refund_reason text,
-              created_at, paid_at)   index (user_id, created_at desc) · index (showtime_id, status)
-order_seats  (order_id uuid fk, seat_id uuid fk, tier_key text, price_paise int, primary key (order_id, seat_id))
-tickets      (id uuid pk, order_id uuid fk, showtime_id uuid fk, seat_id uuid fk, user_id uuid fk,
-              token_version int default 1, checked_in_at timestamptz null, created_at)
-              **unique (showtime_id, seat_id)** · index (user_id) · index (order_id)
-webhook_events (id text pk, received_at)          -- Razorpay event id; duplicate insert = replay
+cinemas      (id uuid pk, business_id uuid fk, name, area, address, facilities text[], created_at)
+screens      (id uuid pk, cinema_id uuid fk, name, template layout_template, knobs jsonb, layout jsonb,
+              tiers jsonb,                                            -- [{key,label}] in price order
+              formats text[], seat_count int)
+seats        (id uuid pk, screen_id uuid fk, section_key, row_label, number int, tier_key, x int, y int)
+              unique (screen_id, section_key, row_label, number)
+
+show_schedules (id uuid pk, screen_id uuid fk, film_id uuid fk, language, format,
+              days_of_week int[], times time[], from_date date, to_date date,
+              prices jsonb)                                           -- {tier_key: paise}; seed + bulk scheduling
+shows        (id uuid pk, schedule_id uuid fk null, screen_id uuid fk, film_id uuid fk, language, format,
+              starts_at timestamptz, ends_at timestamptz, status show_status, cancel_reason text)
+              index (film_id, starts_at) · index (screen_id, starts_at)
+              -- no overlap per screen: exclusion constraint on tstzrange(starts_at, ends_at + cleaning gap)
+show_prices  (show_id uuid fk, tier_key, price_paise int, primary key (show_id, tier_key))
+
+orders       (id uuid pk, user_id uuid fk null, sid text, show_id uuid fk, channel order_channel,
+              status order_status, subtotal_paise int, fee_paise int, total_paise int,
+              razorpay_order_id unique null, razorpay_payment_id, refund_id, refund_reason, created_at, paid_at)
+order_seats  (order_id uuid fk, seat_id uuid fk, tier_key, price_paise int, primary key (order_id, seat_id))
+tickets      (id uuid pk, order_id uuid fk, show_id uuid fk, seat_id uuid fk, user_id uuid fk null,
+              checked_in_at timestamptz null, created_at)
+              **unique (show_id, seat_id)**
+webhook_events (id text pk, received_at)
 ```
+Money is integer paise. Shows are generated lazily from `show_schedules` so the next 14 days always exist (no cron); shows with orders are never regenerated. Public lists show only `verified` businesses and `now_showing` films.
 
-Money is integer paise. `order_seats` freezes the price at order time (v3 dynamic pricing needs this). `tickets.token_version` lets v3 transfer rotate the QR without a new row.
-
-**Views / helpers**
-```sql
--- fill per showtime (event page badge, dashboard)
-create view showtime_fill as
-  select s.id showtime_id, v.seat_count, count(t.id) sold
-  from showtimes s join venues v on v.id = s.venue_id
-  left join tickets t on t.showtime_id = s.id group by s.id, v.seat_count;
-```
-Held counts come from Redis (`HLEN holds:{id}`), merged in the API.
-
-**v2 additions:** `tickets.emailed_at`; posters move to Blob URLs (no schema change).
-**v4 additions** (`sessions.kind` `web` | `mobile` ships in v1): `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`; `push_jobs (id, user_id, kind, payload jsonb, due_at, sent_at null)` index (due_at) where sent_at is null. Door scanning (Viraj, 2026-11-19): `checkins (id, ticket_id, showtime_id, scanner_id, client_scan_id, scanned_by user_id, scanned_at null, received_at, state confirmed|duplicate_flagged)` unique (scanner_id, client_scan_id) so a re-sent batch is a no-op; index (showtime_id, state). `tickets.checked_in_at` stays the single source of "admitted" — the scan whose mark-used-once update hits 1 row is `confirmed`, 0 rows → `duplicate_flagged`. `scanned_at` is the device clock (audit only, null for online scans); `received_at` is server time. `pending_sync` exists only on the device.
-**v3 additions:** `waitlist (id, showtime_id, user_id, seats int, max_price_paise, status, offered_until, created_at)`; `ticket_transfers (id, ticket_id, to_email, claim_token, claimed_at)`; `showtime_pricing_rules (showtime_id, thresholds jsonb)`.
+**v2:** `blocked_seats (show_id, seat_id, reason, primary key (show_id, seat_id))`; `orders.channel = 'counter'`; `businesses.status = 'suspended'`.
+**v3:** `reviews (id, film_id, user_id, ticket_id unique, rating int 1–5, body, removed_reason null, created_at)`; `waitlist (id, show_id, user_id, seats int, status, offered_until, created_at)`; `payouts (id, business_id, week_start date, sales_paise, fee_paise, owed_paise, paid_at null)`.
+**v4:** `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`. Door scanning (Viraj, 2026-11-19): `checkins (id, ticket_id, show_id, scanner_id, client_scan_id, scanned_by user_id, scanned_at null, received_at, state confirmed|duplicate_flagged, reason null)` unique (scanner_id, client_scan_id) so a re-sent batch is a no-op; index (show_id, state). `tickets.checked_in_at` stays the single source of "admitted". `scanned_at` is the device clock (audit only, null for online scans); `received_at` is server time. `pending_sync` exists only on the device.
 
 ## B. Redis keys
 | Key | Type | TTL | Written by |
 |---|---|---|---|
-| `hold:{showtime}:{seat}` | string = sid | 600 s | acquire Lua |
-| `holds:{showtime}` | hash seat → `sid\|expires_epoch` | none (lazy cleanup) | acquire / release / confirm |
-| `st:{showtime}:v` | int | none | every change |
-| `rl:holds:{sid}` | int | 60 s | rate limit (30/min) |
+| `otp:{email}` | hash: code hash, tries | 600 s | sign-in |
+| `rl:otp:{email}` · `rl:otp:ip:{ip}` | int | 60 s / 3600 s | sign-in limits |
+| `hold:{show}:{seat}` | string = sid | 600 s | acquire Lua |
+| `holds:{show}` | hash seat → `sid\|expires_epoch` | none (lazy cleanup) | acquire / release / confirm |
+| `sold:{show}` | set of seat ids | none | refreshed on confirm, counter sale, refund |
+| `st:{show}:v` | int | none | every change |
+| `rl:holds:{sid}` | int | 60 s | 30 hold calls / minute |
 
 ## C. REST API (`/api/*` from the browser; FastAPI serves `/docs`)
-
-Error envelope everywhere: `{ "error": { "code": "seat_taken", "message": "…", "details": {…} } }`. Auth via cookie; `🔒` = signed in, `🏟` = organiser (owner of the resource), `⚙` = server-to-server.
+Error envelope: `{ "error": { "code", "message", "details" } }`. 🔒 signed in · 🎬 member of the business that owns the resource (other business → 404) · 🛠 staff · ⚙ server-to-server.
 
 ### Public
 | Method | Path | Returns |
 |---|---|---|
-| GET | `/events?date=&type=&genre=&venue=&sort=` | `EventCard[]` (poster, title, type, genre, rating, duration, from_price, next_showtime) |
-| GET | `/events/{slug}` | `EventDetail` + `ShowtimeSummary[]` (venue, starts_at, tiers, fill: available/filling/sold_out) |
-| GET | `/venues/{id}/layout` | `Layout` JSON (cached, immutable per venue) |
-| GET | `/showtimes/{id}` | `ShowtimeDetail` (event, venue + template, tiers with prices in legend order, `layout_url`, `fee_paise`, fill, seats_left) |
-| GET | `/showtimes/{id}/seats` | `SeatState` `{ v, server_time, sold: seat_id[], held: {seat_id, expires_at}[], mine: seat_id[] }` |
-| GET | `/showtimes/{id}/stream` | SSE — `snapshot` / `diff` / `ping` (v2) |
-| GET | `/home` | landing strip: 6 `EventCard` |
+| GET | `/home` | Now showing film cards |
+| GET | `/films?q=&status=` | film cards (search by title) |
+| GET | `/films/{slug}` | film detail (+ rating from v3) |
+| GET | `/films/{slug}/shows?date=&language=&format=` | cinemas → shows with availability (available / filling / sold_out) |
+| GET | `/shows/{id}` | show detail: film, cinema, screen, tiers with prices, cert, fee |
+| GET | `/screens/{id}/layout` | `Layout` JSON (cached) |
+| GET | `/shows/{id}/seats?v=` | `SeatState`, or `{unchanged:true}` when `v` matches |
 
-### Holds & orders (session cookie `fr_sid`, signed-in optional until pay)
-| Method | Path | Body → Returns |
-|---|---|---|
-| POST | `/showtimes/{id}/holds` | `{ seat_ids[] }` → 200 `{ expires_at, held: seat_id[] }` · 409 `seat_taken { taken: seat_id[] }` · 422 `too_many_seats` (>10) · 429 |
-| DELETE | `/showtimes/{id}/holds` | `{ seat_ids[] }` → 204 |
-| POST 🔒 | `/orders` | `{ showtime_id, seat_ids[] }` → 201 `{ order_id, razorpay_order_id, amount_paise, key_id, expires_at }` · 409 `hold_missing` |
-| GET 🔒 | `/orders/{id}` | `Order` (status, seats, totals, tickets[] when paid, refund_reason) |
-| POST 🔒 | `/orders/{id}/verify` | `{ razorpay_payment_id, razorpay_signature }` → `Order` (confirms on valid signature) |
-| GET 🔒 | `/my/tickets` | `{ upcoming: TicketGroup[], past: TicketGroup[] }` grouped by order |
-| GET 🔒 | `/tickets/{order_id}` | `Ticket[]` with `qr_token` each · 404 if not owner |
-
-### Auth
-| Method | Path | Body → Returns |
-|---|---|---|
-| POST | `/auth/sign-up` | `{ email, password, name, role }` → `Me`; adopts `fr_sid` holds |
-| POST | `/auth/sign-in` | `{ email, password }` → `Me` |
-| POST | `/auth/sign-out` | → 204 |
-| GET | `/auth/me` | `Me { id, name, email, role }` · 401 |
-| POST | `/auth/demo` | `{ as: 'customer' \| 'organiser' }` → `Me` (landing demo buttons) |
-| POST / DELETE | `/auth/token` | `{ email, password }` → `{ token, expires_at, me }` · bearer sessions for the v4 app (built in v1 so the API is client-agnostic from day one) |
-
-### Organiser 🏟
+### Sign-in
 | Method | Path | Notes |
 |---|---|---|
-| GET/POST | `/organiser/venues` | POST `{ name, address, template, knobs }` → generates layout + seats |
-| GET | `/organiser/venues/{id}` | venue + layout |
-| GET/POST | `/organiser/events` · PATCH `/organiser/events/{id}` | fields per R8; slug from title |
-| GET/POST | `/organiser/showtimes` · PATCH `/organiser/showtimes/{id}` | POST `{ event_id, venue_id, starts_at, tiers: {tier_key, label, price_paise}[] }`; PATCH cancel → 409 `has_sales` |
-| GET | `/organiser/showtimes/{id}/bookings?format=json\|csv` | paid orders |
-| GET | `/organiser/dashboard` (v2) | today's revenue, sold, per-showtime fill; live via the same SSE with `?organiser=1` |
-| POST | `/checkin` (v2) | `{ token }` → `{ status: valid \| used \| invalid \| wrong_showtime, ticket, checked_in_at }` |
+| POST | `/auth/code` | `{ email, door: customer \| business \| staff }` → 204 (same answer for unknown staff emails) |
+| POST | `/auth/verify` | `{ email, code, name?, business? }` → `Me`; adopts `fr_sid` holds |
+| POST | `/auth/demo` | `{ as: customer \| owner \| staff }` → `Me` |
+| POST | `/auth/sign-out` · GET `/auth/me` | |
+| POST / DELETE | `/auth/token` | bearer tokens for the v4 app (same code flow) |
 
-### Server-to-server ⚙
+### Holds, orders, tickets
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/webhooks/razorpay` | raw body HMAC; `payment.captured` → confirm; `payment.failed` → order `failed`; always 200 after signature ok |
+| POST | `/shows/{id}/holds` | `{ seat_ids[] }` → `{ expires_at }` · 409 `seat_taken {taken[]}` · 422 > 10 |
+| DELETE | `/shows/{id}/holds` | `{ seat_ids[] }` |
+| POST 🔒 | `/orders` | server totals; Razorpay order |
+| GET 🔒 | `/orders/{id}` · POST `/orders/{id}/verify` | |
+| GET 🔒 | `/my/tickets` · `/tickets/{order_id}` | QR token per seat; 404 if not owner |
+| POST ⚙ | `/webhooks/razorpay` | HMAC, dedupe, confirm / refund |
 
-### v4 — mobile (sketch; detailed when v4 starts)
-`POST /devices` `{ expo_token, platform }` 🔒 · `DELETE /devices/{id}` 🔒 · `POST /internal/push/due` ⚙ (Vercel Cron, `CRON_SECRET`). Scanning 🏟: `POST /checkin` gains optional `{ scanner_id, client_scan_id }` and writes a `checkins` row · `GET /organiser/showtimes/{id}/scan-list` → `{ showtime_id, version, issued_at, expires_at, tickets: {ticket_id, seat_label, token_hash}[], sig }` (`sig` = Ed25519 over the canonical JSON of everything else; `version` rises whenever a ticket is sold, transferred or refunded) · `POST /checkins/sync` `{ scanner_id, scans: {client_scan_id, token, scanned_at}[] }` → `{ results: {client_scan_id, state: confirmed \| duplicate_flagged \| invalid, checked_in_at}[] }`, processed in array order · `GET /organiser/showtimes/{id}/checkins` → `{ confirmed, flagged: Checkin[] }`. Every other route is unchanged; the app sends `Authorization: Bearer <token>` instead of the cookie.
+### Theatre owner 🎬
+| Method | Path | Notes |
+|---|---|---|
+| GET/POST/PATCH | `/owner/cinemas` · `/owner/cinemas/{id}/screens` | screen POST generates layout + seats |
+| GET | `/owner/films` · POST `/owner/film-requests` | catalogue picker; request a missing film |
+| POST | `/owner/shows/bulk` | `{ screen_id, film_id, language, format, days[], times[], from, to, prices }` → created shows or 409 `overlap {show}` |
+| GET | `/owner/shows?date=` · `/owner/shows/{id}/bookings?format=json\|csv` | |
+| POST | `/checkin` | `{ token, show_id }` → `valid \| used \| wrong_show \| invalid` |
+| v2 | `GET /owner/today` · `POST/DELETE /owner/shows/{id}/blocks` · `POST /owner/shows/{id}/counter-orders` · `POST /owner/shows/{id}/cancel` | |
+| v3 | `GET /owner/reports` · `GET /owner/payouts` · `GET /owner/screens/{id}/heatmap` | |
+| v4 | `GET /owner/shows/{id}/scan-list` · `POST /checkins/sync` · `GET /owner/shows/{id}/checkins` | scan list `{ show_id, version, issued_at, expires_at, tickets: {ticket_id, seat_label, token_hash}[], sig }` (Ed25519; `version` rises on every sale or refund); sync `{ scanner_id, scans: {client_scan_id, token, scanned_at}[] }` → `{ results: {client_scan_id, state: confirmed \| duplicate_flagged \| invalid, checked_in_at}[] }` in array order; `POST /checkin` gains optional `{ scanner_id, client_scan_id }` |
 
-### v3 (sketch; detailed when v3 starts)
-`POST /showtimes/{id}/waitlist` · `POST /waitlist/{id}/claim` · `GET /showtimes/{id}/best?count=&tier=` · `POST /tickets/{id}/transfer` · `POST /transfers/{token}/claim` · `GET /organiser/venues/{id}/heatmap` · `PATCH /organiser/showtimes/{id}/pricing`.
+### Frontrow staff 🛠
+| Method | Path | Notes |
+|---|---|---|
+| GET/POST/PATCH | `/staff/films` | catalogue |
+| GET/PATCH | `/staff/film-requests` | add (links the new film) or decline with a reason |
+| GET/PATCH | `/staff/businesses?status=` | approve / reject (v1), suspend (v2) |
+| v2 | `GET /staff/bookings?q=` · `POST /staff/orders/{id}/resend` · `POST /staff/orders/{id}/refund` · `GET /staff/marketplace` | |
+| v3 | `GET/PATCH /staff/payouts` · `GET/PATCH /staff/reviews` | |
+
+### v3 customer · v4 app
+`POST /films/{slug}/reviews` (checked-in ticket required) · `POST /shows/{id}/waitlist` · `POST /waitlist/{id}/claim` · `POST /devices` 🔒.
 
 ## D. Payload shapes that matter
 ```ts
-type SeatState = { v: number; server_time: string; sold: string[]; held: { seat_id: string; expires_at: string }[]; mine: string[] };
-type SeatDiff  = { v: number; held_add?: SeatState['held']; held_del?: string[]; sold_add?: string[] };
-type Layout    = { template: 'grid'|'stalls_balcony'|'arena'; width: number; height: number;
+type SeatState = { v: number; server_time: string; sold: string[]; held: { seat_id: string; expires_at: string }[]; mine: string[]; blocked?: string[] };
+type Layout    = { template: 'grid'|'stalls_balcony'; width: number; height: number;
                    stage: { label: string; x: number; y: number; w: number };
-                   sections: { key: string; label: string; tier: string; shape: 'rows'|'wedge'; polygon?: number[][];
-                               rows: { label: string; seats: { id: string; n: number; x: number; y: number }[] }[] }[] };
+                   sections: { key: string; label: string; tier: string; rows: { label: string; seats: { id: string; n: number; x: number; y: number }[] }[] }[] };
 ```

@@ -5,6 +5,9 @@
 **Files:** `mockups/landing.html` (exists, already ported to `web/`) → `mockups/direction-variants.html` (S4 seat map + S3 event page, desktop and 390 px) → `mockups/screens.html` (every v1 screen in the chosen direction).
 **Published:** [Direction variants](https://claude.ai/artifact/LFJw5Zg1LEvvYjqdhot2Dr) · [Screens](https://claude.ai/artifact/MCedtstCq6C2o7d9vJacPp) · both also viewable inside the [Tracker](https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA) → Mockups tab.
 
+## Colour change — 2026-11-15
+The Box office style stays (Barlow Condensed / Barlow / JetBrains Mono, red `#E63946` actions, the cream stub that tears off on pay, tier colours, row pop-in). The **plum hall is replaced**: pages are **paper** (`#EFE7DA`, cards `#FBF7F0`, text plum-ink `#2A0B1E`) under an **oxblood header `#7E1A22` with a torn-stub scalloped bottom edge** (radial-gradient scallops, 18 px period); white text and avatars on the header. Chosen from a picker of 12 header colours × 4 edges after every dark hall was rejected and a flat red bar read as BookMyShow. Applied in row B1. The screens and variant pages below predate this change (and the movies-only re-plan) and are kept for the record.
+
 ## Brief
 **Style:** a night at the movies — dark house, lit screen. The existing landing sets it: plum `#2A0B1E` ground, warm off-white "screen" `#F5EFE6`, red `#E63946` for the action, amber `#F4A261` for focus and warnings, Barlow Condensed uppercase headlines with Barlow for UI. Keep it; the variants explore how the **seat map** lives in it, not a new palette.
 
