@@ -24,11 +24,11 @@ function qrSvg(token: string) {
     type: "svg",
     errorCorrectionLevel: "M",
     margin: 1,
-    color: { dark: "#2A0B1E", light: "#F5EFE6" },
+    color: { dark: "#2A0B1E", light: "#FFFBF4" },
   });
 }
 
-/** S6: one ticket per seat, each with its signed QR; calendar, directions, print. */
+/** C9 · M-ticket: one ticket per seat with its signed QR, the receipt, calendar, directions, print. */
 export default async function TicketsPage({ params }: Props) {
   const { orderId } = await params;
   await requireMe(`/tickets/${orderId}`);
@@ -40,20 +40,28 @@ export default async function TicketsPage({ params }: Props) {
     throw e;
   }
   const { order, tickets } = bundle;
-  const st = order.showtime;
+  const st = order.show;
   const qrs = await Promise.all(tickets.map((t) => qrSvg(t.qr_token)));
   const { weekday, date } = dayParts(st.starts_at);
   const past = new Date(st.ends_at).getTime() < Date.now();
+  const receipt = Object.values(
+    order.seats.reduce<Record<string, { label: string; n: number; paise: number }>>((acc, s) => {
+      const r = (acc[s.tier_key] ??= { label: s.tier_label, n: 0, paise: 0 });
+      r.n += 1;
+      r.paise += s.price_paise;
+      return acc;
+    }, {}),
+  );
   const entry = {
     uid: order.id,
-    title: st.event.title,
+    title: st.film.title,
     start: st.starts_at,
     end: st.ends_at,
-    location: `${st.venue.name}, ${st.venue.address}`,
+    location: `${st.cinema.name}, ${st.cinema.address}`,
     description: `Frontrow tickets — seats ${order.seats.map((s) => s.label).join(", ")}`,
     url: `${SITE_URL}/tickets/${order.id}`,
   };
-  const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${st.venue.name}, ${st.venue.address}`)}`;
+  const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${st.cinema.name}, ${st.cinema.address}`)}`;
 
   return (
     <>
@@ -61,15 +69,15 @@ export default async function TicketsPage({ params }: Props) {
       <main className="mx-auto grid w-[min(1100px,100%-32px)] gap-8 py-8 lg:py-12">
         <div className="tk-rise grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="grid gap-3">
-            <p className="font-cond text-lg font-bold tracking-[.14em] text-amber uppercase">
+            <p className="font-cond text-lg font-bold tracking-[.14em] text-red-dark uppercase">
               {past ? "Played" : `${tickets.length} ${tickets.length === 1 ? "ticket" : "tickets"} · paid ${rupees(order.total_paise)}`}
             </p>
             <h1 className="font-cond text-[clamp(44px,7vw,84px)] leading-[.9] font-extrabold uppercase">
-              {past ? st.event.title : "You're in"}
+              {past ? st.film.title : "You're in"}
             </h1>
             <p className="max-w-[56ch] text-lg text-muted-foreground">
-              {st.event.title} · {when(st.starts_at)} · {st.venue.name}. Show the QR for each seat at the door — one scan per
-              seat. Screenshots work too.
+              {st.film.title} · {when(st.starts_at)} · {st.cinema.name} · {st.screen_name}. Show the QR for each seat at the
+              door — one scan per seat. Screenshots work too. A confirmation email with this link was sent to {order.customer.email}.
             </p>
           </div>
           <div className="no-print flex flex-wrap gap-2">
@@ -94,13 +102,13 @@ export default async function TicketsPage({ params }: Props) {
           {tickets.map((t, i) => (
             <li
               key={t.id}
-              className="tk-rise relative grid overflow-hidden rounded-card bg-paper text-ink shadow-[0_20px_50px_rgba(0,0,0,.4)] sm:grid-cols-[1fr_220px]"
+              className="tk-rise relative grid overflow-hidden rounded-card border border-border bg-paper text-ink shadow-[0_20px_50px_rgb(42_11_30_/_.14)] sm:grid-cols-[1fr_220px]"
               style={{ animationDelay: `${120 + i * 90}ms` }}
             >
               <div className="grid gap-4 p-5 sm:p-6">
                 <div className="flex items-start gap-4">
                   <Image
-                    src={st.event.poster_url}
+                    src={st.film.poster_url}
                     alt=""
                     width={64}
                     height={88}
@@ -108,9 +116,9 @@ export default async function TicketsPage({ params }: Props) {
                     className="hidden h-[88px] w-16 rounded-[6px] object-cover sm:block"
                   />
                   <div>
-                    <h2 className="font-cond text-[34px] leading-[.95] font-extrabold uppercase">{st.event.title}</h2>
+                    <h2 className="font-cond text-[34px] leading-[.95] font-extrabold uppercase">{st.film.title}</h2>
                     <p className="mt-1 text-sm font-medium text-ink-2">
-                      {st.venue.name} · {st.venue.address}
+                      {st.cinema.name} · {st.screen_name} · {st.language} {st.format}
                     </p>
                   </div>
                 </div>
@@ -136,8 +144,8 @@ export default async function TicketsPage({ params }: Props) {
                   <span>
                     Ticket {i + 1} of {tickets.length}
                   </span>
-                  <span>{duration(st.event.duration_min)}</span>
-                  {st.event.rating && <span>Rated {st.event.rating}</span>}
+                  <span>{duration(st.film.runtime_min)}</span>
+                  <span>Rated {st.film.cert}</span>
                   <span className="font-mono">#{t.id.slice(0, 8).toUpperCase()}</span>
                 </p>
               </div>
@@ -153,20 +161,50 @@ export default async function TicketsPage({ params }: Props) {
                   <TicketIcon aria-hidden="true" className="size-4" />
                   {t.checked_in_at ? `Checked in ${showTime(t.checked_in_at)}` : "Admit one"}
                 </span>
+                {!t.checked_in_at && !past && (
+                  <details className="no-print w-full text-center text-[11px] text-ink-3">
+                    <summary className="cursor-pointer">Code (if the scanner can&apos;t read the QR)</summary>
+                    <code className="mt-1 block font-mono break-all select-all">{t.qr_token}</code>
+                  </details>
+                )}
               </div>
             </li>
           ))}
         </ol>
 
+        <section aria-labelledby="receipt" className="fr-stub grid gap-2 p-5 text-sm sm:max-w-[460px]">
+          <h2 id="receipt" className="font-cond text-2xl font-bold uppercase">
+            Receipt
+          </h2>
+          <p className="text-ink-2">
+            Booking ID <b className="font-mono text-ink">{order.id.slice(0, 8).toUpperCase()}</b>
+            {order.paid_at && <> · paid {when(order.paid_at)}</>}
+          </p>
+          {receipt.map((r) => (
+            <div key={r.label} className="flex justify-between text-ink-2">
+              <span>
+                {r.n} × {r.label}
+              </span>
+              <span className="tabular-nums">{rupees(r.paise)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between text-ink-2">
+            <span>Convenience fee · ₹30 per ticket</span>
+            <span className="tabular-nums">{rupees(order.fee_paise)}</span>
+          </div>
+          <div className="flex items-baseline justify-between border-t border-ink/20 pt-2 font-semibold">
+            <span>Paid · {order.payment_method ?? "Online"}</span>
+            <b className="font-cond text-2xl tabular-nums">{rupees(order.total_paise)}</b>
+          </div>
+        </section>
+
         <div className="no-print flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 text-sm text-muted-foreground">
-          <span>
-            Order <span className="font-mono">#{order.id.slice(0, 8).toUpperCase()}</span> · {order.customer.email}
-          </span>
+          <span>Signed in as {order.customer.email}</span>
           <span className="flex gap-4">
             <Link href="/my-tickets" className="text-screen underline underline-offset-4">
               All my tickets
             </Link>
-            <Link href="/events" className="text-screen underline underline-offset-4">
+            <Link href="/movies" className="text-screen underline underline-offset-4">
               Book another show
             </Link>
           </span>

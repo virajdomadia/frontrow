@@ -53,7 +53,7 @@ export function Checkout({ initial }: { initial: Order }) {
   const confirmingSince = useRef<number | null>(null);
 
   const holdClock = useCountdown(order.status === "pending" ? order.hold_expires_at : null, offset, {
-    title: `Checkout · ${order.showtime.event.title} · Frontrow`,
+    title: `Checkout · ${order.show.film.title} · Frontrow`,
   });
   const payClock = useCountdown(order.status === "pending" ? order.pay_by : null, offset, {
     onZero: () => void reload(),
@@ -124,7 +124,7 @@ export function Checkout({ initial }: { initial: Order }) {
       amount: order.total_paise,
       currency: "INR",
       name: "Frontrow",
-      description: `${order.showtime.event.title} · ${order.seats.length} ${order.seats.length === 1 ? "seat" : "seats"}`,
+      description: `${order.show.film.title} · ${order.seats.length} ${order.seats.length === 1 ? "seat" : "seats"}`,
       prefill: { name: order.customer.name, email: order.customer.email },
       notes: { order_id: order.id },
       theme: { color: "#E63946" },
@@ -152,7 +152,7 @@ export function Checkout({ initial }: { initial: Order }) {
     rzp.open();
   }
 
-  const { weekday, date } = dayParts(order.showtime.starts_at);
+  const { weekday, date } = dayParts(order.show.starts_at);
   const tiers = Object.values(
     order.seats.reduce<Record<string, { label: string; n: number; paise: number }>>((acc, s) => {
       const t = (acc[s.tier_key] ??= { label: s.tier_label, n: 0, paise: 0 });
@@ -168,7 +168,7 @@ export function Checkout({ initial }: { initial: Order }) {
   return (
     <div className="mx-auto grid w-[min(1100px,100%-32px)] gap-8 py-8 lg:grid-cols-[1fr_420px] lg:items-start lg:py-12">
       <div className="grid content-start gap-4">
-        <p className="font-cond text-lg font-bold tracking-[.14em] text-amber uppercase">
+        <p className="font-cond text-lg font-bold tracking-[.14em] text-red-dark uppercase">
           {pending ? "Checkout" : order.status === "paid" ? "Paid" : "Order"}
         </p>
         <h1 className="font-cond text-[clamp(40px,6vw,72px)] leading-[.92] font-extrabold uppercase">
@@ -188,11 +188,13 @@ export function Checkout({ initial }: { initial: Order }) {
       <div className={cn("relative", phase === "torn" && "tk-tear")}>
         <section
           aria-label="Order summary"
-          className="sm-stub rounded-card bg-paper text-ink shadow-[0_20px_50px_rgba(0,0,0,.45)]"
+          className="sm-stub rounded-card border border-border bg-paper text-ink shadow-[0_20px_50px_rgb(42_11_30_/_.16)]"
         >
           <div className="relative border-b-2 border-dashed border-ink/25 px-6 pt-5.5 pb-4 before:absolute before:-bottom-[11px] before:-left-[11px] before:size-[22px] before:rounded-full before:bg-plum after:absolute after:-right-[11px] after:-bottom-[11px] after:size-[22px] after:rounded-full after:bg-plum">
-            <h2 className="pr-16 font-cond text-[34px] leading-[.95] font-extrabold uppercase">{order.showtime.event.title}</h2>
-            <p className="mt-1 text-sm font-medium text-ink-2">{order.showtime.venue.name}</p>
+            <h2 className="pr-16 font-cond text-[34px] leading-[.95] font-extrabold uppercase">{order.show.film.title}</h2>
+            <p className="mt-1 text-sm font-medium text-ink-2">
+              {order.show.cinema.name} · {order.show.screen_name} · {order.show.language} {order.show.format}
+            </p>
             <span className="absolute top-5.5 right-6 rotate-[-6deg] rounded-sm border-2 border-red-dark px-2.5 py-1.5 font-cond text-sm font-extrabold tracking-[.14em] text-red-dark uppercase">
               {order.status === "paid" ? "Paid" : "Admit"}
             </span>
@@ -204,7 +206,7 @@ export function Checkout({ initial }: { initial: Order }) {
                 Date<b className="block font-cond text-[22px] font-bold tracking-[.02em] text-ink">{`${weekday} ${date}`}</b>
               </div>
               <div>
-                Show<b className="block font-cond text-[22px] font-bold tracking-[.02em] text-ink">{showTime(order.showtime.starts_at)}</b>
+                Show<b className="block font-cond text-[22px] font-bold tracking-[.02em] text-ink">{showTime(order.show.starts_at)}</b>
               </div>
             </div>
             <div>
@@ -254,8 +256,9 @@ export function Checkout({ initial }: { initial: Order }) {
               <>
                 {order.gateway === "demo" && (
                   <p className="rounded-btn border border-dashed border-ink/30 px-3 py-2 text-xs text-ink-2">
-                    <b className="text-ink">Test payment.</b> This demo has no payment keys configured, so Pay confirms the order
-                    through the same server path a Razorpay webhook takes. No money moves.
+                    <b className="text-ink">Demo payment.</b> Test mode — no money moves. Pay confirms the order through the same
+                    server path a Razorpay webhook takes. With Razorpay keys set, this opens Razorpay Checkout (test card 4111 1111
+                    1111 1111, UPI success@razorpay).
                   </p>
                 )}
                 {error && (
@@ -278,7 +281,7 @@ export function Checkout({ initial }: { initial: Order }) {
                       ? "Your bank has confirmed; we're waiting for the final word. Keep this page open."
                       : "Hold tight — issuing your tickets."
                     : order.gateway === "razorpay"
-                      ? "Razorpay test mode · use card 4111 1111 1111 1111, any future date, any CVV"
+                      ? "Razorpay test mode · card 4111 1111 1111 1111, any future date, any CVV · or UPI success@razorpay"
                       : "Signed in as " + order.customer.email}
                 </p>
               </>
@@ -289,7 +292,7 @@ export function Checkout({ initial }: { initial: Order }) {
               </Link>
             )}
             {(order.status === "refunded" || order.status === "expired" || order.status === "failed") && (
-              <Link href={`/book/${order.showtime.id}`} className={buttonVariants({ className: "w-full" })}>
+              <Link href={`/book/${order.show.id}`} className={buttonVariants({ className: "w-full" })}>
                 Pick seats again
               </Link>
             )}

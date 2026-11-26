@@ -48,3 +48,18 @@ export function takenNames(ids: string[], name: (id: string) => string): string 
   const list = names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
   return `${list} ${names.length === 1 ? "was" : "were"} just taken`;
 }
+
+/**
+ * "How many seats?" picking (R5): tapping a seat takes `count` seats together in that row —
+ * the tapped seat, then free seats to its right, then to its left — stopping at anything that
+ * isn't free. Returns fewer than `count` when the run is shorter; the rest are tapped one by one.
+ * `row` is the row's seat ids in seat-number order.
+ */
+export function pickTogether(row: readonly string[], start: string, count: number, isFree: (id: string) => boolean): string[] {
+  const at = row.indexOf(start);
+  if (at < 0 || count < 1 || !isFree(start)) return [];
+  const out = [start];
+  for (let i = at + 1; i < row.length && out.length < count && isFree(row[i]); i++) out.push(row[i]);
+  for (let i = at - 1; i >= 0 && out.length < count && isFree(row[i]); i--) out.unshift(row[i]);
+  return out;
+}

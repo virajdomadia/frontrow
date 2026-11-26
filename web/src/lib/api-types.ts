@@ -4,6 +4,27 @@
  */
 
 export interface paths {
+    "/auth/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Code
+         * @description Email a 6-digit code (10 minutes, 5 tries). Same answer at the staff door for any
+         *     email. 429 when asked too often; 503 `email_unavailable` when this deployment has no SMTP.
+         */
+        post: operations["send_code_auth_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/demo": {
         parameters: {
             query?: never;
@@ -13,7 +34,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Demo */
+        /**
+         * Demo
+         * @description One click, no email: the seeded demo customer, theatre owner (Orbit Cinemas) or staff
+         *     member (view-only). The demo customer always has an upcoming and a past booking.
+         */
         post: operations["demo_auth_demo_post"];
         delete?: never;
         options?: never;
@@ -38,23 +63,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/sign-in": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Sign In */
-        post: operations["sign_in_auth_sign_in_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/sign-out": {
         parameters: {
             query?: never;
@@ -72,23 +80,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/sign-up": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Sign Up */
-        post: operations["sign_up_auth_sign_up_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/token": {
         parameters: {
             query?: never;
@@ -100,7 +91,8 @@ export interface paths {
         put?: never;
         /**
          * Create Token
-         * @description Bearer session for the v4 app (`sessions.kind = mobile`, 90 days).
+         * @description Bearer session for the v4 app (`sessions.kind = mobile`, 90 days), from a code sent by
+         *     `POST /auth/code` (existing accounts only).
          */
         post: operations["create_token_auth_token_post"];
         /** Delete Token */
@@ -110,15 +102,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/events": {
+    "/auth/verify": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Events */
-        get: operations["list_events_events_get"];
+        get?: never;
+        put?: never;
+        /** Verify */
+        post: operations["verify_auth_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/checkin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check In
+         * @description The door (B10): valid once; then "already checked in at HH:MM"; wrong show; not a
+         *     ticket. Only the business that owns the show can scan it.
+         */
+        post: operations["check_in_checkin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/films": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Films */
+        get: operations["films_films_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -127,15 +157,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/events/{slug}": {
+    "/films/{slug}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Event */
-        get: operations["get_event_events__slug__get"];
+        /** Film */
+        get: operations["film_films__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/films/{slug}/shows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Film Shows */
+        get: operations["film_shows_films__slug__shows_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -275,114 +322,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organiser/events": {
+    "/owner/business": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Events */
-        get: operations["list_events_organiser_events_get"];
+        /** Business */
+        get: operations["business_owner_business_get"];
         put?: never;
-        /** Create Event */
-        post: operations["create_event_organiser_events_post"];
+        /**
+         * Register
+         * @description A signed-in account registers a business (pending until staff verify it).
+         */
+        post: operations["register_owner_business_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Business */
+        patch: operations["patch_business_owner_business_patch"];
+        trace?: never;
+    };
+    "/owner/cinemas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cinemas */
+        get: operations["cinemas_owner_cinemas_get"];
+        put?: never;
+        /** Add Cinema */
+        post: operations["add_cinema_owner_cinemas_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/organiser/events/{event_id}": {
+    "/owner/cinemas/{cinema_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Event */
-        get: operations["get_event_organiser_events__event_id__get"];
+        /** Cinema */
+        get: operations["cinema_owner_cinemas__cinema_id__get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Edit Event */
-        patch: operations["edit_event_organiser_events__event_id__patch"];
+        /** Edit Cinema */
+        patch: operations["edit_cinema_owner_cinemas__cinema_id__patch"];
         trace?: never;
     };
-    "/organiser/showtimes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Showtimes */
-        get: operations["list_showtimes_organiser_showtimes_get"];
-        put?: never;
-        /** Create Showtime */
-        post: operations["create_showtime_organiser_showtimes_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organiser/showtimes/{showtime_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Showtime */
-        get: operations["get_showtime_organiser_showtimes__showtime_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Edit Showtime */
-        patch: operations["edit_showtime_organiser_showtimes__showtime_id__patch"];
-        trace?: never;
-    };
-    "/organiser/showtimes/{showtime_id}/bookings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Bookings */
-        get: operations["get_bookings_organiser_showtimes__showtime_id__bookings_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organiser/venues": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Venues */
-        get: operations["list_venues_organiser_venues_get"];
-        put?: never;
-        /** Create Venue */
-        post: operations["create_venue_organiser_venues_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organiser/venues/preview": {
+    "/owner/cinemas/{cinema_id}/screens": {
         parameters: {
             query?: never;
             header?: never;
@@ -392,25 +390,66 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Preview Venue
-         * @description The layout these knobs would generate — nothing is saved (the live preview).
+         * Add Screen
+         * @description Generate the seats from a template (grid, or stalls + balcony).
          */
-        post: operations["preview_venue_organiser_venues_preview_post"];
+        post: operations["add_screen_owner_cinemas__cinema_id__screens_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/organiser/venues/{venue_id}": {
+    "/owner/film-requests": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Venue */
-        get: operations["get_venue_organiser_venues__venue_id__get"];
+        /** Film Requests */
+        get: operations["film_requests_owner_film_requests_get"];
+        put?: never;
+        /**
+         * Request Film
+         * @description Ask Frontrow staff to add a film that isn't in the catalogue yet.
+         */
+        post: operations["request_film_owner_film_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/screens/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Screen
+         * @description The layout these knobs would produce — the live preview while setting up a screen.
+         */
+        post: operations["preview_screen_owner_screens_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/screens/{screen_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Screen */
+        get: operations["screen_owner_screens__screen_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -419,15 +458,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/showtimes/{showtime_id}": {
+    "/owner/shows": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Showtime */
-        get: operations["get_showtime_showtimes__showtime_id__get"];
+        /** Shows */
+        get: operations["shows_owner_shows_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -436,7 +475,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/showtimes/{showtime_id}/holds": {
+    "/owner/shows/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Shows
+         * @description Film + language + format + screen + days + times + a price per tier → every show in the
+         *     range, or none if any of them overlaps another show on the screen.
+         */
+        post: operations["bulk_shows_owner_shows_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/shows/{show_id}/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bookings */
+        get: operations["bookings_owner_shows__show_id__bookings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/screens/{screen_id}/layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Layout */
+        get: operations["get_layout_screens__screen_id__layout_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shows/{show_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Show */
+        get: operations["get_show_shows__show_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shows/{show_id}/holds": {
         parameters: {
             query?: never;
             header?: never;
@@ -449,15 +560,15 @@ export interface paths {
          * Place Holds
          * @description Hold the caller's whole selection for 10 minutes — all of it or none of it.
          */
-        post: operations["place_holds_showtimes__showtime_id__holds_post"];
+        post: operations["place_holds_shows__show_id__holds_post"];
         /** Drop Holds */
-        delete: operations["drop_holds_showtimes__showtime_id__holds_delete"];
+        delete: operations["drop_holds_shows__show_id__holds_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/showtimes/{showtime_id}/seats": {
+    "/shows/{show_id}/seats": {
         parameters: {
             query?: never;
             header?: never;
@@ -465,13 +576,146 @@ export interface paths {
             cookie?: never;
         };
         /** Get Seats */
-        get: operations["get_seats_showtimes__showtime_id__seats_get"];
+        get: operations["get_seats_shows__show_id__seats_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/staff/businesses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Businesses */
+        get: operations["businesses_staff_businesses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/businesses/{business_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Decide Business
+         * @description Approve (their shows go public) or reject with a reason.
+         */
+        patch: operations["decide_business_staff_businesses__business_id__patch"];
+        trace?: never;
+    };
+    "/staff/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Counts */
+        get: operations["counts_staff_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/film-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Film Requests */
+        get: operations["film_requests_staff_film_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/film-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Decide Request
+         * @description Decline with a reason, or link a film that is already in the catalogue.
+         */
+        patch: operations["decide_request_staff_film_requests__request_id__patch"];
+        trace?: never;
+    };
+    "/staff/films": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Films */
+        get: operations["films_staff_films_get"];
+        put?: never;
+        /**
+         * Add Film
+         * @description Add a film to the shared catalogue; with `request_id`, the owner's request is answered.
+         */
+        post: operations["add_film_staff_films_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/films/{film_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Film */
+        get: operations["film_staff_films__film_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit Film
+         * @description Edit details or move the status on (coming soon → now showing → ended).
+         */
+        patch: operations["edit_film_staff_films__film_id__patch"];
         trace?: never;
     };
     "/tickets/{order_id}": {
@@ -486,23 +730,6 @@ export interface paths {
          * @description One QR per seat. Someone else's order → 404.
          */
         get: operations["get_tickets_tickets__order_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/venues/{venue_id}/layout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Layout */
-        get: operations["get_layout_venues__venue_id__layout_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -557,58 +784,16 @@ export interface components {
         ApiErrorResponse: {
             error: components["schemas"]["ApiErrorBody"];
         };
-        /**
-         * ArenaKnobs
-         * @description Wedge sections around a floor block, stage at the top; tier by distance from the stage.
-         */
-        ArenaKnobs: {
-            /**
-             * Floor Radius
-             * @default 360
-             */
-            floor_radius: number;
-            /**
-             * Floor Rows
-             * @default 20
-             */
-            floor_rows: number;
-            /**
-             * Floor Seats
-             * @default 20
-             */
-            floor_seats: number;
-            /**
-             * Rows Per Section
-             * @default 12
-             */
-            rows_per_section: number;
-            /**
-             * Seats Per Row
-             * @default 16
-             */
-            seats_per_row: number;
-            /**
-             * Sections
-             * @default 8
-             */
-            sections: number;
-            /**
-             * Stage Label
-             * @default STAGE
-             */
-            stage_label: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            template: "arena";
-        };
         /** Booking */
         Booking: {
-            /** Customer Email */
-            customer_email: string;
-            /** Customer Name */
-            customer_name: string;
+            /** Amount Paise */
+            amount_paise: number;
+            /** Checked In */
+            checked_in: number;
+            /** Email */
+            email: string;
+            /** Name */
+            name: string;
             /**
              * Order Id
              * Format: uuid
@@ -616,67 +801,237 @@ export interface components {
             order_id: string;
             /** Paid At */
             paid_at: string | null;
+            /** Payment Method */
+            payment_method: string | null;
             /** Seats */
             seats: string[];
-            /** Subtotal Paise */
-            subtotal_paise: number;
-            /** Tickets */
-            tickets: number;
             /** Tier Labels */
             tier_labels: string[];
-            /** Total Paise */
-            total_paise: number;
         };
         /** Bookings */
         Bookings: {
             /** Bookings */
             bookings: components["schemas"]["Booking"][];
-            /** Revenue Paise */
-            revenue_paise: number;
-            showtime: components["schemas"]["OrganiserShowtime"];
-            /** Tickets */
-            tickets: number;
+            show: components["schemas"]["OwnerShow"];
+        };
+        /** BulkResult */
+        BulkResult: {
+            /** Created */
+            created: number;
+            /**
+             * First
+             * Format: date-time
+             */
+            first: string;
+            /**
+             * Last
+             * Format: date-time
+             */
+            last: string;
+            /**
+             * Shows
+             * @description The first few, soonest first.
+             */
+            shows: components["schemas"]["OwnerShow"][];
+        };
+        /** BulkShows */
+        BulkShows: {
+            /**
+             * Days
+             * @description 0 = Monday … 6 = Sunday
+             */
+            days: number[];
+            /**
+             * Film Id
+             * Format: uuid
+             */
+            film_id: string;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "2D" | "3D" | "IMAX";
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /** Language */
+            language: string;
+            /**
+             * Prices
+             * @description `{tier_key: paise}` for every tier of the screen (₹50–₹2,000).
+             */
+            prices: {
+                [key: string]: number;
+            };
+            /**
+             * Screen Id
+             * Format: uuid
+             */
+            screen_id: string;
+            /**
+             * Times
+             * @description IST start times
+             */
+            times: string[];
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+        };
+        /** BusinessDecision */
+        BusinessDecision: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "approve" | "reject";
+            /**
+             * Note
+             * @description Required to reject.
+             */
+            note?: string | null;
+        };
+        /** BusinessDetails */
+        BusinessDetails: {
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+        };
+        /**
+         * BusinessPatch
+         * @description Edit details; a rejected business that edits goes back into the approvals queue.
+         */
+        BusinessPatch: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+        };
+        /** BusinessRef */
+        BusinessRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "verified" | "rejected" | "suspended";
+        };
+        /** CastMember */
+        CastMember: {
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @description "Actor", "Director", …
+             */
+            role: string;
+        };
+        /** CheckIn */
+        CheckIn: {
+            /**
+             * Show Id
+             * Format: uuid
+             */
+            show_id: string;
+            /**
+             * Token
+             * @description What the QR encodes.
+             */
+            token: string;
+        };
+        /** CheckInResult */
+        CheckInResult: {
+            /**
+             * Admitted
+             * @description Tickets scanned in for this show so far.
+             */
+            admitted: number;
+            /** Checked In At */
+            checked_in_at?: string | null;
+            /** Message */
+            message: string;
+            /** Name */
+            name?: string | null;
+            /**
+             * Result
+             * @enum {string}
+             */
+            result: "valid" | "used" | "wrong_show" | "invalid";
+            /** Seat */
+            seat?: string | null;
+            /** Sold */
+            sold: number;
+        };
+        /** CinemaIn */
+        CinemaIn: {
+            /** Address */
+            address: string;
+            /**
+             * Area
+             * @description Neighbourhood, e.g. "Indiranagar".
+             */
+            area: string;
+            /** Facilities */
+            facilities?: ("Dolby Atmos" | "4K laser" | "Recliners" | "Wheelchair access" | "Food court" | "Parking" | "M-ticket")[];
+            /** Name */
+            name: string;
+            /** Photo Url */
+            photo_url?: string | null;
+        };
+        /** CinemaShows */
+        CinemaShows: {
+            /** Address */
+            address: string;
+            /** Area */
+            area: string;
+            /** Facilities */
+            facilities: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Shows */
+            shows: components["schemas"]["ShowSlot"][];
+        };
+        /** CodeRequest */
+        CodeRequest: {
+            /**
+             * Door
+             * @default customer
+             * @enum {string}
+             */
+            door: "customer" | "business" | "staff";
+            /** Email */
+            email: string;
         };
         /** CreateOrder */
         CreateOrder: {
             /** Seat Ids */
             seat_ids: string[];
             /**
-             * Showtime Id
+             * Show Id
              * Format: uuid
              */
-            showtime_id: string;
-        };
-        /** CreateShowtime */
-        CreateShowtime: {
-            /**
-             * Event Id
-             * Format: uuid
-             */
-            event_id: string;
-            /**
-             * Starts At
-             * Format: date-time
-             */
-            starts_at: string;
-            /** Tiers */
-            tiers: components["schemas"]["TierInput"][];
-            /**
-             * Venue Id
-             * Format: uuid
-             */
-            venue_id: string;
-        };
-        /** CreateVenue */
-        CreateVenue: {
-            /** Address */
-            address: string;
-            /** Knobs */
-            knobs: components["schemas"]["GridKnobs"] | components["schemas"]["StallsBalconyKnobs"] | components["schemas"]["ArenaKnobs"];
-            /** Name */
-            name: string;
-            /** Photo Url */
-            photo_url?: string | null;
+            show_id: string;
         };
         /** Customer */
         Customer: {
@@ -685,6 +1040,26 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** DateOption */
+        DateOption: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Show Count */
+            show_count: number;
+        };
+        /** DayCount */
+        DayCount: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Show Count */
+            show_count: number;
+        };
         /** Demo */
         Demo: {
             /**
@@ -692,162 +1067,210 @@ export interface components {
              * @description Which seeded demo account to sign in as.
              * @enum {string}
              */
-            as: "customer" | "organiser";
+            as: "customer" | "owner" | "staff";
         };
-        /** EventCard */
-        EventCard: {
-            /** Duration Min */
-            duration_min: number;
+        /** FilmCard */
+        FilmCard: {
+            /** Banner Url */
+            banner_url: string | null;
+            /**
+             * Cert
+             * @enum {string}
+             */
+            cert: "U" | "UA" | "A";
+            /** Formats */
+            formats: string[];
             /**
              * From Price Paise
-             * @description Cheapest tier across upcoming showtimes.
+             * @description Cheapest ticket across those shows.
              */
             from_price_paise: number | null;
-            /** Genre */
-            genre: string;
+            /** Genres */
+            genres: string[];
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            next_showtime: components["schemas"]["NextShowtime"] | null;
+            /** Languages */
+            languages: string[];
             /** Poster Url */
             poster_url: string;
-            /** Rating */
-            rating: string | null;
+            /**
+             * Release Date
+             * Format: date
+             */
+            release_date: string;
+            /** Runtime Min */
+            runtime_min: number;
+            /**
+             * Show Count
+             * @description Bookable shows in the next 14 days.
+             */
+            show_count: number;
             /** Slug */
             slug: string;
-            /** Title */
-            title: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "movie" | "concert";
-            /**
-             * Upcoming Count
-             * @description Upcoming showtimes matching the list's date filter.
-             */
-            upcoming_count: number;
-        };
-        /** EventDetail */
-        EventDetail: {
-            /** Cast Lineup */
-            cast_lineup: string[];
-            /** Duration Min */
-            duration_min: number;
-            /**
-             * From Price Paise
-             * @description Cheapest tier across upcoming showtimes.
-             */
-            from_price_paise: number | null;
-            /** Gallery Urls */
-            gallery_urls: string[];
-            /** Genre */
-            genre: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            next_showtime: components["schemas"]["NextShowtime"] | null;
-            /** Poster Url */
-            poster_url: string;
-            /** Rating */
-            rating: string | null;
-            /** Showtimes */
-            showtimes: components["schemas"]["ShowtimeSummary"][];
-            /** Slug */
-            slug: string;
-            /** Synopsis */
-            synopsis: string;
-            /** Title */
-            title: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "movie" | "concert";
-            /**
-             * Upcoming Count
-             * @description Upcoming showtimes matching the list's date filter.
-             */
-            upcoming_count: number;
-        };
-        /** EventFields */
-        EventFields: {
-            /** Cast Lineup */
-            cast_lineup?: string[];
-            /** Duration Min */
-            duration_min: number;
-            /** Gallery Urls */
-            gallery_urls?: string[];
-            /** Genre */
-            genre: string;
-            /** Poster Url */
-            poster_url: string;
-            /** Rating */
-            rating?: string | null;
             /**
              * Status
-             * @default live
              * @enum {string}
              */
-            status: "draft" | "live";
+            status: "coming_soon" | "now_showing" | "ended";
+            /** Title */
+            title: string;
+        };
+        /** FilmDetail */
+        FilmDetail: {
+            /** Banner Url */
+            banner_url: string | null;
+            /** Cast Crew */
+            cast_crew: components["schemas"]["CastMember"][];
+            /**
+             * Cert
+             * @enum {string}
+             */
+            cert: "U" | "UA" | "A";
+            /** Formats */
+            formats: string[];
+            /**
+             * From Price Paise
+             * @description Cheapest ticket across those shows.
+             */
+            from_price_paise: number | null;
+            /** Genres */
+            genres: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Languages */
+            languages: string[];
+            /** Poster Url */
+            poster_url: string;
+            /**
+             * Release Date
+             * Format: date
+             */
+            release_date: string;
+            /** Runtime Min */
+            runtime_min: number;
+            /**
+             * Show Count
+             * @description Bookable shows in the next 14 days.
+             */
+            show_count: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "coming_soon" | "now_showing" | "ended";
             /** Synopsis */
             synopsis: string;
             /** Title */
             title: string;
+            /** Trailer Url */
+            trailer_url: string | null;
             /**
-             * Type
+             * Versions
+             * @description Language × format pairs with shows on sale.
+             */
+            versions: components["schemas"]["Version"][];
+        };
+        /** FilmIn */
+        FilmIn: {
+            /** Banner Url */
+            banner_url?: string | null;
+            /** Cast Crew */
+            cast_crew: components["schemas"]["CastMember"][];
+            /**
+             * Cert
              * @enum {string}
              */
-            type: "movie" | "concert";
-        };
-        /** EventList */
-        EventList: {
-            /** Events */
-            events: components["schemas"]["EventCard"][];
+            cert: "U" | "UA" | "A";
+            /** Formats */
+            formats: ("2D" | "3D" | "IMAX")[];
             /** Genres */
-            genres: components["schemas"]["FilterOption"][];
-            /** Showtime Count */
-            showtime_count: number;
-            /** Total */
-            total: number;
-            /** Venues */
-            venues: components["schemas"]["FilterOption"][];
-        };
-        /** EventPatch */
-        EventPatch: {
-            /** Cast Lineup */
-            cast_lineup?: string[] | null;
-            /** Duration Min */
-            duration_min?: number | null;
-            /** Gallery Urls */
-            gallery_urls?: string[] | null;
-            /** Genre */
-            genre?: string | null;
+            genres: string[];
+            /** Languages */
+            languages: string[];
             /** Poster Url */
-            poster_url?: string | null;
-            /** Rating */
-            rating?: string | null;
-            /** Status */
-            status?: ("draft" | "live") | null;
+            poster_url: string;
+            /**
+             * Release Date
+             * Format: date
+             */
+            release_date: string;
+            /**
+             * Request Id
+             * @description Add the film an owner asked for: the request is linked.
+             */
+            request_id?: string | null;
+            /** Runtime Min */
+            runtime_min: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "coming_soon" | "now_showing" | "ended";
             /** Synopsis */
-            synopsis?: string | null;
+            synopsis: string;
             /** Title */
-            title?: string | null;
-            /** Type */
-            type?: ("movie" | "concert") | null;
+            title: string;
+            /** Trailer Url */
+            trailer_url?: string | null;
         };
-        /** FilterOption */
-        FilterOption: {
-            /** Count */
-            count: number;
-            /** Label */
-            label: string;
-            /** Value */
-            value: string;
+        /** FilmList */
+        FilmList: {
+            /** Films */
+            films: components["schemas"]["FilmCard"][];
+            /** Q */
+            q: string | null;
+        };
+        /** FilmRef */
+        FilmRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+        };
+        /** FilmRequestIn */
+        FilmRequestIn: {
+            /**
+             * Note
+             * @description Language, release, …
+             */
+            note?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** FilmShows */
+        FilmShows: {
+            /** Cinemas */
+            cinemas: components["schemas"]["CinemaShows"][];
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Dates
+             * @description The next 7 days, with how many shows each has.
+             */
+            dates: components["schemas"]["DateOption"][];
+            film: components["schemas"]["FilmCard"];
+            /** Format */
+            format: string | null;
+            /** Language */
+            language: string | null;
+            /** Versions */
+            versions: components["schemas"]["Version"][];
         };
         /**
          * GridKnobs
@@ -922,8 +1345,10 @@ export interface components {
         };
         /** Home */
         Home: {
+            /** Coming Soon */
+            coming_soon: components["schemas"]["FilmCard"][];
             /** Now Showing */
-            now_showing: components["schemas"]["EventCard"][];
+            now_showing: components["schemas"]["FilmCard"][];
         };
         /** Layout */
         Layout: {
@@ -936,7 +1361,7 @@ export interface components {
              * Template
              * @enum {string}
              */
-            template: "grid" | "stalls_balcony" | "arena";
+            template: "grid" | "stalls_balcony";
             /**
              * Tiers
              * @description `{key, label}` in price order, front to back — the legend.
@@ -1001,6 +1426,11 @@ export interface components {
         };
         /** Me */
         Me: {
+            /**
+             * Businesses
+             * @description Business access on top of the account.
+             */
+            businesses: components["schemas"]["BusinessRef"][];
             /** Email */
             email: string;
             /**
@@ -1008,13 +1438,15 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Demo
+             * @description A one-click demo account (never emailed; staff demo is view-only).
+             */
+            is_demo: boolean;
+            /** Is Staff */
+            is_staff: boolean;
             /** Name */
             name: string;
-            /**
-             * Role
-             * @enum {string}
-             */
-            role: "customer" | "organiser";
         };
         /** MyTickets */
         MyTickets: {
@@ -1022,26 +1454,6 @@ export interface components {
             past: components["schemas"]["TicketGroup"][];
             /** Upcoming */
             upcoming: components["schemas"]["TicketGroup"][];
-        };
-        /** NextShowtime */
-        NextShowtime: {
-            /**
-             * Fill
-             * @enum {string}
-             */
-            fill: "available" | "filling" | "sold_out";
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Starts At
-             * Format: date-time
-             */
-            starts_at: string;
-            /** Venue Name */
-            venue_name: string;
         };
         /** Order */
         Order: {
@@ -1079,6 +1491,11 @@ export interface components {
              * @description A pending order expires 15 minutes after creation.
              */
             pay_by: string;
+            /**
+             * Payment Method
+             * @description Receipt line once paid.
+             */
+            payment_method: string | null;
             /** Razorpay Order Id */
             razorpay_order_id: string | null;
             /**
@@ -1088,7 +1505,7 @@ export interface components {
             refund_reason: string | null;
             /** Seats */
             seats: components["schemas"]["OrderSeatOut"][];
-            showtime: components["schemas"]["OrderShowtime"];
+            show: components["schemas"]["OrderShow"];
             /**
              * Status
              * @enum {string}
@@ -1099,29 +1516,41 @@ export interface components {
             /** Total Paise */
             total_paise: number;
         };
-        /** OrderEvent */
-        OrderEvent: {
-            /** Duration Min */
-            duration_min: number;
+        /** OrderCinema */
+        OrderCinema: {
+            /** Address */
+            address: string;
+            /** Area */
+            area: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** OrderFilm */
+        OrderFilm: {
+            /**
+             * Cert
+             * @enum {string}
+             */
+            cert: "U" | "UA" | "A";
             /** Poster Url */
             poster_url: string;
-            /** Rating */
-            rating: string | null;
+            /** Runtime Min */
+            runtime_min: number;
             /** Slug */
             slug: string;
             /** Title */
             title: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "movie" | "concert";
         };
         /** OrderSeatOut */
         OrderSeatOut: {
             /**
              * Label
-             * @description "G9", or "Section 3 · C7" in an arena.
+             * @description "G9"; "Balcony · C7" when a screen has a balcony.
              */
             label: string;
             /** Price Paise */
@@ -1133,30 +1562,41 @@ export interface components {
             /** Tier Label */
             tier_label: string;
         };
-        /** OrderShowtime */
-        OrderShowtime: {
+        /** OrderShow */
+        OrderShow: {
+            cinema: components["schemas"]["OrderCinema"];
             /**
              * Ends At
              * Format: date-time
              */
             ends_at: string;
-            event: components["schemas"]["OrderEvent"];
+            film: components["schemas"]["OrderFilm"];
+            /** Format */
+            format: string;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Language */
+            language: string;
+            /** Screen Name */
+            screen_name: string;
             /**
              * Starts At
              * Format: date-time
              */
             starts_at: string;
-            venue: components["schemas"]["OrderVenue"];
         };
-        /** OrderVenue */
-        OrderVenue: {
-            /** Address */
-            address: string;
+        /** OwnerBusiness */
+        OwnerBusiness: {
+            /** Cinema Count */
+            cinema_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
             /**
              * Id
              * Format: uuid
@@ -1164,66 +1604,175 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /** Phone */
+            phone: string;
+            /** Review Note */
+            review_note: string | null;
+            /** Screen Count */
+            screen_count: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "verified" | "rejected" | "suspended";
+            /** Upcoming Shows */
+            upcoming_shows: number;
+            /** Verified At */
+            verified_at: string | null;
         };
-        /** OrganiserEvent */
-        OrganiserEvent: {
-            /** Cast Lineup */
-            cast_lineup?: string[];
+        /** OwnerCinema */
+        OwnerCinema: {
+            /** Address */
+            address: string;
+            /** Area */
+            area: string;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            /** Duration Min */
-            duration_min: number;
-            /** Gallery Urls */
-            gallery_urls?: string[];
-            /** Genre */
-            genre: string;
+            /** Facilities */
+            facilities: string[];
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Poster Url */
-            poster_url: string;
-            /** Rating */
-            rating?: string | null;
-            /** Slug */
-            slug: string;
+            /** Name */
+            name: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Screens */
+            screens: components["schemas"]["OwnerScreen"][];
+            /** Upcoming Shows */
+            upcoming_shows: number;
+        };
+        /** OwnerFilmRequest */
+        OwnerFilmRequest: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            film: components["schemas"]["FilmRef"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Reply */
+            reply: string | null;
             /**
              * Status
-             * @default live
              * @enum {string}
              */
-            status: "draft" | "live";
-            /** Synopsis */
-            synopsis: string;
-            /** Tickets Sold */
-            tickets_sold: number;
+            status: "open" | "added" | "declined";
             /** Title */
             title: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "movie" | "concert";
-            /** Upcoming Showtimes */
-            upcoming_showtimes: number;
         };
-        /** OrganiserShowtime */
-        OrganiserShowtime: {
-            event: components["schemas"]["ShowtimeEventRef"];
+        /** OwnerScreen */
+        OwnerScreen: {
+            /**
+             * Cinema Id
+             * Format: uuid
+             */
+            cinema_id: string;
+            /** Formats */
+            formats: string[];
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Name */
+            name: string;
+            /** Seat Count */
+            seat_count: number;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "grid" | "stalls_balcony";
+            /** Tiers */
+            tiers: components["schemas"]["LayoutTier"][];
+            /** Upcoming Shows */
+            upcoming_shows: number;
+        };
+        /** OwnerScreenDetail */
+        OwnerScreenDetail: {
+            /**
+             * Cinema Id
+             * Format: uuid
+             */
+            cinema_id: string;
+            /** Formats */
+            formats: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Knobs */
+            knobs: {
+                [key: string]: unknown;
+            };
+            layout: components["schemas"]["Layout"];
+            /** Name */
+            name: string;
+            /** Seat Count */
+            seat_count: number;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "grid" | "stalls_balcony";
+            /** Tiers */
+            tiers: components["schemas"]["LayoutTier"][];
+            /** Upcoming Shows */
+            upcoming_shows: number;
+        };
+        /** OwnerShow */
+        OwnerShow: {
+            /** Checked In */
+            checked_in: number;
+            /** Cinema Name */
+            cinema_name: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            film: components["schemas"]["ShowFilmRef"];
+            /** Format */
+            format: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language */
+            language: string;
+            /**
+             * Public
+             * @description Customers can see it (business verified, film showing).
+             */
+            public: boolean;
             /**
              * Revenue Paise
-             * @description Ticket revenue excluding convenience fees.
+             * @description Ticket sales for the cinema (excludes the fee).
              */
             revenue_paise: number;
+            /**
+             * Screen Id
+             * Format: uuid
+             */
+            screen_id: string;
+            /** Screen Name */
+            screen_name: string;
             /** Seat Count */
             seat_count: number;
             /** Sold */
@@ -1238,74 +1787,70 @@ export interface components {
              * @enum {string}
              */
             status: "scheduled" | "cancelled";
-            /** Tiers */
-            tiers: components["schemas"]["TierPrice"][];
-            venue: components["schemas"]["ShowtimeVenueRef"];
         };
-        /** OrganiserVenue */
-        OrganiserVenue: {
-            /** Address */
-            address: string;
+        /** OwnerShows */
+        OwnerShows: {
             /**
-             * Created At
-             * Format: date-time
+             * Date
+             * Format: date
              */
-            created_at: string;
+            date: string;
             /**
-             * Id
-             * Format: uuid
+             * Dates
+             * @description The next 14 days with how many shows each has.
              */
-            id: string;
+            dates: components["schemas"]["DayCount"][];
+            /** Shows */
+            shows: components["schemas"]["OwnerShow"][];
+        };
+        /** Person */
+        Person: {
+            /** Email */
+            email: string;
             /** Name */
             name: string;
-            /** Photo Url */
-            photo_url: string | null;
-            /** Seat Count */
-            seat_count: number;
+        };
+        /**
+         * RegisterBusiness
+         * @description A signed-in customer registering a business on top of their account.
+         */
+        RegisterBusiness: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+        };
+        /** RequestDecision */
+        RequestDecision: {
             /**
-             * Template
+             * Action
              * @enum {string}
              */
-            template: "grid" | "stalls_balcony" | "arena";
-            /** Tiers */
-            tiers: components["schemas"]["LayoutTier"][];
-            /** Upcoming Showtimes */
-            upcoming_showtimes: number;
+            action: "decline" | "link";
+            /**
+             * Film Id
+             * @description An existing film, on a link.
+             */
+            film_id?: string | null;
+            /**
+             * Reply
+             * @description Why, on a decline.
+             */
+            reply?: string | null;
         };
-        /** OrganiserVenueDetail */
-        OrganiserVenueDetail: {
-            /** Address */
-            address: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
+        /** ScreenIn */
+        ScreenIn: {
+            /** Formats */
+            formats: ("2D" | "3D" | "IMAX")[];
             /** Knobs */
-            knobs: {
-                [key: string]: unknown;
-            };
-            layout: components["schemas"]["Layout"];
+            knobs: components["schemas"]["GridKnobs"] | components["schemas"]["StallsBalconyKnobs"];
             /** Name */
             name: string;
-            /** Photo Url */
-            photo_url: string | null;
-            /** Seat Count */
-            seat_count: number;
-            /**
-             * Template
-             * @enum {string}
-             */
-            template: "grid" | "stalls_balcony" | "arena";
-            /** Tiers */
-            tiers: components["schemas"]["LayoutTier"][];
-            /** Upcoming Showtimes */
-            upcoming_showtimes: number;
+        };
+        /** ScreenPreview */
+        ScreenPreview: {
+            /** Knobs */
+            knobs: components["schemas"]["GridKnobs"] | components["schemas"]["StallsBalconyKnobs"];
         };
         /** SeatState */
         SeatState: {
@@ -1337,12 +1882,31 @@ export interface components {
              */
             v: number;
         };
-        /** ShowtimeDetail */
-        ShowtimeDetail: {
-            event: components["schemas"]["ShowtimeEvent"];
+        /** ShowCinema */
+        ShowCinema: {
+            /** Address */
+            address: string;
+            /** Area */
+            area: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** ShowDetail */
+        ShowDetail: {
+            cinema: components["schemas"]["ShowCinema"];
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
             /**
              * Fee Paise
-             * @description Convenience fee per ticket (03 R5: flat ₹30).
+             * @description Convenience fee per ticket (R6: flat ₹30).
              */
             fee_paise: number;
             /**
@@ -1350,16 +1914,22 @@ export interface components {
              * @enum {string}
              */
             fill: "available" | "filling" | "sold_out";
+            film: components["schemas"]["ShowFilm"];
+            /** Format */
+            format: string;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Language */
+            language: string;
             /**
              * Layout Url
-             * @description `/venues/{id}/layout` — immutable, cache it forever.
+             * @description `/screens/{id}/layout` — immutable, cache it forever.
              */
             layout_url: string;
+            screen: components["schemas"]["ShowScreen"];
             /** Seats Left */
             seats_left: number;
             /**
@@ -1374,17 +1944,19 @@ export interface components {
             status: "scheduled" | "cancelled";
             /**
              * Tiers
-             * @description Every tier of the venue with this show's price.
+             * @description The screen's tiers with this show's prices.
              */
             tiers: components["schemas"]["TierPrice"][];
-            venue: components["schemas"]["ShowtimeVenue"];
         };
-        /** ShowtimeEvent */
-        ShowtimeEvent: {
-            /** Duration Min */
-            duration_min: number;
-            /** Genre */
-            genre: string;
+        /** ShowFilm */
+        ShowFilm: {
+            /**
+             * Cert
+             * @enum {string}
+             */
+            cert: "U" | "UA" | "A";
+            /** Genres */
+            genres: string[];
             /**
              * Id
              * Format: uuid
@@ -1392,63 +1964,64 @@ export interface components {
             id: string;
             /** Poster Url */
             poster_url: string;
-            /** Rating */
-            rating: string | null;
+            /** Runtime Min */
+            runtime_min: number;
             /** Slug */
             slug: string;
             /** Title */
             title: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "movie" | "concert";
         };
-        /** ShowtimeEventRef */
-        ShowtimeEventRef: {
+        /** ShowFilmRef */
+        ShowFilmRef: {
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Poster Url */
+            poster_url: string;
+            /** Runtime Min */
+            runtime_min: number;
             /** Slug */
             slug: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "draft" | "live";
             /** Title */
             title: string;
+        };
+        /** ShowScreen */
+        ShowScreen: {
             /**
-             * Type
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Seat Count */
+            seat_count: number;
+            /**
+             * Template
              * @enum {string}
              */
-            type: "movie" | "concert";
+            template: "grid" | "stalls_balcony";
         };
-        /** ShowtimePatch */
-        ShowtimePatch: {
-            /** Starts At */
-            starts_at?: string | null;
-            /** Status */
-            status?: ("scheduled" | "cancelled") | null;
-        };
-        /** ShowtimeSummary */
-        ShowtimeSummary: {
+        /** ShowSlot */
+        ShowSlot: {
             /**
              * Fill
              * @enum {string}
              */
             fill: "available" | "filling" | "sold_out";
+            /** Format */
+            format: string;
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Price Max Paise */
-            price_max_paise: number;
-            /** Price Min Paise */
-            price_min_paise: number;
+            /** Language */
+            language: string;
+            /** Screen Name */
+            screen_name: string;
             /** Seats Left */
             seats_left: number;
             /**
@@ -1458,12 +2031,57 @@ export interface components {
             starts_at: string;
             /** Tiers */
             tiers: components["schemas"]["TierPrice"][];
-            venue: components["schemas"]["VenueRef"];
         };
-        /** ShowtimeVenue */
-        ShowtimeVenue: {
+        /** StaffBusiness */
+        StaffBusiness: {
+            /** Cinemas */
+            cinemas: components["schemas"]["StaffCinema"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Owners */
+            owners: components["schemas"]["Person"][];
+            /** Phone */
+            phone: string;
+            /** Review Note */
+            review_note: string | null;
+            /** Scheduled Shows */
+            scheduled_shows: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "verified" | "rejected" | "suspended";
+            /** Verified At */
+            verified_at: string | null;
+        };
+        /** StaffBusinessRef */
+        StaffBusinessRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** StaffCinema */
+        StaffCinema: {
             /** Address */
             address: string;
+            /** Area */
+            area: string;
             /**
              * Id
              * Format: uuid
@@ -1471,52 +2089,110 @@ export interface components {
             id: string;
             /** Name */
             name: string;
-            /** Photo Url */
-            photo_url: string | null;
-            /** Seat Count */
-            seat_count: number;
+            /** Screens */
+            screens: number;
+            /** Seats */
+            seats: number;
+        };
+        /** StaffCounts */
+        StaffCounts: {
+            /** Films */
+            films: number;
+            /** Open Requests */
+            open_requests: number;
+            /** Pending Businesses */
+            pending_businesses: number;
+        };
+        /** StaffFilm */
+        StaffFilm: {
+            /** Banner Url */
+            banner_url: string | null;
+            /** Cast Crew */
+            cast_crew: components["schemas"]["CastMember"][];
             /**
-             * Template
+             * Cert
              * @enum {string}
              */
-            template: "grid" | "stalls_balcony" | "arena";
-        };
-        /** ShowtimeVenueRef */
-        ShowtimeVenueRef: {
+            cert: "U" | "UA" | "A";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Formats */
+            formats: string[];
+            /**
+             * From Price Paise
+             * @description Cheapest ticket across those shows.
+             */
+            from_price_paise: number | null;
+            /** Genres */
+            genres: string[];
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Name */
-            name: string;
+            /** Languages */
+            languages: string[];
+            /** Poster Url */
+            poster_url: string;
             /**
-             * Template
+             * Release Date
+             * Format: date
+             */
+            release_date: string;
+            /** Runtime Min */
+            runtime_min: number;
+            /**
+             * Scheduled Shows
+             * @description Upcoming shows across every cinema.
+             */
+            scheduled_shows: number;
+            /**
+             * Show Count
+             * @description Bookable shows in the next 14 days.
+             */
+            show_count: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
              * @enum {string}
              */
-            template: "grid" | "stalls_balcony" | "arena";
+            status: "coming_soon" | "now_showing" | "ended";
+            /** Synopsis */
+            synopsis: string;
+            /** Title */
+            title: string;
+            /** Trailer Url */
+            trailer_url: string | null;
         };
-        /** SignIn */
-        SignIn: {
-            /** Email */
-            email: string;
-            /** Password */
-            password: string;
-        };
-        /** SignUp */
-        SignUp: {
-            /** Email */
-            email: string;
-            /** Name */
-            name: string;
-            /** Password */
-            password: string;
+        /** StaffFilmRequest */
+        StaffFilmRequest: {
+            business: components["schemas"]["StaffBusinessRef"];
             /**
-             * Role
-             * @default customer
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            film: components["schemas"]["FilmRef"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Reply */
+            reply: string | null;
+            /**
+             * Status
              * @enum {string}
              */
-            role: "customer" | "organiser";
+            status: "open" | "added" | "declined";
+            /** Title */
+            title: string;
         };
         /**
          * StallsBalconyKnobs
@@ -1545,7 +2221,7 @@ export interface components {
             front_rows: number;
             /**
              * Stage Label
-             * @default STAGE
+             * @default SCREEN
              */
             stage_label: string;
             /**
@@ -1573,6 +2249,11 @@ export interface components {
         /** TicketGroup */
         TicketGroup: {
             /**
+             * Checked In
+             * @description How many of these tickets were scanned at the door.
+             */
+            checked_in: number;
+            /**
              * Order Id
              * Format: uuid
              */
@@ -1581,7 +2262,7 @@ export interface components {
             paid_at: string | null;
             /** Seats */
             seats: string[];
-            showtime: components["schemas"]["OrderShowtime"];
+            show: components["schemas"]["OrderShow"];
             /** Tier Labels */
             tier_labels: string[];
             /** Total Paise */
@@ -1620,18 +2301,6 @@ export interface components {
             /** Rows */
             rows: number;
         };
-        /** TierInput */
-        TierInput: {
-            /** Label */
-            label?: string | null;
-            /**
-             * Price Paise
-             * @description ₹10 – ₹1,00,000
-             */
-            price_paise: number;
-            /** Tier Key */
-            tier_key: string;
-        };
         /** TierPrice */
         TierPrice: {
             /** Label */
@@ -1655,26 +2324,28 @@ export interface components {
              */
             token: string;
         };
-        /** VenuePreview */
-        VenuePreview: {
-            /** Knobs */
-            knobs: components["schemas"]["GridKnobs"] | components["schemas"]["StallsBalconyKnobs"] | components["schemas"]["ArenaKnobs"];
+        /** TokenRequest */
+        TokenRequest: {
+            /** Code */
+            code: string;
+            /** Email */
+            email: string;
         };
-        /** VenueRef */
-        VenueRef: {
-            /** Address */
-            address: string;
+        /** Verify */
+        Verify: {
+            business?: components["schemas"]["BusinessDetails"] | null;
+            /** Code */
+            code: string;
             /**
-             * Id
-             * Format: uuid
+             * Door
+             * @default customer
+             * @enum {string}
              */
-            id: string;
+            door: "customer" | "business" | "staff";
+            /** Email */
+            email: string;
             /** Name */
-            name: string;
-            /** Photo Url */
-            photo_url: string | null;
-            /** Seat Count */
-            seat_count: number;
+            name?: string | null;
         };
         /** VerifyPayment */
         VerifyPayment: {
@@ -1682,6 +2353,15 @@ export interface components {
             razorpay_payment_id: string;
             /** Razorpay Signature */
             razorpay_signature: string;
+        };
+        /** Version */
+        Version: {
+            /** Format */
+            format: string;
+            /** Language */
+            language: string;
+            /** Show Count */
+            show_count: number;
         };
     };
     responses: never;
@@ -1692,6 +2372,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    send_code_auth_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     demo_auth_demo_post: {
         parameters: {
             query?: never;
@@ -1754,39 +2465,6 @@ export interface operations {
             };
         };
     };
-    sign_in_auth_sign_in_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SignIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Me"];
-                };
-            };
-            /** @description Error envelope (06 §C) */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
     sign_out_auth_sign_out_post: {
         parameters: {
             query?: never;
@@ -1814,39 +2492,6 @@ export interface operations {
             };
         };
     };
-    sign_up_auth_sign_up_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SignUp"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Me"];
-                };
-            };
-            /** @description Error envelope (06 §C) */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
     create_token_auth_token_post: {
         parameters: {
             query?: never;
@@ -1856,7 +2501,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SignIn"];
+                "application/json": components["schemas"]["TokenRequest"];
             };
         };
         responses: {
@@ -1907,21 +2552,18 @@ export interface operations {
             };
         };
     };
-    list_events_events_get: {
+    verify_auth_verify_post: {
         parameters: {
-            query?: {
-                /** @description today · tomorrow · weekend · YYYY-MM-DD (IST days) */
-                date?: string | null;
-                type?: ("movie" | "concert") | null;
-                genre?: string | null;
-                venue?: string | null;
-                sort?: "soonest" | "price" | "title";
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Verify"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -1929,7 +2571,47 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EventList"];
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description `code_invalid` — wrong or expired; `details.tries_left` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    check_in_checkin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckInResult"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -1943,7 +2625,39 @@ export interface operations {
             };
         };
     };
-    get_event_events__slug__get: {
+    films_films_get: {
+        parameters: {
+            query?: {
+                /** @description Search by title or genre */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilmList"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    film_films__slug__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1960,7 +2674,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EventDetail"];
+                    "application/json": components["schemas"]["FilmDetail"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    film_shows_films__slug__shows_get: {
+        parameters: {
+            query?: {
+                /** @description IST day; default the first with shows */
+                date?: string | null;
+                language?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilmShows"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2191,7 +2941,7 @@ export interface operations {
             };
         };
     };
-    list_events_organiser_events_get: {
+    business_owner_business_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2206,7 +2956,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserEvent"][];
+                    "application/json": components["schemas"]["OwnerBusiness"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2220,7 +2970,7 @@ export interface operations {
             };
         };
     };
-    create_event_organiser_events_post: {
+    register_owner_business_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2229,7 +2979,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EventFields"];
+                "application/json": components["schemas"]["RegisterBusiness"];
             };
         };
         responses: {
@@ -2239,7 +2989,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserEvent"];
+                    "application/json": components["schemas"]["OwnerBusiness"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2253,49 +3003,16 @@ export interface operations {
             };
         };
     };
-    get_event_organiser_events__event_id__get: {
+    patch_business_owner_business_patch: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                event_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganiserEvent"];
-                };
-            };
-            /** @description Error envelope (06 §C) */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    edit_event_organiser_events__event_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                event_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EventPatch"];
+                "application/json": components["schemas"]["BusinessPatch"];
             };
         };
         responses: {
@@ -2305,7 +3022,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserEvent"];
+                    "application/json": components["schemas"]["OwnerBusiness"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2319,11 +3036,9 @@ export interface operations {
             };
         };
     };
-    list_showtimes_organiser_showtimes_get: {
+    cinemas_owner_cinemas_get: {
         parameters: {
-            query?: {
-                event_id?: string | null;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -2336,7 +3051,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserShowtime"][];
+                    "application/json": components["schemas"]["OwnerCinema"][];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2350,7 +3065,7 @@ export interface operations {
             };
         };
     };
-    create_showtime_organiser_showtimes_post: {
+    add_cinema_owner_cinemas_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2359,7 +3074,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateShowtime"];
+                "application/json": components["schemas"]["CinemaIn"];
             };
         };
         responses: {
@@ -2369,7 +3084,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserShowtime"];
+                    "application/json": components["schemas"]["OwnerCinema"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2383,12 +3098,12 @@ export interface operations {
             };
         };
     };
-    get_showtime_organiser_showtimes__showtime_id__get: {
+    cinema_owner_cinemas__cinema_id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                showtime_id: string;
+                cinema_id: string;
             };
             cookie?: never;
         };
@@ -2400,7 +3115,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserShowtime"];
+                    "application/json": components["schemas"]["OwnerCinema"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2414,18 +3129,18 @@ export interface operations {
             };
         };
     };
-    edit_showtime_organiser_showtimes__showtime_id__patch: {
+    edit_cinema_owner_cinemas__cinema_id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                showtime_id: string;
+                cinema_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ShowtimePatch"];
+                "application/json": components["schemas"]["CinemaIn"];
             };
         };
         responses: {
@@ -2435,15 +3150,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserShowtime"];
+                    "application/json": components["schemas"]["OwnerCinema"];
                 };
-            };
-            /** @description `has_sales` — tickets are sold, so no cancel or move */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Error envelope (06 §C) */
             default: {
@@ -2456,79 +3164,18 @@ export interface operations {
             };
         };
     };
-    get_bookings_organiser_showtimes__showtime_id__bookings_get: {
+    add_screen_owner_cinemas__cinema_id__screens_post: {
         parameters: {
-            query?: {
-                format?: "json" | "csv";
-            };
+            query?: never;
             header?: never;
             path: {
-                showtime_id: string;
+                cinema_id: string;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description JSON, or CSV with ?format=csv */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Bookings"];
-                    "text/csv": unknown;
-                };
-            };
-            /** @description Error envelope (06 §C) */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    list_venues_organiser_venues_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganiserVenue"][];
-                };
-            };
-            /** @description Error envelope (06 §C) */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    create_venue_organiser_venues_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateVenue"];
+                "application/json": components["schemas"]["ScreenIn"];
             };
         };
         responses: {
@@ -2538,7 +3185,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserVenue"];
+                    "application/json": components["schemas"]["OwnerScreen"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2552,7 +3199,36 @@ export interface operations {
             };
         };
     };
-    preview_venue_organiser_venues_preview_post: {
+    film_requests_owner_film_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerFilmRequest"][];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    request_film_owner_film_requests_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2561,7 +3237,40 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VenuePreview"];
+                "application/json": components["schemas"]["FilmRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerFilmRequest"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_screen_owner_screens_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreenPreview"];
             };
         };
         responses: {
@@ -2585,12 +3294,12 @@ export interface operations {
             };
         };
     };
-    get_venue_organiser_venues__venue_id__get: {
+    screen_owner_screens__screen_id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                venue_id: string;
+                screen_id: string;
             };
             cookie?: never;
         };
@@ -2602,7 +3311,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganiserVenueDetail"];
+                    "application/json": components["schemas"]["OwnerScreenDetail"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2616,13 +3325,14 @@ export interface operations {
             };
         };
     };
-    get_showtime_showtimes__showtime_id__get: {
+    shows_owner_shows_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                showtime_id: string;
+            query?: {
+                /** @description IST day; default today */
+                date?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -2633,7 +3343,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ShowtimeDetail"];
+                    "application/json": components["schemas"]["OwnerShows"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2647,12 +3357,148 @@ export interface operations {
             };
         };
     };
-    place_holds_showtimes__showtime_id__holds_post: {
+    bulk_shows_owner_shows_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkShows"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkResult"];
+                };
+            };
+            /** @description `overlap` — `details.show` names the clashing show */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    bookings_owner_shows__show_id__bookings_get: {
+        parameters: {
+            query?: {
+                format?: string;
+            };
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Bookings"];
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_layout_screens__screen_id__layout_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                showtime_id: string;
+                screen_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Layout"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_show_shows__show_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShowDetail"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    place_holds_shows__show_id__holds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
             };
             cookie?: never;
         };
@@ -2689,12 +3535,12 @@ export interface operations {
             };
         };
     };
-    drop_holds_showtimes__showtime_id__holds_delete: {
+    drop_holds_shows__show_id__holds_delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                showtime_id: string;
+                show_id: string;
             };
             cookie?: never;
         };
@@ -2722,12 +3568,12 @@ export interface operations {
             };
         };
     };
-    get_seats_showtimes__showtime_id__seats_get: {
+    get_seats_shows__show_id__seats_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                showtime_id: string;
+                show_id: string;
             };
             cookie?: never;
         };
@@ -2740,6 +3586,295 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeatState"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    businesses_staff_businesses_get: {
+        parameters: {
+            query?: {
+                status?: ("pending" | "verified" | "rejected" | "suspended") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffBusiness"][];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    decide_business_staff_businesses__business_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BusinessDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffBusiness"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    counts_staff_counts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffCounts"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    film_requests_staff_film_requests_get: {
+        parameters: {
+            query?: {
+                status?: ("open" | "added" | "declined") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffFilmRequest"][];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    decide_request_staff_film_requests__request_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffFilmRequest"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    films_staff_films_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffFilm"][];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    add_film_staff_films_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FilmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffFilm"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    film_staff_films__film_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                film_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffFilm"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    edit_film_staff_films__film_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                film_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FilmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffFilm"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -2771,37 +3906,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TicketBundle"];
-                };
-            };
-            /** @description Error envelope (06 §C) */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    get_layout_venues__venue_id__layout_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                venue_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Layout"];
                 };
             };
             /** @description Error envelope (06 §C) */

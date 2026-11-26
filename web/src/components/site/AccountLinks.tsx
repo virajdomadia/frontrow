@@ -8,10 +8,11 @@ import type { Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Who's signed in, read in the browser so the catalog pages around it stay statically cached.
- * Signed out: "Sign in". Customer: "My tickets". Organiser: "Console". Both: "Sign out".
+ * Who's signed in, read in the browser so the catalogue pages around it stay statically cached.
+ * Signed out: "Sign in". Signed in: the account's doors — Cinema console (business access),
+ * Staff (staff flag) — and "Sign out". One email = one person, so a customer link is always there.
  */
-export function AccountLinks({ className, linkClass }: { className?: string; linkClass?: string }) {
+export function AccountLinks({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const path = usePathname();
   const [me, setMe] = useState<Me | null | undefined>(undefined);
@@ -33,28 +34,37 @@ export function AccountLinks({ className, linkClass }: { className?: string; lin
     router.refresh();
   }
 
-  const link = cn("text-muted-foreground no-underline hover:text-screen", linkClass);
-  if (me === undefined) return <span className={cn("inline-block min-w-[64px]", className)} aria-hidden="true" />;
+  const link = "text-oxblood-ink/85 no-underline hover:text-white";
+  if (me === undefined) return <span className="inline-block min-w-[64px]" aria-hidden="true" />;
   if (me === null)
     return (
-      <span className={className}>
-        <Link href={`/sign-in?next=${encodeURIComponent(path)}`} className={link}>
-          Sign in
-        </Link>
-      </span>
+      <Link
+        href={`/sign-in?next=${encodeURIComponent(path)}`}
+        className="rounded-btn bg-oxblood-ink px-3 py-1.5 font-cond text-base font-bold tracking-[.05em] text-oxblood uppercase no-underline hover:bg-white"
+      >
+        Sign in
+      </Link>
     );
+  const first = me.name.split(/[\s(]/)[0] || "You";
   return (
-    <span className={cn("inline-flex items-center gap-5", className)}>
-      {me.role === "organiser" ? (
-        <Link href="/organiser" className={link}>
-          Console
-        </Link>
-      ) : (
-        <Link href="/my-tickets" className={link}>
-          My tickets
+    <span className="inline-flex items-center gap-4">
+      {me.businesses.length > 0 && (
+        <Link href="/owner" className={link}>
+          {compact ? "Console" : "Cinema console"}
         </Link>
       )}
-      <button type="button" onClick={signOut} className={cn(link, "cursor-pointer border-0 bg-transparent p-0 font-[inherit]")}>
+      {me.is_staff && (
+        <Link href="/staff/businesses?status=pending" className={link}>
+          Staff
+        </Link>
+      )}
+      <span className="flex items-center gap-2">
+        <span aria-hidden="true" className="grid size-7 place-items-center rounded-full bg-oxblood-ink font-cond text-sm font-bold text-oxblood uppercase">
+          {first[0]}
+        </span>
+        <span className={cn("max-w-[10ch] truncate", compact && "sr-only")}>{first}</span>
+      </span>
+      <button type="button" onClick={signOut} className={cn(link, "cursor-pointer border-0 bg-transparent p-0 font-[inherit] text-[inherit]")}>
         Sign out
       </button>
     </span>

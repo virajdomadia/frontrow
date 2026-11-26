@@ -231,6 +231,10 @@ async def test_bookings_and_csv(db_engine: AsyncEngine, db: AsyncSession, db_app
         assert csv.headers["content-type"].startswith("text/csv")
         assert "zoya@example.com" in csv.text and csv.text.startswith("booking_id,name,email")
 
+    from app.services.owner import csv_safe
+
+    assert csv_safe("=HYPERLINK(1)") == "'=HYPERLINK(1)" and csv_safe("Zoya") == "Zoya"
+
 
 async def test_checkin(db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI) -> None:
     """Valid once; second scan "already checked in"; wrong show; not a ticket; and two ushers

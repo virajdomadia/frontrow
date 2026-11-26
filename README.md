@@ -2,7 +2,7 @@
 
 **Pick your seat, live.** A movie ticketing marketplace for Bengaluru with a live seat map: a seat is held for 10 minutes the moment you tap it and greys out for everyone else. Cinemas run their shows on it; Frontrow staff run the marketplace.
 
-> Status: **re-planned 2026-11-15/16 — movies only, three roles.** Built so far: brand, API + database, shows pages, seat map (PRs #2–#13). Next: row B1 (films, cinemas, screens; the new paper + oxblood look; a catalogue that never empties). One of four portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). **Live:** https://frontrow-viraj.vercel.app — moving to `frontrow.virajdomadia.com`.
+> Status: **v1 Box office built (2026-11-26) — movies only, three roles.** Customers find a film, pick a show and seats on a live map with 10-minute holds, sign in with an emailed code, pay (Razorpay test mode or a labelled test payment) and get one QR per seat. Theatre owners register, set up cinemas and screens, schedule a month of shows in one go, see bookings and scan tickets at the door. Frontrow staff keep the film catalogue, answer film requests and approve new cinemas. One of four portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). **Live:** https://frontrow-viraj.vercel.app — moving to `frontrow.virajdomadia.com`.
 
 ## What it proves
 Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard on confirm · idempotent Razorpay webhooks incl. paid-after-expiry refunds · counter and online sales on one live map · a three-sided marketplace (customers, theatre owners, staff) with per-business access · live updates on serverless inside free tiers · a showcase-grade SVG seat map
@@ -25,23 +25,23 @@ sequenceDiagram
   participant API as FastAPI
   participant R as Redis
   participant PG as Postgres
-  A->>API: POST /showtimes/7/holds {F6, F7}
+  A->>API: POST /shows/7/holds {F6, F7}
   API->>PG: any of these sold? (tickets)
   API->>R: Lua: every hold:{7}:seat free or mine? → SET PX 600 000 all, else none
   R-->>API: granted, expires_at
-  B->>API: POST /showtimes/7/holds {F7}
+  B->>API: POST /shows/7/holds {F7}
   API->>R: same Lua — F7 belongs to A
   API-->>B: 409 seat_taken {taken: [F7]}
   Note over B: toast "F7 was just taken", seat greys
-  B->>API: GET /showtimes/7/seats (every 5 s)
+  B->>API: GET /shows/7/seats (every 5 s)
   API->>R: HGETALL holds:{7} + GET st:{7}:v
   A->>API: POST /orders → Razorpay → verify / webhook
-  API->>PG: one tx: INSERT tickets (UNIQUE showtime_id, seat_id) · order paid
+  API->>PG: one tx: INSERT tickets (UNIQUE show_id, seat_id) · order paid
   API->>R: DEL holds · INCR version
 ```
 
-- **Holds live only in Redis** (`api/app/services/holds.py`). One Lua script checks every requested `hold:{showtime}:{seat}` key and sets them all or none, so there is no window between check and set. One holder's seats share one deadline: the clock starts at the first tap. A `holds:{showtime}` hash mirrors them for a one-round-trip snapshot, and `st:{showtime}:v` counts every change (v2's stream diffs on it). Holds are keyed on an anonymous `fr_sid` cookie, so a visitor can hold before signing in and keeps the seats after.
-- **Sales live only in Postgres.** `tickets` has `UNIQUE (showtime_id, seat_id)`; confirming an order inserts its tickets in one transaction under a row lock on the order. Redis is the fast path, Postgres is the guard: even if a hold lapses mid-payment, a seat cannot be sold twice.
+- **Holds live only in Redis** (`api/app/services/holds.py`). One Lua script checks every requested `hold:{show}:{seat}` key and sets them all or none, so there is no window between check and set. One holder's seats share one deadline: the clock starts at the first tap. A `holds:{show}` hash mirrors them for a one-round-trip snapshot, and `st:{show}:v` counts every change (v2's stream diffs on it). Holds are keyed on an anonymous `fr_sid` cookie, so a visitor can hold before signing in and keeps the seats after.
+- **Sales live only in Postgres.** `tickets` has `UNIQUE (show_id, seat_id)`; confirming an order inserts its tickets in one transaction under a row lock on the order. Redis is the fast path, Postgres is the guard: even if a hold lapses mid-payment, a seat cannot be sold twice.
 - **Payments are idempotent.** The Checkout `verify` call, the Razorpay webhook (HMAC-checked, deduplicated by event id) and the demo payment all call the same `confirm()`; whichever lands first issues tickets, the rest are no-ops.
 - **Paid after the hold expired:** seats still free → sold anyway; someone else bought one meanwhile → the insert hits the unique constraint, the payment is refunded through Razorpay and the order shows "refunded — seat sold".
 - Proven by tests that run in CI: 20 concurrent holders → exactly one wins; all-or-none; expiry; two orders paid for one seat → one ticket + one refund; webhook signature + replay; both paid-after-expiry branches; server-side totals.
@@ -57,8 +57,8 @@ sequenceDiagram
 
 ## In this repo
 ```
-web/        Next.js app — landing page, shows pages, seat map, typed api client (src/lib/api.ts), seed photos (public/img)
-api/        FastAPI backend — models + Alembic, layout generators, holds, seed (python -m app.seed)
+web/        Next.js app — customer site, owner console (/owner), staff console (/staff), seat map, typed api client, CC photos (public/img)
+api/        FastAPI backend — models + Alembic, screen templates, hold engine, orders/payments, email codes, seed (python -m app.seed)
 mobile/     Expo app — arrives in v4
 docs/       lifecycle steps 3–7 (re-planned 2026-11-15/16)
 mockups/    direction-variants.html (B chosen) · screens.html + landing.html (before the re-plan) · img/ CC photos
@@ -78,13 +78,15 @@ cd web && pnpm install && cp .env.example .env.local && pnpm dev
 
 pnpm gen:api   # in web/: regenerate api/openapi.json + src/lib/api-types.ts after changing the contract
 ```
-Demo logins (seeded): `customer@frontrow.demo` / `organiser@frontrow.demo`, password `frontrow-demo` — or the one-click demo buttons on the landing page.
+Sign-in is by emailed 6-digit code only — three doors: `/sign-in` (customers), `/business` (theatre owners), `/staff` (hidden; seeded staff only, `STAFF_EMAILS`). Locally, with no `SMTP_*` set, the code is printed in the api log. The home page has one-click demo buttons for all three roles: the demo customer (always has an upcoming and a past booking), the demo theatre owner (Orbit Cinemas) and demo staff (view only).
+
+The catalogue never empties: seeded cinemas have open-ended weekly schedules whose shows are created 14 days ahead the first time someone reads after the horizon moves (no cron, no reseed). `python -m app.seed` is idempotent and never deletes shows.
 
 Payments: with `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET` set on the api, checkout opens Razorpay in test mode (card 4111 1111 1111 1111). Without them the api runs a built-in demo gateway: checkout shows a clearly-labelled test payment that confirms through the same code path as the webhook.
 
-Tests: `cd api && TEST_DATABASE_URL=… TEST_REDIS_URL=redis://localhost:6379/15 uv run pytest` · `cd web && pnpm test`.
+Tests: `cd api && TEST_DATABASE_URL=… TEST_REDIS_URL=redis://localhost:6379/15 uv run pytest` (65) · `cd web && pnpm test` (17).
 
-Demo logins: one-click buttons on the landing page (customer, theatre owner, staff) once B2 ships; until then the S2 seed users exist. Ports 3000/8000 are used by another project on this machine, so the examples use 8002.
+Ports 3000/8000 are used by another project on this machine, so the examples use 8002.
 
 ### Deploy
 GitHub Actions only: `.github/workflows/vercel.yml` builds both apps on GitHub's runner after CI passes on `main` and uploads the output to Vercel. Vercel's Git deployments are off (`git.deploymentEnabled: false` in `api/vercel.json` and `web/vercel.json`), so pushing never starts a Vercel build.

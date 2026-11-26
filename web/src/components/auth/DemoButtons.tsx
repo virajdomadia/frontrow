@@ -7,41 +7,44 @@ import { messageOf, safeNext, send } from "@/lib/client";
 import type { Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Role = "customer" | "organiser";
+export type DemoRole = "customer" | "owner" | "staff";
 
-const COPY: Record<Role, { label: string; sub: string }> = {
-  customer: { label: "Demo customer", sub: "Book seats, see tickets" },
-  organiser: { label: "Demo organiser", sub: "Venues, shows, bookings" },
+const COPY: Record<DemoRole, { label: string; sub: string; home: string }> = {
+  customer: { label: "Demo customer", sub: "Book seats · see your tickets", home: "/" },
+  owner: { label: "Demo theatre owner", sub: "Orbit Cinemas · shows, bookings, door", home: "/owner" },
+  staff: { label: "Demo Frontrow staff", sub: "Catalogue · approvals (view only)", home: "/staff/businesses?status=pending" },
 };
 
 /**
- * One-click sign-in as a seeded demo account (F4: "demo customer signs in from landing in one
- * click"). On the landing page, the auth pages, and inline at checkout (customer only).
+ * One click, no email (R1): the seeded demo customer, theatre owner (Orbit Cinemas) or staff
+ * member. On the home page, the three sign-in doors, and inline at Proceed (customer only).
  */
 export function DemoButtons({
   next,
   onDone,
   only,
-  tone = "plum",
+  roles = ["customer", "owner", "staff"],
+  tone = "paper",
   className,
 }: {
   next?: string;
   onDone?: (me: Me) => void;
-  only?: Role;
-  tone?: "plum" | "paper";
+  only?: DemoRole;
+  roles?: DemoRole[];
+  tone?: "paper" | "dark";
   className?: string;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<Role | null>(null);
+  const [busy, setBusy] = useState<DemoRole | null>(null);
   const [error, setError] = useState("");
 
-  async function go(as: Role) {
+  async function go(as: DemoRole) {
     setBusy(as);
     setError("");
     try {
       const me = await send<Me>("POST", "/auth/demo", { as });
       if (onDone) return onDone(me);
-      router.push(safeNext(next, as === "organiser" ? "/organiser" : "/events"));
+      router.push(safeNext(next, COPY[as].home));
       router.refresh();
     } catch (e) {
       setError(messageOf(e, "The demo accounts are resting. Try again in a moment."));
@@ -49,29 +52,29 @@ export function DemoButtons({
     }
   }
 
-  const roles: Role[] = only ? [only] : ["customer", "organiser"];
+  const list: DemoRole[] = only ? [only] : roles;
   return (
     <div className={cn("grid gap-2", className)}>
-      <div className={cn("grid gap-2", roles.length > 1 && "sm:grid-cols-2")}>
-        {roles.map((r) => (
+      <div className={cn("grid gap-2", list.length === 3 && "sm:grid-cols-3", list.length === 2 && "sm:grid-cols-2")}>
+        {list.map((r) => (
           <Button
             key={r}
             type="button"
-            variant={tone === "paper" ? "paper" : "outline"}
+            variant={tone === "dark" ? "outline" : "paper"}
             size="sm"
             disabled={busy !== null}
             onClick={() => go(r)}
-            className="h-auto flex-col items-start gap-0 py-2 text-left normal-case"
+            className="h-auto flex-col items-start gap-0 py-2 text-left whitespace-normal normal-case"
           >
             <span className="font-cond text-lg font-bold uppercase">{busy === r ? "Signing in…" : COPY[r].label}</span>
-            <span className={cn("font-sans text-xs font-medium tracking-normal", tone === "paper" ? "text-ink-2" : "text-muted-foreground")}>
+            <span className={cn("font-sans text-xs font-medium tracking-normal", tone === "dark" ? "text-oxblood-ink/80" : "text-ink-2")}>
               {COPY[r].sub}
             </span>
           </Button>
         ))}
       </div>
       {error && (
-        <p role="alert" className={cn("text-sm font-medium", tone === "paper" ? "text-red-dark" : "text-amber")}>
+        <p role="alert" className="text-sm font-medium text-red-dark">
           {error}
         </p>
       )}

@@ -2,12 +2,13 @@
 
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { AuthForm } from "@/components/auth/AuthForm";
+import { CodeSignIn } from "@/components/auth/CodeSignIn";
+import { DemoButtons } from "@/components/auth/DemoButtons";
 import type { Me } from "@/lib/types";
 
 /**
- * Inline sign-in at Proceed (R5): a modal `<dialog>` (focus trapped, Esc closes) so a visitor
- * signs in or signs up without leaving the map — and keeps the seats they're holding.
+ * Inline sign-in at Proceed (C7, R5): a modal `<dialog>` (focus trapped, Esc closes) so a visitor
+ * signs in by email code without leaving the map — and keeps the seats they're holding.
  */
 export function SignInDialog({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: (me: Me) => void }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -24,14 +25,14 @@ export function SignInDialog({ open, onClose, onDone }: { open: boolean; onClose
       ref={ref}
       onClose={onClose}
       aria-labelledby="signin-title"
-      className="m-auto max-h-[calc(100dvh-32px)] w-[min(440px,100%-32px)] overflow-y-auto rounded-card bg-paper p-6 text-ink shadow-[0_30px_80px_rgba(0,0,0,.6)] backdrop:bg-plum/80 backdrop:backdrop-blur-[2px]"
+      className="m-auto max-h-[calc(100dvh-32px)] w-[min(440px,100%-32px)] overflow-y-auto rounded-card bg-paper p-6 text-ink shadow-[0_30px_80px_rgb(42_11_30_/_.35)] backdrop:bg-ink/60 backdrop:backdrop-blur-[2px]"
     >
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h2 id="signin-title" className="font-cond text-3xl font-extrabold uppercase">
             Sign in to pay
           </h2>
-          <p className="mt-1 text-sm text-ink-2">Your seats stay held while you sign in or create an account.</p>
+          <p className="mt-1 text-sm text-ink-2">Your seats stay held while you sign in with an emailed code.</p>
         </div>
         <button
           type="button"
@@ -42,7 +43,15 @@ export function SignInDialog({ open, onClose, onDone }: { open: boolean; onClose
           <X className="size-5" aria-hidden="true" />
         </button>
       </div>
-      {open && <AuthForm mode="sign-in" onDone={onDone} compact />}
+      {open && (
+        <>
+          <CodeSignIn door="customer" onDone={onDone} submitLabel="Sign in and continue" />
+          <div className="mt-5 grid gap-2 border-t border-dashed border-ink/25 pt-4">
+            <p className="text-center text-xs font-semibold tracking-[.12em] text-ink-2 uppercase">Or try it as the demo customer</p>
+            <DemoButtons only="customer" onDone={onDone} />
+          </div>
+        </>
+      )}
     </dialog>
   );
 }

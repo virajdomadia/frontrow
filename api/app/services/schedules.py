@@ -173,9 +173,9 @@ async def materialise_schedule(
             rng = random.Random(hashlib.sha256(f"{screen.id}{starts_at}".encode()).digest())
             # Sooner shows are busier; the weekend busiest. ±30 % so halls differ.
             days_out = (starts_at - now).total_seconds() / 86400
-            soon = 1.0 if days_out < 2 else 0.75 if days_out < 5 else 0.4
-            weekend = 1.25 if starts_at.astimezone(IST).weekday() >= 4 else 1.0
-            fill = min(schedule.seed_fill * soon * weekend * rng.uniform(0.7, 1.3), 0.97)
+            soon = 0.85 if days_out < 2 else 0.6 if days_out < 5 else 0.3
+            weekend = 1.15 if starts_at.astimezone(IST).weekday() >= 4 else 1.0
+            fill = min(schedule.seed_fill * soon * weekend * rng.uniform(0.7, 1.3), 0.9)
             await sell_scattered(db, show_id, screen, schedule.prices, fill, bookers, rng)
     return created
 

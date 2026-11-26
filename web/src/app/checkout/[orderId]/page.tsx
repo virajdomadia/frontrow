@@ -22,7 +22,7 @@ export default async function CheckoutPage({ params }: Props) {
   }
   return (
     <>
-      <FlowHeader step={order.status === "paid" ? 2 : 1} back={`/book/${order.showtime.id}`} backLabel="Back to the seat map" />
+      <FlowHeader step={order.status === "paid" ? 2 : 1} back={`/book/${order.show.id}`} backLabel="Back to the seat map" />
       <main>
         <Checkout initial={order} />
       </main>

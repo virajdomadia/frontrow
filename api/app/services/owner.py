@@ -602,6 +602,13 @@ async def bookings(db: AsyncSession, business: Business, show_id: str, now: date
     )
 
 
+def csv_safe(value: object) -> object:
+    """A cell a spreadsheet won't run: text starting with = + - @ (or a tab / CR) gets a quote."""
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", chr(9), chr(13)):
+        return "'" + value
+    return value
+
+
 def bookings_csv(data: Bookings) -> str:
     out = io.StringIO()
     w = csv.writer(out)
@@ -610,15 +617,18 @@ def bookings_csv(data: Bookings) -> str:
     for b in data.bookings:
         w.writerow(
             [
-                str(b.order_id)[:8].upper(),
-                b.name,
-                b.email,
-                " ".join(b.seats),
-                " / ".join(b.tier_labels),
-                f"{b.amount_paise / 100:.2f}",
-                b.payment_method or "",
-                b.paid_at.astimezone(IST).strftime("%Y-%m-%d %H:%M") if b.paid_at else "",
-                b.checked_in,
+                csv_safe(cell)
+                for cell in (
+                    str(b.order_id)[:8].upper(),
+                    b.name,
+                    b.email,
+                    " ".join(b.seats),
+                    " / ".join(b.tier_labels),
+                    f"{b.amount_paise / 100:.2f}",
+                    b.payment_method or "",
+                    b.paid_at.astimezone(IST).strftime("%Y-%m-%d %H:%M") if b.paid_at else "",
+                    b.checked_in,
+                )
             ]
         )
     return out.getvalue()

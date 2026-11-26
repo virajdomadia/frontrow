@@ -8,11 +8,11 @@ import { fromSnapshot, mergeSnapshot, type SeatSnapshot, type SeatState } from "
 export const POLL_MS = 5_000;
 
 /**
- * Live seat state for one showtime (04 §3): v1 polls `GET /showtimes/{id}/seats` every 5 s —
+ * Live seat state for one show (04 §3): v1 polls `GET /shows/{id}/seats` every 5 s —
  * and at once when the tab comes back into view — and merges by version, so an older response
  * never overwrites a newer one. v2 swaps the poll for the SSE stream; the shape stays the same.
  */
-export function useSeatState(showtimeId: string, initial: SeatSnapshot) {
+export function useSeatState(showId: string, initial: SeatSnapshot) {
   const [state, setState] = useState<SeatState>(() => fromSnapshot(initial));
   const [snapshot, setSnapshot] = useState<SeatSnapshot>(initial);
   const [offset, setOffset] = useState(() => clockOffset(initial.server_time, Date.now()));
@@ -25,7 +25,7 @@ export function useSeatState(showtimeId: string, initial: SeatSnapshot) {
     inFlight.current = ctl;
     const sent = Date.now();
     try {
-      const snap = await send<SeatSnapshot>("GET", `/showtimes/${showtimeId}/seats`, undefined, { signal: ctl.signal });
+      const snap = await send<SeatSnapshot>("GET", `/shows/${showId}/seats`, undefined, { signal: ctl.signal });
       // Half the round trip is the best guess for when the server stamped `server_time`.
       setOffset(clockOffset(snap.server_time, (sent + Date.now()) / 2));
       setState((prev) => mergeSnapshot(prev, snap));
@@ -36,7 +36,7 @@ export function useSeatState(showtimeId: string, initial: SeatSnapshot) {
       if ((e as Error)?.name !== "AbortError") setStale(true);
       return null;
     }
-  }, [showtimeId]);
+  }, [showId]);
 
   useEffect(() => {
     let timer = window.setInterval(() => {

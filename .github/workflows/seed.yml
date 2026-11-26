@@ -1,12 +1,11 @@
-# Keeps the production demo fresh. The seed's showtimes are relative to "now" (today .. +13 days),
-# so without a re-run they all slip into the past and the site shows no events. Runs daily just after
-# midnight IST; it is idempotent (users/venues/events upserted, demo showtimes replaced).
+# Migrates and seeds the production database — run it by hand (Actions → seed → Run workflow).
+# No schedule: since the movies re-plan (B1) the seeded cinemas have open-ended schedules whose
+# shows materialise 14 days ahead on read, so the catalogue never empties without a cron. The seed
+# is idempotent and never deletes shows, so re-running it is safe.
 # Runs on GitHub's runner (free for a public repo) — no Vercel compute. Needs repo secret DATABASE_URL
 # (the same Neon URL as the frontrow-api project; app.db.asyncpg_url converts it).
 name: seed
 on:
-  schedule:
-    - cron: '35 18 * * *' # 00:05 IST
   workflow_dispatch:
 
 concurrency: { group: seed-production, cancel-in-progress: false }
@@ -21,6 +20,7 @@ jobs:
         working-directory: api
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STAFF_EMAILS: ${{ vars.STAFF_EMAILS }} # real staff accounts for the hidden /staff door
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6 # python version from api/.python-version

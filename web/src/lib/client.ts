@@ -43,7 +43,8 @@ export function fieldErrors(e: unknown): Record<string, string> {
 export function messageOf(e: unknown, fallback = "Something went wrong. Try again."): string {
   if (e instanceof ApiRequestError) {
     if (e.status === 0) return e.message;
-    if (e.status >= 500 && e.body.code !== "unavailable" && e.body.code !== "payment_unavailable") return fallback;
+    const calm = ["unavailable", "payment_unavailable", "email_unavailable"];
+    if (e.status >= 500 && !calm.includes(e.body.code)) return fallback;
     return e.body.message;
   }
   return fallback;

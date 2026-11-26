@@ -11,15 +11,15 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "Frontrow — pick your seat, live", template: "%s · Frontrow" },
-  description: "Movie and concert ticketing with a live seat map: seats are held for ten minutes the moment you tap them.",
+  description: "Movie tickets for Bengaluru with a live seat map: a seat is held for you for ten minutes the moment you tap it.",
   icons: { icon: "/favicon.svg" },
 };
 
-export const viewport: Viewport = { themeColor: "#2A0B1E" };
+export const viewport: Viewport = { themeColor: "#7E1A22" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${cond.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${cond.variable} ${sans.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

@@ -46,7 +46,7 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" }, // for browsers older than `frame-ancestors`
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   // `payment` only for Razorpay's checkout frame (UPI / saved cards use the Payment Request API).
-  { key: "Permissions-Policy", value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://api.razorpay.com"), usb=()' },
+  { key: "Permissions-Policy", value: 'camera=(self), microphone=(), geolocation=(), payment=(self "https://api.razorpay.com"), usb=()' },
 ];
 
 const nextConfig: NextConfig = {

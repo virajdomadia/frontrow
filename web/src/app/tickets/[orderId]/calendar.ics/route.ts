@@ -14,20 +14,20 @@ export async function GET(_: Request, { params }: { params: Promise<{ orderId: s
     throw e;
   }
   const { order } = bundle;
-  const st = order.showtime;
+  const st = order.show;
   const body = ics({
     uid: order.id,
-    title: st.event.title,
+    title: st.film.title,
     start: st.starts_at,
     end: st.ends_at,
-    location: `${st.venue.name}, ${st.venue.address}`,
+    location: `${st.cinema.name}, ${st.cinema.address}`,
     description: `Frontrow tickets — seats ${order.seats.map((s) => s.label).join(", ")}. Show each seat's QR at the door.`,
     url: `${SITE_URL}/tickets/${order.id}`,
   });
   return new Response(body, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${st.event.slug}.ics"`,
+      "Content-Disposition": `attachment; filename="${st.film.slug}.ics"`,
       "Cache-Control": "private, no-store",
     },
   });

@@ -51,7 +51,7 @@ export function Stub(p: Props) {
 
       {/* desktop stub */}
       <aside aria-label="Your booking" className="sm-stub hidden py-6 pr-6 lg:block">
-        <div className="relative flex h-full flex-col rounded-card bg-paper text-ink shadow-[0_20px_50px_rgba(0,0,0,.45)]">
+        <div className="relative flex h-full flex-col rounded-card bg-paper text-ink border border-border shadow-[0_20px_50px_rgb(42_11_30_/_.16)]">
           <div className="relative border-b-2 border-dashed border-ink/25 px-6 pt-5.5 pb-4 before:absolute before:-bottom-[11px] before:-left-[11px] before:size-[22px] before:rounded-full before:bg-plum after:absolute after:-right-[11px] after:-bottom-[11px] after:size-[22px] after:rounded-full after:bg-plum">
             <h2 className="pr-16 font-cond text-[34px] leading-[.95] font-extrabold uppercase">{p.title}</h2>
             <p className="mt-1 text-sm font-medium text-ink-2">{p.venue}</p>

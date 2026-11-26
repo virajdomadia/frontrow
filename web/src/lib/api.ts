@@ -23,7 +23,7 @@ type JsonOf<R> = R extends { content: { "application/json": infer J } } ? J : ne
 export type GetResponse<P extends GetPath> = JsonOf<paths[P]["get"]["responses"][200]>;
 
 export interface ApiInit {
-  /** Values for `{name}` tokens in the path (`/events/{slug}`), URL-encoded. */
+  /** Values for `{name}` tokens in the path (`/films/{slug}`), URL-encoded. */
   params?: Record<string, string>;
   /** Cache tags for on-demand revalidation. */
   tags?: string[];

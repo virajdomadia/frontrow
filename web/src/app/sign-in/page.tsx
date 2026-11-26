@@ -8,14 +8,10 @@ export const metadata: Metadata = { title: "Sign in", robots: { index: false } }
 
 type Props = { searchParams: Promise<{ next?: string | string[] }> };
 
-export default async function SignPage({ searchParams }: Props) {
+/** C7 · the customer door: email → code → name if new. */
+export default async function SignInPage({ searchParams }: Props) {
   const raw = (await searchParams).next;
   const next = typeof raw === "string" ? raw : undefined;
-  const me = await getMe();
-  if (me) redirect(safeNext(next, me.role === "organiser" ? "/organiser" : "/events"));
-  return (
-    <main>
-      <AuthPage mode="sign-in" next={next} />
-    </main>
-  );
+  if (await getMe()) redirect(safeNext(next, "/"));
+  return <AuthPage door="customer" next={next} />;
 }
