@@ -261,7 +261,17 @@ SHOWTIMES: list[ShowtimeSpec] = [
     ShowtimeSpec("midnight-brass", "cadence", 9, time(19, 30), 0.29),
     ShowtimeSpec("rhythm-collective-live", "cadence", 6, time(19, 0), 0.53),
     ShowtimeSpec("rhythm-collective-live", "cadence", 13, time(19, 0), 0.17),
+    # Already played: hidden from the catalogue, but it gives the demo customer a past ticket.
+    ShowtimeSpec("undertow", "orbit-2", -5, time(19, 0), 0.83),
 ]
+
+# The demo customer's own bookings, so "My tickets" has something on first sign-in:
+# (event slug, day) of a showtime above → (tier, seats), centre of that tier's middle row.
+DEMO_BOOKINGS: dict[tuple[str, int], tuple[str, int]] = {
+    ("midnight-brass", 2): ("front", 2),
+    ("static-bloom", 4): ("gold", 3),
+    ("undertow", -5): ("prime", 2),
+}
 
 
 def day_zero(now: datetime) -> date:

@@ -22,7 +22,8 @@ NOW = datetime(2026, 9, 18, 12, 0, tzinfo=UTC)
 async def test_list_and_filters(db_engine: AsyncEngine, db: AsyncSession) -> None:
     await seed(db_engine, now=NOW)
     listing = await svc.list_events(db, svc.ListParams(), now=NOW)
-    assert listing.total == len(EVENTS) and listing.showtime_count == len(SHOWTIMES)
+    assert listing.total == len(EVENTS)
+    assert listing.showtime_count == len([s for s in SHOWTIMES if s.day >= 0])
     starts = [c.next_showtime.starts_at for c in listing.events if c.next_showtime]
     assert starts == sorted(starts)  # soonest first
     assert listing.events[0].slug == "neon-alley" and listing.events[0].next_showtime

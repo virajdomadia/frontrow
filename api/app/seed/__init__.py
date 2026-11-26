@@ -6,7 +6,8 @@ Idempotent by construction — running it twice never duplicates anything:
   stable across runs (holds and tickets key on them);
 - events are upserted by slug;
 - the demo organiser's showtimes are **replaced** every run (they are relative to "now"), which
-  cascades their orders and tickets; sold seats are then re-scattered with a fixed RNG seed.
+  cascades their orders and tickets; sold seats are then re-scattered with a fixed RNG seed,
+  and the demo customer's own bookings (`DEMO_BOOKINGS`, one already played) are re-made.
 `--reset` also drops the organiser's venues first (use after changing knobs).
 """
 
@@ -15,7 +16,7 @@ import asyncio
 import random
 import sys
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from argon2 import PasswordHasher
@@ -24,11 +25,19 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.config import get_settings
 from app.db import asyncpg_url, make_engine
-from app.models import Event, Order, OrderSeat, PriceTier, Seat, Showtime, Ticket, User, Venue
+from app.models import Event, Order, OrderSeat, PriceTier, Showtime, Ticket, User, Venue
 from app.models.enums import EventStatus, EventType, OrderStatus, ShowtimeStatus, UserRole
 from app.seed import content
-from app.seed.content import EVENTS, FEE_PAISE, SHOWTIMES, VENUES, EventSpec, VenueSpec
-from app.services.layouts import generate, layout_json, seat_rows
+from app.seed.content import (
+    DEMO_BOOKINGS,
+    EVENTS,
+    FEE_PAISE,
+    SHOWTIMES,
+    VENUES,
+    EventSpec,
+    VenueSpec,
+)
+from app.services.venues import create_venue
 
 RNG_SEED = 42
 
@@ -77,7 +86,17 @@ async def seed(
                 PriceTier(showtime_id=showtime.id, tier_key=k, label=label, price_paise=p)
                 for k, (label, p) in tiers.items()
             )
-            tickets += await _sell(db, showtime, venue, tiers, spec.fill, bookers, rng)
+            demo = DEMO_BOOKINGS.get((spec.event, spec.day))
+            reserved = _centre_seats(venue, *demo) if demo else []
+            tickets += await _sell(
+                db, showtime, venue, tiers, spec.fill, bookers, rng, reserved=set(reserved)
+            )
+            if demo:
+                paid_at = min(now - timedelta(hours=3), showtime.starts_at - timedelta(days=2))
+                batch = _Batch()
+                batch.order(showtime, reserved, demo[0], tiers[demo[0]][1], customer, paid_at)
+                await batch.insert(db)
+                tickets += len(reserved)
         await db.commit()
     return SeedReport(
         users=2 + len(bookers), venues=len(venues), events=len(events), showtimes=len(SHOWTIMES),
@@ -143,53 +162,6 @@ async def _venue(db: AsyncSession, organiser_id: uuid.UUID, spec: VenueSpec) -> 
     )  # fmt: skip
 
 
-async def create_venue(
-    db: AsyncSession,
-    organiser_id: uuid.UUID,
-    *,
-    name: str,
-    address: str,
-    photo_url: str | None,
-    knobs: Any,
-) -> Venue:
-    """Generate the layout, insert the seat rows, store the layout JSON with their ids.
-    Shared with the organiser console (F7)."""
-    gen = generate(knobs)
-    venue = Venue(
-        organiser_id=organiser_id,
-        name=name,
-        address=address,
-        photo_url=photo_url,
-        template=knobs.template,
-        knobs=knobs.model_dump(),
-        layout={},
-        seat_count=gen.seat_count,
-    )
-    db.add(venue)
-    await db.flush()
-    rows = []
-    ids: dict[tuple[str, str, int], str] = {}
-    for key, tier, x, y in seat_rows(gen):
-        seat_id = uuid.uuid4()
-        ids[key] = str(seat_id)
-        rows.append(
-            {
-                "id": seat_id,
-                "venue_id": venue.id,
-                "section_key": key[0],
-                "row_label": key[1],
-                "number": key[2],
-                "tier_key": tier,
-                "x": x,
-                "y": y,
-            }
-        )
-    await db.execute(insert(Seat), rows)
-    venue.layout = layout_json(gen, ids)
-    await db.flush()
-    return venue
-
-
 # --- events ---------------------------------------------------------------------------------------
 
 
@@ -228,16 +200,27 @@ async def _sell(
     fill: float,
     bookers: list[User],
     rng: random.Random,
+    *,
+    reserved: set[str] = frozenset(),  # type: ignore[assignment]
 ) -> int:
     """Paid orders of 1–4 adjacent seats until `fill` of the venue is sold, at least one seat
     left free (R9). Pass 1 takes runs with gaps between them (scattered); later passes fill what
     is left, so a 90 % show ends with a few singles free, the way a near-sold-out hall looks."""
-    target = min(int(venue.seat_count * fill), venue.seat_count - 1)
-    remaining = [
-        (section["tier"], [s["id"] for s in row["seats"]])
-        for section in venue.layout["sections"]
-        for row in section["rows"]
-    ]
+    target = min(int(venue.seat_count * fill), venue.seat_count - 1 - len(reserved))
+    # Each row split into runs of seats around the reserved ones, so orders stay adjacent.
+    remaining: list[tuple[str, list[str]]] = []
+    for section in venue.layout["sections"]:
+        for row in section["rows"]:
+            run: list[str] = []
+            for s in row["seats"]:
+                if s["id"] in reserved:
+                    if run:
+                        remaining.append((section["tier"], run))
+                    run = []
+                else:
+                    run.append(s["id"])
+            if run:
+                remaining.append((section["tier"], run))
     rng.shuffle(remaining)
     batch = _Batch()
     sold = 0
@@ -262,6 +245,14 @@ async def _sell(
     return sold
 
 
+def _centre_seats(venue: Venue, tier: str, count: int) -> list[str]:
+    """`count` adjacent seats in the middle of the middle row of `tier`'s first section."""
+    section = next(s for s in venue.layout["sections"] if s["tier"] == tier)
+    row = section["rows"][len(section["rows"]) // 2]["seats"]
+    start = max((len(row) - count) // 2, 0)
+    return [s["id"] for s in row[start : start + count]]
+
+
 class _Batch:
     """Rows for one showtime's paid orders, inserted in three bulk statements."""
 
@@ -271,7 +262,13 @@ class _Batch:
         self.tickets: list[dict[str, Any]] = []
 
     def order(
-        self, showtime: Showtime, run: list[str], tier: str, price: int, booker: User
+        self,
+        showtime: Showtime,
+        run: list[str],
+        tier: str,
+        price: int,
+        booker: User,
+        paid_at: datetime | None = None,
     ) -> None:
         order_id = uuid.uuid4()
         self.orders.append(
@@ -284,7 +281,7 @@ class _Batch:
                 "subtotal_paise": price * len(run),
                 "fee_paise": FEE_PAISE * len(run),
                 "total_paise": (price + FEE_PAISE) * len(run),
-                "paid_at": datetime.now(UTC),
+                "paid_at": paid_at or datetime.now(UTC),
             }
         )
         for seat_id in run:

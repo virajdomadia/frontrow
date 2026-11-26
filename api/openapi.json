@@ -38,6 +38,317 @@
         "title": "ApiErrorResponse",
         "type": "object"
       },
+      "ArenaKnobs": {
+        "description": "Wedge sections around a floor block, stage at the top; tier by distance from the stage.",
+        "properties": {
+          "floor_radius": {
+            "default": 360,
+            "maximum": 420.0,
+            "minimum": 200.0,
+            "title": "Floor Radius",
+            "type": "integer"
+          },
+          "floor_rows": {
+            "default": 20,
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Floor Rows",
+            "type": "integer"
+          },
+          "floor_seats": {
+            "default": 20,
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Floor Seats",
+            "type": "integer"
+          },
+          "rows_per_section": {
+            "default": 12,
+            "maximum": 14.0,
+            "minimum": 6.0,
+            "title": "Rows Per Section",
+            "type": "integer"
+          },
+          "seats_per_row": {
+            "default": 16,
+            "maximum": 20.0,
+            "minimum": 10.0,
+            "title": "Seats Per Row",
+            "type": "integer"
+          },
+          "sections": {
+            "default": 8,
+            "maximum": 12.0,
+            "minimum": 6.0,
+            "title": "Sections",
+            "type": "integer"
+          },
+          "stage_label": {
+            "default": "STAGE",
+            "title": "Stage Label",
+            "type": "string"
+          },
+          "template": {
+            "const": "arena",
+            "default": "arena",
+            "title": "Template",
+            "type": "string"
+          }
+        },
+        "title": "ArenaKnobs",
+        "type": "object"
+      },
+      "Booking": {
+        "properties": {
+          "customer_email": {
+            "title": "Customer Email",
+            "type": "string"
+          },
+          "customer_name": {
+            "title": "Customer Name",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "seats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seats",
+            "type": "array"
+          },
+          "subtotal_paise": {
+            "title": "Subtotal Paise",
+            "type": "integer"
+          },
+          "tickets": {
+            "title": "Tickets",
+            "type": "integer"
+          },
+          "tier_labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tier Labels",
+            "type": "array"
+          },
+          "total_paise": {
+            "title": "Total Paise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order_id",
+          "customer_name",
+          "customer_email",
+          "seats",
+          "tier_labels",
+          "tickets",
+          "subtotal_paise",
+          "total_paise",
+          "paid_at"
+        ],
+        "title": "Booking",
+        "type": "object"
+      },
+      "Bookings": {
+        "properties": {
+          "bookings": {
+            "items": {
+              "$ref": "#/components/schemas/Booking"
+            },
+            "title": "Bookings",
+            "type": "array"
+          },
+          "revenue_paise": {
+            "title": "Revenue Paise",
+            "type": "integer"
+          },
+          "showtime": {
+            "$ref": "#/components/schemas/OrganiserShowtime"
+          },
+          "tickets": {
+            "title": "Tickets",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "showtime",
+          "bookings",
+          "tickets",
+          "revenue_paise"
+        ],
+        "title": "Bookings",
+        "type": "object"
+      },
+      "CreateOrder": {
+        "properties": {
+          "seat_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          },
+          "showtime_id": {
+            "format": "uuid",
+            "title": "Showtime Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "showtime_id",
+          "seat_ids"
+        ],
+        "title": "CreateOrder",
+        "type": "object"
+      },
+      "CreateShowtime": {
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TierInput"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Tiers",
+            "type": "array"
+          },
+          "venue_id": {
+            "format": "uuid",
+            "title": "Venue Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "venue_id",
+          "starts_at",
+          "tiers"
+        ],
+        "title": "CreateShowtime",
+        "type": "object"
+      },
+      "CreateVenue": {
+        "properties": {
+          "address": {
+            "maxLength": 200,
+            "minLength": 4,
+            "title": "Address",
+            "type": "string"
+          },
+          "knobs": {
+            "discriminator": {
+              "mapping": {
+                "arena": "#/components/schemas/ArenaKnobs",
+                "grid": "#/components/schemas/GridKnobs",
+                "stalls_balcony": "#/components/schemas/StallsBalconyKnobs"
+              },
+              "propertyName": "template"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GridKnobs"
+              },
+              {
+                "$ref": "#/components/schemas/StallsBalconyKnobs"
+              },
+              {
+                "$ref": "#/components/schemas/ArenaKnobs"
+              }
+            ],
+            "title": "Knobs"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "pattern": "^/img/(posters|venues)/[a-z0-9-]+\\.jpg$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          }
+        },
+        "required": [
+          "name",
+          "address",
+          "knobs"
+        ],
+        "title": "CreateVenue",
+        "type": "object"
+      },
+      "Customer": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ],
+        "title": "Customer",
+        "type": "object"
+      },
+      "Demo": {
+        "properties": {
+          "as": {
+            "description": "Which seeded demo account to sign in as.",
+            "enum": [
+              "customer",
+              "organiser"
+            ],
+            "title": "As",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as"
+        ],
+        "title": "Demo",
+        "type": "object"
+      },
       "EventCard": {
         "properties": {
           "duration_min": {
@@ -247,6 +558,97 @@
         "title": "EventDetail",
         "type": "object"
       },
+      "EventFields": {
+        "properties": {
+          "cast_lineup": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Cast Lineup",
+            "type": "array"
+          },
+          "duration_min": {
+            "maximum": 400.0,
+            "minimum": 30.0,
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "gallery_urls": {
+            "items": {
+              "pattern": "^/img/(posters|venues)/[a-z0-9-]+\\.jpg$",
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Gallery Urls",
+            "type": "array"
+          },
+          "genre": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Genre",
+            "type": "string"
+          },
+          "poster_url": {
+            "pattern": "^/img/(posters|venues)/[a-z0-9-]+\\.jpg$",
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "status": {
+            "default": "live",
+            "enum": [
+              "draft",
+              "live"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synopsis": {
+            "maxLength": 1200,
+            "minLength": 10,
+            "title": "Synopsis",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "movie",
+              "concert"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "genre",
+          "duration_min",
+          "synopsis",
+          "poster_url"
+        ],
+        "title": "EventFields",
+        "type": "object"
+      },
       "EventList": {
         "properties": {
           "events": {
@@ -289,6 +691,151 @@
         "title": "EventList",
         "type": "object"
       },
+      "EventPatch": {
+        "properties": {
+          "cast_lineup": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 80,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cast Lineup"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "maximum": 400.0,
+                "minimum": 30.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "gallery_urls": {
+            "anyOf": [
+              {
+                "items": {
+                  "pattern": "^/img/(posters|venues)/[a-z0-9-]+\\.jpg$",
+                  "type": "string"
+                },
+                "maxItems": 6,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gallery Urls"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genre"
+          },
+          "poster_url": {
+            "anyOf": [
+              {
+                "pattern": "^/img/(posters|venues)/[a-z0-9-]+\\.jpg$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poster Url"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "draft",
+                  "live"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "synopsis": {
+            "anyOf": [
+              {
+                "maxLength": 1200,
+                "minLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synopsis"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "movie",
+                  "concert"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          }
+        },
+        "title": "EventPatch",
+        "type": "object"
+      },
       "FilterOption": {
         "properties": {
           "count": {
@@ -310,6 +857,54 @@
           "count"
         ],
         "title": "FilterOption",
+        "type": "object"
+      },
+      "GridKnobs": {
+        "description": "Straight rows, one centre aisle, tiers by row band (a cinema screen).",
+        "properties": {
+          "aisle_after": {
+            "default": 9,
+            "maximum": 22.0,
+            "minimum": 2.0,
+            "title": "Aisle After",
+            "type": "integer"
+          },
+          "rows": {
+            "default": 14,
+            "maximum": 20.0,
+            "minimum": 8.0,
+            "title": "Rows",
+            "type": "integer"
+          },
+          "seats_per_row": {
+            "default": 18,
+            "maximum": 24.0,
+            "minimum": 10.0,
+            "title": "Seats Per Row",
+            "type": "integer"
+          },
+          "stage_label": {
+            "default": "SCREEN",
+            "title": "Stage Label",
+            "type": "string"
+          },
+          "template": {
+            "const": "grid",
+            "default": "grid",
+            "title": "Template",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TierBand"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Tiers",
+            "type": "array"
+          }
+        },
+        "title": "GridKnobs",
         "type": "object"
       },
       "Health": {
@@ -352,6 +947,48 @@
           "expires_at"
         ],
         "title": "HeldSeat",
+        "type": "object"
+      },
+      "HoldGranted": {
+        "properties": {
+          "expires_at": {
+            "description": "When these holds lapse — the countdown's zero.",
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "held": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Held",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expires_at",
+          "held"
+        ],
+        "title": "HoldGranted",
+        "type": "object"
+      },
+      "HoldRequest": {
+        "properties": {
+          "seat_ids": {
+            "description": "The whole current selection (POST) or the seats to let go (DELETE).",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seat_ids"
+        ],
+        "title": "HoldRequest",
         "type": "object"
       },
       "Home": {
@@ -571,6 +1208,63 @@
         "title": "LayoutTier",
         "type": "object"
       },
+      "Me": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "customer",
+              "organiser"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role"
+        ],
+        "title": "Me",
+        "type": "object"
+      },
+      "MyTickets": {
+        "properties": {
+          "past": {
+            "items": {
+              "$ref": "#/components/schemas/TicketGroup"
+            },
+            "title": "Past",
+            "type": "array"
+          },
+          "upcoming": {
+            "items": {
+              "$ref": "#/components/schemas/TicketGroup"
+            },
+            "title": "Upcoming",
+            "type": "array"
+          }
+        },
+        "required": [
+          "upcoming",
+          "past"
+        ],
+        "title": "MyTickets",
+        "type": "object"
+      },
       "NextShowtime": {
         "properties": {
           "fill": {
@@ -606,6 +1300,620 @@
         "title": "NextShowtime",
         "type": "object"
       },
+      "Order": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "fee_paise": {
+            "title": "Fee Paise",
+            "type": "integer"
+          },
+          "gateway": {
+            "description": "`razorpay` → open Razorpay Checkout with `key_id`; `demo` → no keys are configured, pay with `POST /orders/{id}/demo-pay` (test mode, no money moves).",
+            "enum": [
+              "razorpay",
+              "demo"
+            ],
+            "title": "Gateway",
+            "type": "string"
+          },
+          "hold_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "While pending: when the seat holds lapse (the checkout countdown).",
+            "title": "Hold Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "pay_by": {
+            "description": "A pending order expires 15 minutes after creation.",
+            "format": "date-time",
+            "title": "Pay By",
+            "type": "string"
+          },
+          "razorpay_order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Razorpay Order Id"
+          },
+          "refund_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`seat_sold` when paid after the hold lapsed.",
+            "title": "Refund Reason"
+          },
+          "seats": {
+            "items": {
+              "$ref": "#/components/schemas/OrderSeatOut"
+            },
+            "title": "Seats",
+            "type": "array"
+          },
+          "showtime": {
+            "$ref": "#/components/schemas/OrderShowtime"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "paid",
+              "expired",
+              "refunded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subtotal_paise": {
+            "title": "Subtotal Paise",
+            "type": "integer"
+          },
+          "total_paise": {
+            "title": "Total Paise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "showtime",
+          "seats",
+          "subtotal_paise",
+          "fee_paise",
+          "total_paise",
+          "created_at",
+          "paid_at",
+          "pay_by",
+          "hold_expires_at",
+          "refund_reason",
+          "gateway",
+          "razorpay_order_id",
+          "key_id",
+          "customer"
+        ],
+        "title": "Order",
+        "type": "object"
+      },
+      "OrderEvent": {
+        "properties": {
+          "duration_min": {
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "poster_url": {
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "movie",
+              "concert"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "type",
+          "poster_url",
+          "duration_min",
+          "rating"
+        ],
+        "title": "OrderEvent",
+        "type": "object"
+      },
+      "OrderSeatOut": {
+        "properties": {
+          "label": {
+            "description": "\"G9\", or \"Section 3 · C7\" in an arena.",
+            "title": "Label",
+            "type": "string"
+          },
+          "price_paise": {
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "seat_id": {
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "tier_key": {
+            "title": "Tier Key",
+            "type": "string"
+          },
+          "tier_label": {
+            "title": "Tier Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seat_id",
+          "label",
+          "tier_key",
+          "tier_label",
+          "price_paise"
+        ],
+        "title": "OrderSeatOut",
+        "type": "object"
+      },
+      "OrderShowtime": {
+        "properties": {
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "event": {
+            "$ref": "#/components/schemas/OrderEvent"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/OrderVenue"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "ends_at",
+          "event",
+          "venue"
+        ],
+        "title": "OrderShowtime",
+        "type": "object"
+      },
+      "OrderVenue": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address"
+        ],
+        "title": "OrderVenue",
+        "type": "object"
+      },
+      "OrganiserEvent": {
+        "properties": {
+          "cast_lineup": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Cast Lineup",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_min": {
+            "maximum": 400.0,
+            "minimum": 30.0,
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "gallery_urls": {
+            "items": {
+              "pattern": "^/img/(posters|venues)/[a-z0-9-]+\\.jpg$",
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Gallery Urls",
+            "type": "array"
+          },
+          "genre": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Genre",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "poster_url": {
+            "pattern": "^/img/(posters|venues)/[a-z0-9-]+\\.jpg$",
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "default": "live",
+            "enum": [
+              "draft",
+              "live"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synopsis": {
+            "maxLength": 1200,
+            "minLength": 10,
+            "title": "Synopsis",
+            "type": "string"
+          },
+          "tickets_sold": {
+            "title": "Tickets Sold",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "movie",
+              "concert"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "upcoming_showtimes": {
+            "title": "Upcoming Showtimes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "type",
+          "genre",
+          "duration_min",
+          "synopsis",
+          "poster_url",
+          "id",
+          "slug",
+          "upcoming_showtimes",
+          "tickets_sold",
+          "created_at"
+        ],
+        "title": "OrganiserEvent",
+        "type": "object"
+      },
+      "OrganiserShowtime": {
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/ShowtimeEventRef"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revenue_paise": {
+            "description": "Ticket revenue excluding convenience fees.",
+            "title": "Revenue Paise",
+            "type": "integer"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "sold": {
+            "title": "Sold",
+            "type": "integer"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TierPrice"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/ShowtimeVenueRef"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "status",
+          "event",
+          "venue",
+          "tiers",
+          "seat_count",
+          "sold",
+          "revenue_paise"
+        ],
+        "title": "OrganiserShowtime",
+        "type": "object"
+      },
+      "OrganiserVenue": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony",
+              "arena"
+            ],
+            "title": "Template",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutTier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "upcoming_showtimes": {
+            "title": "Upcoming Showtimes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "photo_url",
+          "template",
+          "seat_count",
+          "tiers",
+          "upcoming_showtimes",
+          "created_at"
+        ],
+        "title": "OrganiserVenue",
+        "type": "object"
+      },
+      "OrganiserVenueDetail": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "knobs": {
+            "additionalProperties": true,
+            "title": "Knobs",
+            "type": "object"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/Layout"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony",
+              "arena"
+            ],
+            "title": "Template",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutTier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "upcoming_showtimes": {
+            "title": "Upcoming Showtimes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "photo_url",
+          "template",
+          "seat_count",
+          "tiers",
+          "upcoming_showtimes",
+          "created_at",
+          "knobs",
+          "layout"
+        ],
+        "title": "OrganiserVenueDetail",
+        "type": "object"
+      },
       "SeatState": {
         "properties": {
           "held": {
@@ -623,6 +1931,19 @@
             },
             "title": "Mine",
             "type": "array"
+          },
+          "mine_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the caller's holds lapse (one shared 10-minute clock).",
+            "title": "Mine Expires At"
           },
           "server_time": {
             "format": "date-time",
@@ -785,6 +2106,81 @@
         "title": "ShowtimeEvent",
         "type": "object"
       },
+      "ShowtimeEventRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "live"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "movie",
+              "concert"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "type",
+          "status"
+        ],
+        "title": "ShowtimeEventRef",
+        "type": "object"
+      },
+      "ShowtimePatch": {
+        "properties": {
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "scheduled",
+                  "cancelled"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "ShowtimePatch",
+        "type": "object"
+      },
       "ShowtimeSummary": {
         "properties": {
           "fill": {
@@ -893,6 +2289,337 @@
         "title": "ShowtimeVenue",
         "type": "object"
       },
+      "ShowtimeVenueRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony",
+              "arena"
+            ],
+            "title": "Template",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "template"
+        ],
+        "title": "ShowtimeVenueRef",
+        "type": "object"
+      },
+      "SignIn": {
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "SignIn",
+        "type": "object"
+      },
+      "SignUp": {
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          },
+          "role": {
+            "default": "customer",
+            "enum": [
+              "customer",
+              "organiser"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "name"
+        ],
+        "title": "SignUp",
+        "type": "object"
+      },
+      "StallsBalconyKnobs": {
+        "description": "Two curved blocks — stalls split into front/rear tiers, a balcony behind an aisle.",
+        "properties": {
+          "balcony_rows": {
+            "default": 6,
+            "maximum": 10.0,
+            "minimum": 3.0,
+            "title": "Balcony Rows",
+            "type": "integer"
+          },
+          "balcony_seats": {
+            "default": 24,
+            "maximum": 30.0,
+            "minimum": 14.0,
+            "title": "Balcony Seats",
+            "type": "integer"
+          },
+          "curve": {
+            "default": 0.5,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Curve",
+            "type": "number"
+          },
+          "front_rows": {
+            "default": 5,
+            "maximum": 8.0,
+            "minimum": 2.0,
+            "title": "Front Rows",
+            "type": "integer"
+          },
+          "stage_label": {
+            "default": "STAGE",
+            "title": "Stage Label",
+            "type": "string"
+          },
+          "stalls_rows": {
+            "default": 12,
+            "maximum": 16.0,
+            "minimum": 8.0,
+            "title": "Stalls Rows",
+            "type": "integer"
+          },
+          "stalls_seats": {
+            "default": 28,
+            "maximum": 36.0,
+            "minimum": 18.0,
+            "title": "Stalls Seats",
+            "type": "integer"
+          },
+          "template": {
+            "const": "stalls_balcony",
+            "default": "stalls_balcony",
+            "title": "Template",
+            "type": "string"
+          }
+        },
+        "title": "StallsBalconyKnobs",
+        "type": "object"
+      },
+      "TicketBundle": {
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/Order"
+          },
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/TicketOut"
+            },
+            "title": "Tickets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "order",
+          "tickets"
+        ],
+        "title": "TicketBundle",
+        "type": "object"
+      },
+      "TicketGroup": {
+        "properties": {
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "seats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seats",
+            "type": "array"
+          },
+          "showtime": {
+            "$ref": "#/components/schemas/OrderShowtime"
+          },
+          "tier_labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tier Labels",
+            "type": "array"
+          },
+          "total_paise": {
+            "title": "Total Paise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order_id",
+          "showtime",
+          "seats",
+          "tier_labels",
+          "total_paise",
+          "paid_at"
+        ],
+        "title": "TicketGroup",
+        "type": "object"
+      },
+      "TicketOut": {
+        "properties": {
+          "checked_in_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked In At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "qr_token": {
+            "description": "Signed token the QR encodes; the door verifies it.",
+            "title": "Qr Token",
+            "type": "string"
+          },
+          "seat_id": {
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "tier_label": {
+            "title": "Tier Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "seat_id",
+          "label",
+          "tier_label",
+          "qr_token",
+          "checked_in_at"
+        ],
+        "title": "TicketOut",
+        "type": "object"
+      },
+      "TierBand": {
+        "description": "A run of rows sharing one tier, front to back (grid) — bands sum to `rows`.",
+        "properties": {
+          "key": {
+            "pattern": "^[a-z][a-z0-9_-]{0,23}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "rows": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "rows"
+        ],
+        "title": "TierBand",
+        "type": "object"
+      },
+      "TierInput": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "price_paise": {
+            "description": "₹10 – ₹1,00,000",
+            "maximum": 10000000.0,
+            "minimum": 1000.0,
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "tier_key": {
+            "maxLength": 24,
+            "minLength": 1,
+            "title": "Tier Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier_key",
+          "price_paise"
+        ],
+        "title": "TierInput",
+        "type": "object"
+      },
       "TierPrice": {
         "properties": {
           "label": {
@@ -914,6 +2641,61 @@
           "price_paise"
         ],
         "title": "TierPrice",
+        "type": "object"
+      },
+      "Token": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "me": {
+            "$ref": "#/components/schemas/Me"
+          },
+          "token": {
+            "description": "Send as `Authorization: Bearer <token>`.",
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expires_at",
+          "me"
+        ],
+        "title": "Token",
+        "type": "object"
+      },
+      "VenuePreview": {
+        "properties": {
+          "knobs": {
+            "discriminator": {
+              "mapping": {
+                "arena": "#/components/schemas/ArenaKnobs",
+                "grid": "#/components/schemas/GridKnobs",
+                "stalls_balcony": "#/components/schemas/StallsBalconyKnobs"
+              },
+              "propertyName": "template"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GridKnobs"
+              },
+              {
+                "$ref": "#/components/schemas/StallsBalconyKnobs"
+              },
+              {
+                "$ref": "#/components/schemas/ArenaKnobs"
+              }
+            ],
+            "title": "Knobs"
+          }
+        },
+        "required": [
+          "knobs"
+        ],
+        "title": "VenuePreview",
         "type": "object"
       },
       "VenueRef": {
@@ -956,6 +2738,28 @@
         ],
         "title": "VenueRef",
         "type": "object"
+      },
+      "VerifyPayment": {
+        "properties": {
+          "razorpay_payment_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Razorpay Payment Id",
+            "type": "string"
+          },
+          "razorpay_signature": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Razorpay Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "razorpay_payment_id",
+          "razorpay_signature"
+        ],
+        "title": "VerifyPayment",
+        "type": "object"
       }
     }
   },
@@ -965,6 +2769,248 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/auth/demo": {
+      "post": {
+        "operationId": "demo_auth_demo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Demo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Demo",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "me_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/sign-in": {
+      "post": {
+        "operationId": "sign_in_auth_sign_in_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Sign In",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/sign-out": {
+      "post": {
+        "operationId": "sign_out_auth_sign_out_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Sign Out",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/sign-up": {
+      "post": {
+        "operationId": "sign_up_auth_sign_up_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUp"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Sign Up",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/token": {
+      "delete": {
+        "operationId": "delete_token_auth_token_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Delete Token",
+        "tags": [
+          "auth"
+        ]
+      },
+      "post": {
+        "description": "Bearer session for the v4 app (`sessions.kind = mobile`, 90 days).",
+        "operationId": "create_token_auth_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Create Token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/events": {
       "get": {
         "operationId": "list_events_events_get",
@@ -1190,6 +3236,785 @@
         ]
       }
     },
+    "/my/tickets": {
+      "get": {
+        "operationId": "my_tickets_my_tickets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyTickets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "My Tickets",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders": {
+      "post": {
+        "description": "Check the holds, price the seats server-side, open a gateway order. 409 `hold_missing`\nwhen a hold lapsed; pressing Proceed twice returns the same pending order.",
+        "operationId": "create_order_orders_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Create Order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{order_id}": {
+      "get": {
+        "operationId": "get_order_orders__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{order_id}/demo-pay": {
+      "post": {
+        "description": "Test-mode payment when no Razorpay keys are configured: confirms through the same path\nas a webhook. 409 when real Razorpay is configured.",
+        "operationId": "demo_pay_orders__order_id__demo_pay_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Demo Pay",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{order_id}/verify": {
+      "post": {
+        "description": "The Checkout handler's fast path: a valid signature confirms at once (the webhook,\narriving later, finds the order paid and does nothing).",
+        "operationId": "verify_payment_orders__order_id__verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPayment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Verify Payment",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/organiser/events": {
+      "get": {
+        "operationId": "list_events_organiser_events_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrganiserEvent"
+                  },
+                  "title": "Response List Events Organiser Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "List Events",
+        "tags": [
+          "organiser"
+        ]
+      },
+      "post": {
+        "operationId": "create_event_organiser_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventFields"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserEvent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Create Event",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
+    "/organiser/events/{event_id}": {
+      "get": {
+        "operationId": "get_event_organiser_events__event_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserEvent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Event",
+        "tags": [
+          "organiser"
+        ]
+      },
+      "patch": {
+        "operationId": "edit_event_organiser_events__event_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserEvent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Edit Event",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
+    "/organiser/showtimes": {
+      "get": {
+        "operationId": "list_showtimes_organiser_showtimes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "event_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrganiserShowtime"
+                  },
+                  "title": "Response List Showtimes Organiser Showtimes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "List Showtimes",
+        "tags": [
+          "organiser"
+        ]
+      },
+      "post": {
+        "operationId": "create_showtime_organiser_showtimes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShowtime"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserShowtime"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Create Showtime",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
+    "/organiser/showtimes/{showtime_id}": {
+      "get": {
+        "operationId": "get_showtime_organiser_showtimes__showtime_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "showtime_id",
+            "required": true,
+            "schema": {
+              "title": "Showtime Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserShowtime"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Showtime",
+        "tags": [
+          "organiser"
+        ]
+      },
+      "patch": {
+        "operationId": "edit_showtime_organiser_showtimes__showtime_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "showtime_id",
+            "required": true,
+            "schema": {
+              "title": "Showtime Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowtimePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserShowtime"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`has_sales` — tickets are sold, so no cancel or move"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Edit Showtime",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
+    "/organiser/showtimes/{showtime_id}/bookings": {
+      "get": {
+        "operationId": "get_bookings_organiser_showtimes__showtime_id__bookings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "showtime_id",
+            "required": true,
+            "schema": {
+              "title": "Showtime Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bookings"
+                }
+              },
+              "text/csv": {}
+            },
+            "description": "JSON, or CSV with ?format=csv"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Bookings",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
+    "/organiser/venues": {
+      "get": {
+        "operationId": "list_venues_organiser_venues_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrganiserVenue"
+                  },
+                  "title": "Response List Venues Organiser Venues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "List Venues",
+        "tags": [
+          "organiser"
+        ]
+      },
+      "post": {
+        "operationId": "create_venue_organiser_venues_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVenue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserVenue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Create Venue",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
+    "/organiser/venues/preview": {
+      "post": {
+        "description": "The layout these knobs would generate — nothing is saved (the live preview).",
+        "operationId": "preview_venue_organiser_venues_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VenuePreview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Layout"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Preview Venue",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
+    "/organiser/venues/{venue_id}": {
+      "get": {
+        "operationId": "get_venue_organiser_venues__venue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "venue_id",
+            "required": true,
+            "schema": {
+              "title": "Venue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganiserVenueDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Venue",
+        "tags": [
+          "organiser"
+        ]
+      }
+    },
     "/showtimes/{showtime_id}": {
       "get": {
         "operationId": "get_showtime_showtimes__showtime_id__get",
@@ -1232,6 +4057,105 @@
         ]
       }
     },
+    "/showtimes/{showtime_id}/holds": {
+      "delete": {
+        "operationId": "drop_holds_showtimes__showtime_id__holds_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "showtime_id",
+            "required": true,
+            "schema": {
+              "title": "Showtime Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Drop Holds",
+        "tags": [
+          "seat map"
+        ]
+      },
+      "post": {
+        "description": "Hold the caller's whole selection for 10 minutes — all of it or none of it.",
+        "operationId": "place_holds_showtimes__showtime_id__holds_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "showtime_id",
+            "required": true,
+            "schema": {
+              "title": "Showtime Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldGranted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`seat_taken` — `details.taken` names the seats"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Place Holds",
+        "tags": [
+          "seat map"
+        ]
+      }
+    },
     "/showtimes/{showtime_id}/seats": {
       "get": {
         "operationId": "get_seats_showtimes__showtime_id__seats_get",
@@ -1243,22 +4167,6 @@
             "schema": {
               "title": "Showtime Id",
               "type": "string"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "fr_sid",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Fr Sid"
             }
           }
         ],
@@ -1287,6 +4195,49 @@
         "summary": "Get Seats",
         "tags": [
           "seat map"
+        ]
+      }
+    },
+    "/tickets/{order_id}": {
+      "get": {
+        "description": "One QR per seat. Someone else's order → 404.",
+        "operationId": "get_tickets_tickets__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketBundle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Tickets",
+        "tags": [
+          "orders"
         ]
       }
     },
@@ -1329,6 +4280,43 @@
         "summary": "Get Layout",
         "tags": [
           "seat map"
+        ]
+      }
+    },
+    "/webhooks/razorpay": {
+      "post": {
+        "description": "HMAC-checked; deduplicated by Razorpay's event id (a replay is a no-op); always 200\nonce the signature is good, so Razorpay stops retrying.",
+        "operationId": "razorpay_webhook_webhooks_razorpay_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Razorpay Webhook Webhooks Razorpay Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Razorpay Webhook",
+        "tags": [
+          "orders",
+          "webhooks"
         ]
       }
     }

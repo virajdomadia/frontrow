@@ -56,9 +56,22 @@ async def test_every_showtime_has_a_sold_and_a_free_seat(
         assert 0 < sold < seat_count
     # The "filling fast" opening night is ≥ 90 % sold; nothing is sold out.
     assert max(sold / seat_count for seat_count, sold in rows) >= 0.9
-    # Everything is in the future relative to the seed's clock.
-    earliest = await db.scalar(select(func.min(Showtime.starts_at)))
-    assert earliest is not None and earliest > NOW
+    # Everything but the one already-played showtime is in the future of the seed's clock.
+    past = await db.scalar(select(func.count()).where(Showtime.starts_at <= NOW))
+    assert past == len([s for s in SHOWTIMES if s.day < 0]) == 1
+
+
+async def test_demo_customer_has_bookings(db_engine: AsyncEngine, db: AsyncSession) -> None:
+    """The demo customer's "My tickets" has two upcoming bookings and one past one."""
+    from app.services.orders import my_tickets
+
+    await seed(db_engine, now=NOW)
+    customer = await db.scalar(select(User).where(User.email == "customer@frontrow.demo"))
+    assert customer is not None
+    mine = await my_tickets(db, customer, now=NOW)
+    assert [g.showtime.event.slug for g in mine.upcoming] == ["midnight-brass", "static-bloom"]
+    assert [g.showtime.event.slug for g in mine.past] == ["undertow"]
+    assert mine.upcoming[1].seats[0].startswith("Section ") and len(mine.upcoming[1].seats) == 3
 
 
 async def test_reset_and_high_fill(db_engine: AsyncEngine, db: AsyncSession) -> None:

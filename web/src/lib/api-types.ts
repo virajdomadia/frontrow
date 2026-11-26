@@ -4,6 +4,112 @@
  */
 
 export interface paths {
+    "/auth/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Demo */
+        post: operations["demo_auth_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign In */
+        post: operations["sign_in_auth_sign_in_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign Out */
+        post: operations["sign_out_auth_sign_out_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/sign-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign Up */
+        post: operations["sign_up_auth_sign_up_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Token
+         * @description Bearer session for the v4 app (`sessions.kind = mobile`, 90 days).
+         */
+        post: operations["create_token_auth_token_post"];
+        /** Delete Token */
+        delete: operations["delete_token_auth_token_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/events": {
         parameters: {
             query?: never;
@@ -72,6 +178,247 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/my/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Tickets */
+        get: operations["my_tickets_my_tickets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Order
+         * @description Check the holds, price the seats server-side, open a gateway order. 409 `hold_missing`
+         *     when a hold lapsed; pressing Proceed twice returns the same pending order.
+         */
+        post: operations["create_order_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Order */
+        get: operations["get_order_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{order_id}/demo-pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demo Pay
+         * @description Test-mode payment when no Razorpay keys are configured: confirms through the same path
+         *     as a webhook. 409 when real Razorpay is configured.
+         */
+        post: operations["demo_pay_orders__order_id__demo_pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{order_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Payment
+         * @description The Checkout handler's fast path: a valid signature confirms at once (the webhook,
+         *     arriving later, finds the order paid and does nothing).
+         */
+        post: operations["verify_payment_orders__order_id__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organiser/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_organiser_events_get"];
+        put?: never;
+        /** Create Event */
+        post: operations["create_event_organiser_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organiser/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Event */
+        get: operations["get_event_organiser_events__event_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit Event */
+        patch: operations["edit_event_organiser_events__event_id__patch"];
+        trace?: never;
+    };
+    "/organiser/showtimes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Showtimes */
+        get: operations["list_showtimes_organiser_showtimes_get"];
+        put?: never;
+        /** Create Showtime */
+        post: operations["create_showtime_organiser_showtimes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organiser/showtimes/{showtime_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Showtime */
+        get: operations["get_showtime_organiser_showtimes__showtime_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit Showtime */
+        patch: operations["edit_showtime_organiser_showtimes__showtime_id__patch"];
+        trace?: never;
+    };
+    "/organiser/showtimes/{showtime_id}/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Bookings */
+        get: operations["get_bookings_organiser_showtimes__showtime_id__bookings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organiser/venues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Venues */
+        get: operations["list_venues_organiser_venues_get"];
+        put?: never;
+        /** Create Venue */
+        post: operations["create_venue_organiser_venues_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organiser/venues/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Venue
+         * @description The layout these knobs would generate — nothing is saved (the live preview).
+         */
+        post: operations["preview_venue_organiser_venues_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organiser/venues/{venue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Venue */
+        get: operations["get_venue_organiser_venues__venue_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/showtimes/{showtime_id}": {
         parameters: {
             query?: never;
@@ -84,6 +431,27 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/showtimes/{showtime_id}/holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place Holds
+         * @description Hold the caller's whole selection for 10 minutes — all of it or none of it.
+         */
+        post: operations["place_holds_showtimes__showtime_id__holds_post"];
+        /** Drop Holds */
+        delete: operations["drop_holds_showtimes__showtime_id__holds_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -106,6 +474,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tickets/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tickets
+         * @description One QR per seat. Someone else's order → 404.
+         */
+        get: operations["get_tickets_tickets__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/venues/{venue_id}/layout": {
         parameters: {
             query?: never;
@@ -117,6 +505,27 @@ export interface paths {
         get: operations["get_layout_venues__venue_id__layout_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/razorpay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Razorpay Webhook
+         * @description HMAC-checked; deduplicated by Razorpay's event id (a replay is a no-op); always 200
+         *     once the signature is good, so Razorpay stops retrying.
+         */
+        post: operations["razorpay_webhook_webhooks_razorpay_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -147,6 +556,143 @@ export interface components {
         /** ApiErrorResponse */
         ApiErrorResponse: {
             error: components["schemas"]["ApiErrorBody"];
+        };
+        /**
+         * ArenaKnobs
+         * @description Wedge sections around a floor block, stage at the top; tier by distance from the stage.
+         */
+        ArenaKnobs: {
+            /**
+             * Floor Radius
+             * @default 360
+             */
+            floor_radius: number;
+            /**
+             * Floor Rows
+             * @default 20
+             */
+            floor_rows: number;
+            /**
+             * Floor Seats
+             * @default 20
+             */
+            floor_seats: number;
+            /**
+             * Rows Per Section
+             * @default 12
+             */
+            rows_per_section: number;
+            /**
+             * Seats Per Row
+             * @default 16
+             */
+            seats_per_row: number;
+            /**
+             * Sections
+             * @default 8
+             */
+            sections: number;
+            /**
+             * Stage Label
+             * @default STAGE
+             */
+            stage_label: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            template: "arena";
+        };
+        /** Booking */
+        Booking: {
+            /** Customer Email */
+            customer_email: string;
+            /** Customer Name */
+            customer_name: string;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /** Paid At */
+            paid_at: string | null;
+            /** Seats */
+            seats: string[];
+            /** Subtotal Paise */
+            subtotal_paise: number;
+            /** Tickets */
+            tickets: number;
+            /** Tier Labels */
+            tier_labels: string[];
+            /** Total Paise */
+            total_paise: number;
+        };
+        /** Bookings */
+        Bookings: {
+            /** Bookings */
+            bookings: components["schemas"]["Booking"][];
+            /** Revenue Paise */
+            revenue_paise: number;
+            showtime: components["schemas"]["OrganiserShowtime"];
+            /** Tickets */
+            tickets: number;
+        };
+        /** CreateOrder */
+        CreateOrder: {
+            /** Seat Ids */
+            seat_ids: string[];
+            /**
+             * Showtime Id
+             * Format: uuid
+             */
+            showtime_id: string;
+        };
+        /** CreateShowtime */
+        CreateShowtime: {
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Tiers */
+            tiers: components["schemas"]["TierInput"][];
+            /**
+             * Venue Id
+             * Format: uuid
+             */
+            venue_id: string;
+        };
+        /** CreateVenue */
+        CreateVenue: {
+            /** Address */
+            address: string;
+            /** Knobs */
+            knobs: components["schemas"]["GridKnobs"] | components["schemas"]["StallsBalconyKnobs"] | components["schemas"]["ArenaKnobs"];
+            /** Name */
+            name: string;
+            /** Photo Url */
+            photo_url?: string | null;
+        };
+        /** Customer */
+        Customer: {
+            /** Email */
+            email: string;
+            /** Name */
+            name: string;
+        };
+        /** Demo */
+        Demo: {
+            /**
+             * As
+             * @description Which seeded demo account to sign in as.
+             * @enum {string}
+             */
+            as: "customer" | "organiser";
         };
         /** EventCard */
         EventCard: {
@@ -228,6 +774,36 @@ export interface components {
              */
             upcoming_count: number;
         };
+        /** EventFields */
+        EventFields: {
+            /** Cast Lineup */
+            cast_lineup?: string[];
+            /** Duration Min */
+            duration_min: number;
+            /** Gallery Urls */
+            gallery_urls?: string[];
+            /** Genre */
+            genre: string;
+            /** Poster Url */
+            poster_url: string;
+            /** Rating */
+            rating?: string | null;
+            /**
+             * Status
+             * @default live
+             * @enum {string}
+             */
+            status: "draft" | "live";
+            /** Synopsis */
+            synopsis: string;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "movie" | "concert";
+        };
         /** EventList */
         EventList: {
             /** Events */
@@ -241,6 +817,29 @@ export interface components {
             /** Venues */
             venues: components["schemas"]["FilterOption"][];
         };
+        /** EventPatch */
+        EventPatch: {
+            /** Cast Lineup */
+            cast_lineup?: string[] | null;
+            /** Duration Min */
+            duration_min?: number | null;
+            /** Gallery Urls */
+            gallery_urls?: string[] | null;
+            /** Genre */
+            genre?: string | null;
+            /** Poster Url */
+            poster_url?: string | null;
+            /** Rating */
+            rating?: string | null;
+            /** Status */
+            status?: ("draft" | "live") | null;
+            /** Synopsis */
+            synopsis?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Type */
+            type?: ("movie" | "concert") | null;
+        };
         /** FilterOption */
         FilterOption: {
             /** Count */
@@ -249,6 +848,39 @@ export interface components {
             label: string;
             /** Value */
             value: string;
+        };
+        /**
+         * GridKnobs
+         * @description Straight rows, one centre aisle, tiers by row band (a cinema screen).
+         */
+        GridKnobs: {
+            /**
+             * Aisle After
+             * @default 9
+             */
+            aisle_after: number;
+            /**
+             * Rows
+             * @default 14
+             */
+            rows: number;
+            /**
+             * Seats Per Row
+             * @default 18
+             */
+            seats_per_row: number;
+            /**
+             * Stage Label
+             * @default SCREEN
+             */
+            stage_label: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            template: "grid";
+            /** Tiers */
+            tiers?: components["schemas"]["TierBand"][];
         };
         /** Health */
         Health: {
@@ -268,6 +900,25 @@ export interface components {
             expires_at: string;
             /** Seat Id */
             seat_id: string;
+        };
+        /** HoldGranted */
+        HoldGranted: {
+            /**
+             * Expires At
+             * Format: date-time
+             * @description When these holds lapse — the countdown's zero.
+             */
+            expires_at: string;
+            /** Held */
+            held: string[];
+        };
+        /** HoldRequest */
+        HoldRequest: {
+            /**
+             * Seat Ids
+             * @description The whole current selection (POST) or the seats to let go (DELETE).
+             */
+            seat_ids: string[];
         };
         /** Home */
         Home: {
@@ -348,6 +999,30 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** Me */
+        Me: {
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "customer" | "organiser";
+        };
+        /** MyTickets */
+        MyTickets: {
+            /** Past */
+            past: components["schemas"]["TicketGroup"][];
+            /** Upcoming */
+            upcoming: components["schemas"]["TicketGroup"][];
+        };
         /** NextShowtime */
         NextShowtime: {
             /**
@@ -368,6 +1043,270 @@ export interface components {
             /** Venue Name */
             venue_name: string;
         };
+        /** Order */
+        Order: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            customer: components["schemas"]["Customer"];
+            /** Fee Paise */
+            fee_paise: number;
+            /**
+             * Gateway
+             * @description `razorpay` → open Razorpay Checkout with `key_id`; `demo` → no keys are configured, pay with `POST /orders/{id}/demo-pay` (test mode, no money moves).
+             * @enum {string}
+             */
+            gateway: "razorpay" | "demo";
+            /**
+             * Hold Expires At
+             * @description While pending: when the seat holds lapse (the checkout countdown).
+             */
+            hold_expires_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key Id */
+            key_id: string | null;
+            /** Paid At */
+            paid_at: string | null;
+            /**
+             * Pay By
+             * Format: date-time
+             * @description A pending order expires 15 minutes after creation.
+             */
+            pay_by: string;
+            /** Razorpay Order Id */
+            razorpay_order_id: string | null;
+            /**
+             * Refund Reason
+             * @description `seat_sold` when paid after the hold lapsed.
+             */
+            refund_reason: string | null;
+            /** Seats */
+            seats: components["schemas"]["OrderSeatOut"][];
+            showtime: components["schemas"]["OrderShowtime"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "paid" | "expired" | "refunded" | "failed";
+            /** Subtotal Paise */
+            subtotal_paise: number;
+            /** Total Paise */
+            total_paise: number;
+        };
+        /** OrderEvent */
+        OrderEvent: {
+            /** Duration Min */
+            duration_min: number;
+            /** Poster Url */
+            poster_url: string;
+            /** Rating */
+            rating: string | null;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "movie" | "concert";
+        };
+        /** OrderSeatOut */
+        OrderSeatOut: {
+            /**
+             * Label
+             * @description "G9", or "Section 3 · C7" in an arena.
+             */
+            label: string;
+            /** Price Paise */
+            price_paise: number;
+            /** Seat Id */
+            seat_id: string;
+            /** Tier Key */
+            tier_key: string;
+            /** Tier Label */
+            tier_label: string;
+        };
+        /** OrderShowtime */
+        OrderShowtime: {
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            event: components["schemas"]["OrderEvent"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            venue: components["schemas"]["OrderVenue"];
+        };
+        /** OrderVenue */
+        OrderVenue: {
+            /** Address */
+            address: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** OrganiserEvent */
+        OrganiserEvent: {
+            /** Cast Lineup */
+            cast_lineup?: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Min */
+            duration_min: number;
+            /** Gallery Urls */
+            gallery_urls?: string[];
+            /** Genre */
+            genre: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Poster Url */
+            poster_url: string;
+            /** Rating */
+            rating?: string | null;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @default live
+             * @enum {string}
+             */
+            status: "draft" | "live";
+            /** Synopsis */
+            synopsis: string;
+            /** Tickets Sold */
+            tickets_sold: number;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "movie" | "concert";
+            /** Upcoming Showtimes */
+            upcoming_showtimes: number;
+        };
+        /** OrganiserShowtime */
+        OrganiserShowtime: {
+            event: components["schemas"]["ShowtimeEventRef"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Revenue Paise
+             * @description Ticket revenue excluding convenience fees.
+             */
+            revenue_paise: number;
+            /** Seat Count */
+            seat_count: number;
+            /** Sold */
+            sold: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /** Tiers */
+            tiers: components["schemas"]["TierPrice"][];
+            venue: components["schemas"]["ShowtimeVenueRef"];
+        };
+        /** OrganiserVenue */
+        OrganiserVenue: {
+            /** Address */
+            address: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Seat Count */
+            seat_count: number;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "grid" | "stalls_balcony" | "arena";
+            /** Tiers */
+            tiers: components["schemas"]["LayoutTier"][];
+            /** Upcoming Showtimes */
+            upcoming_showtimes: number;
+        };
+        /** OrganiserVenueDetail */
+        OrganiserVenueDetail: {
+            /** Address */
+            address: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Knobs */
+            knobs: {
+                [key: string]: unknown;
+            };
+            layout: components["schemas"]["Layout"];
+            /** Name */
+            name: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Seat Count */
+            seat_count: number;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "grid" | "stalls_balcony" | "arena";
+            /** Tiers */
+            tiers: components["schemas"]["LayoutTier"][];
+            /** Upcoming Showtimes */
+            upcoming_showtimes: number;
+        };
         /** SeatState */
         SeatState: {
             /**
@@ -380,6 +1319,11 @@ export interface components {
              * @description Held by the caller's session.
              */
             mine: string[];
+            /**
+             * Mine Expires At
+             * @description When the caller's holds lapse (one shared 10-minute clock).
+             */
+            mine_expires_at?: string | null;
             /**
              * Server Time
              * Format: date-time
@@ -460,6 +1404,35 @@ export interface components {
              */
             type: "movie" | "concert";
         };
+        /** ShowtimeEventRef */
+        ShowtimeEventRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "live";
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "movie" | "concert";
+        };
+        /** ShowtimePatch */
+        ShowtimePatch: {
+            /** Starts At */
+            starts_at?: string | null;
+            /** Status */
+            status?: ("scheduled" | "cancelled") | null;
+        };
         /** ShowtimeSummary */
         ShowtimeSummary: {
             /**
@@ -508,6 +1481,157 @@ export interface components {
              */
             template: "grid" | "stalls_balcony" | "arena";
         };
+        /** ShowtimeVenueRef */
+        ShowtimeVenueRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "grid" | "stalls_balcony" | "arena";
+        };
+        /** SignIn */
+        SignIn: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+        };
+        /** SignUp */
+        SignUp: {
+            /** Email */
+            email: string;
+            /** Name */
+            name: string;
+            /** Password */
+            password: string;
+            /**
+             * Role
+             * @default customer
+             * @enum {string}
+             */
+            role: "customer" | "organiser";
+        };
+        /**
+         * StallsBalconyKnobs
+         * @description Two curved blocks — stalls split into front/rear tiers, a balcony behind an aisle.
+         */
+        StallsBalconyKnobs: {
+            /**
+             * Balcony Rows
+             * @default 6
+             */
+            balcony_rows: number;
+            /**
+             * Balcony Seats
+             * @default 24
+             */
+            balcony_seats: number;
+            /**
+             * Curve
+             * @default 0.5
+             */
+            curve: number;
+            /**
+             * Front Rows
+             * @default 5
+             */
+            front_rows: number;
+            /**
+             * Stage Label
+             * @default STAGE
+             */
+            stage_label: string;
+            /**
+             * Stalls Rows
+             * @default 12
+             */
+            stalls_rows: number;
+            /**
+             * Stalls Seats
+             * @default 28
+             */
+            stalls_seats: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            template: "stalls_balcony";
+        };
+        /** TicketBundle */
+        TicketBundle: {
+            order: components["schemas"]["Order"];
+            /** Tickets */
+            tickets: components["schemas"]["TicketOut"][];
+        };
+        /** TicketGroup */
+        TicketGroup: {
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /** Paid At */
+            paid_at: string | null;
+            /** Seats */
+            seats: string[];
+            showtime: components["schemas"]["OrderShowtime"];
+            /** Tier Labels */
+            tier_labels: string[];
+            /** Total Paise */
+            total_paise: number;
+        };
+        /** TicketOut */
+        TicketOut: {
+            /** Checked In At */
+            checked_in_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Qr Token
+             * @description Signed token the QR encodes; the door verifies it.
+             */
+            qr_token: string;
+            /** Seat Id */
+            seat_id: string;
+            /** Tier Label */
+            tier_label: string;
+        };
+        /**
+         * TierBand
+         * @description A run of rows sharing one tier, front to back (grid) — bands sum to `rows`.
+         */
+        TierBand: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Rows */
+            rows: number;
+        };
+        /** TierInput */
+        TierInput: {
+            /** Label */
+            label?: string | null;
+            /**
+             * Price Paise
+             * @description ₹10 – ₹1,00,000
+             */
+            price_paise: number;
+            /** Tier Key */
+            tier_key: string;
+        };
         /** TierPrice */
         TierPrice: {
             /** Label */
@@ -516,6 +1640,25 @@ export interface components {
             price_paise: number;
             /** Tier Key */
             tier_key: string;
+        };
+        /** Token */
+        Token: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            me: components["schemas"]["Me"];
+            /**
+             * Token
+             * @description Send as `Authorization: Bearer <token>`.
+             */
+            token: string;
+        };
+        /** VenuePreview */
+        VenuePreview: {
+            /** Knobs */
+            knobs: components["schemas"]["GridKnobs"] | components["schemas"]["StallsBalconyKnobs"] | components["schemas"]["ArenaKnobs"];
         };
         /** VenueRef */
         VenueRef: {
@@ -533,6 +1676,13 @@ export interface components {
             /** Seat Count */
             seat_count: number;
         };
+        /** VerifyPayment */
+        VerifyPayment: {
+            /** Razorpay Payment Id */
+            razorpay_payment_id: string;
+            /** Razorpay Signature */
+            razorpay_signature: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -542,6 +1692,221 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    demo_auth_demo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Demo"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    me_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sign_in_auth_sign_in_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sign_out_auth_sign_out_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    sign_up_auth_sign_up_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignUp"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    create_token_auth_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Token"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_token_auth_token_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     list_events_events_get: {
         parameters: {
             query?: {
@@ -667,6 +2032,590 @@ export interface operations {
             };
         };
     };
+    my_tickets_my_tickets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTickets"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    create_order_orders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_order_orders__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    demo_pay_orders__order_id__demo_pay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    verify_payment_orders__order_id__verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyPayment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    list_events_organiser_events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserEvent"][];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    create_event_organiser_events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventFields"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserEvent"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_event_organiser_events__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserEvent"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    edit_event_organiser_events__event_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserEvent"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    list_showtimes_organiser_showtimes_get: {
+        parameters: {
+            query?: {
+                event_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserShowtime"][];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    create_showtime_organiser_showtimes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateShowtime"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserShowtime"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_showtime_organiser_showtimes__showtime_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                showtime_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserShowtime"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    edit_showtime_organiser_showtimes__showtime_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                showtime_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShowtimePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserShowtime"];
+                };
+            };
+            /** @description `has_sales` — tickets are sold, so no cancel or move */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_bookings_organiser_showtimes__showtime_id__bookings_get: {
+        parameters: {
+            query?: {
+                format?: "json" | "csv";
+            };
+            header?: never;
+            path: {
+                showtime_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JSON, or CSV with ?format=csv */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Bookings"];
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    list_venues_organiser_venues_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserVenue"][];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    create_venue_organiser_venues_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVenue"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserVenue"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_venue_organiser_venues_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VenuePreview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Layout"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_venue_organiser_venues__venue_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                venue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganiserVenueDetail"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     get_showtime_showtimes__showtime_id__get: {
         parameters: {
             query?: never;
@@ -698,6 +2647,81 @@ export interface operations {
             };
         };
     };
+    place_holds_showtimes__showtime_id__holds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                showtime_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldGranted"];
+                };
+            };
+            /** @description `seat_taken` — `details.taken` names the seats */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    drop_holds_showtimes__showtime_id__holds_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                showtime_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     get_seats_showtimes__showtime_id__seats_get: {
         parameters: {
             query?: never;
@@ -705,9 +2729,7 @@ export interface operations {
             path: {
                 showtime_id: string;
             };
-            cookie?: {
-                fr_sid?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -718,6 +2740,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeatState"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_tickets_tickets__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketBundle"];
                 };
             };
             /** @description Error envelope (06 §C) */
@@ -749,6 +2802,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Layout"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    razorpay_webhook_webhooks_razorpay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Error envelope (06 §C) */
