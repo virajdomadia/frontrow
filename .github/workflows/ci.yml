@@ -38,7 +38,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  # api/ — ruff + pyright + pytest against a throwaway Postgres (Redis joins in F2).
+  # api/ — ruff + pyright + pytest against a throwaway Postgres and Redis.
   api:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -55,8 +55,17 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       TEST_DATABASE_URL: postgresql+asyncpg://frontrow@localhost:5432/frontrow_test
+      TEST_REDIS_URL: redis://localhost:6379/15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6 # python version from api/.python-version

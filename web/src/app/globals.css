@@ -2,19 +2,27 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* The whole site is the dark "house" (direction B), so shadcn's `dark:` styles always apply. */
+/* The site is light (paper) since the 2026-11-15 colour change; nothing uses shadcn's `dark:`. */
 @custom-variant dark (&:is(.dark *));
 
-/* Direction B · Box office tokens (docs/04-ui-mockups.md). The landing styles below are the
-   hand-written port of mockups/landing.html; product screens use the Tailwind theme at the end. */
+/* Box office style (docs/04-ui-mockups.md "Colour change — 2026-11-15"): Barlow Condensed /
+   Barlow / JetBrains Mono, red actions, the cream stub that tears off on pay — on PAPER pages
+   (#EFE7DA, cards #FBF7F0, plum-ink text #2A0B1E) under an OXBLOOD header (#7E1A22) whose bottom
+   edge is a torn ticket stub (radial-gradient scallops, 18 px period).
+
+   Token names are the ones the components already use: `--plum*` is now "the ground" (paper)
+   and `--screen` is "text on the ground" (plum-ink), so `bg-plum-2 text-screen` reads as a card
+   on paper. `--paper` stays the cream of the stub, checkout and ticket. */
 :root{
-  --plum:#2A0B1E; --plum-2:#3A1230; --plum-3:#4A1A3E; --screen:#F5EFE6;
-  --paper:#F5EFE6; --paper-2:#EADFD0; --ink:#2A0B1E; --ink-2:#5A3A50; --ink-3:#6E5468;
-  --red:#E63946; --red-dark:#B8232F; --amber:#F4A261; --muted:#C9B3C1; --muted-2:#AE96A6;
-  --held:#6B5566; --sold:#3A1230; --classic:#8FB8DE; --prime:#E9C46A; --recliner:#C77DFF; --mint:#7FD1B9;
+  --oxblood:#7E1A22; --oxblood-2:#65141B; --oxblood-ink:#FFF6EE;
+  --plum:#EFE7DA; --plum-2:#FBF7F0; --plum-3:#E5DACA; --screen:#2A0B1E;
+  --paper:#FFFBF4; --paper-2:#F1E7D8; --ink:#2A0B1E; --ink-2:#5A3A50; --ink-3:#6E5468;
+  --red:#E63946; --red-dark:#B8232F; --amber:#C9711F; --amber-soft:#F4A261; --muted:#5A3A50; --muted-2:#6E5468;
+  --held:#A8949F; --sold:#3A1230; --classic:#5E9BD3; --prime:#D9A42C; --recliner:#A35BDB; --mint:#3FA88A;
+  --line:rgb(42 11 30 / .14);
   --cond:var(--font-barlow-cond),Impact,'Arial Narrow',sans-serif; --sans:var(--font-barlow),system-ui,sans-serif;
   --mono:var(--font-jetbrains),ui-monospace,monospace;
-  color-scheme:dark;
+  color-scheme:light;
 }
 @layer components {
 *{box-sizing:border-box}
@@ -22,134 +30,43 @@ html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{margin:0;background:var(--plum);color:var(--screen);font-family:var(--sans);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased}
 a{color:inherit}
-.wrap{width:min(1180px,100% - 48px);margin-inline:auto}
 h1,h2,h3{font-family:var(--cond);font-weight:700;text-transform:uppercase;letter-spacing:.01em;margin:0;line-height:.95}
 p{margin:0}
 :focus-visible{outline:3px solid var(--amber);outline-offset:3px}
 
-.nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--cond);font-weight:700;font-size:28px;letter-spacing:.03em}
-.logo svg{width:34px;height:34px}
-.nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:0;font-weight:500;font-size:15px}
-.nav ul a{text-decoration:none;color:var(--muted)}
-.nav ul a:hover{color:var(--screen)}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:6px;text-decoration:none;font-family:var(--cond);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.04em;border:2px solid transparent;cursor:pointer}
-.btn-red{background:var(--red);color:#fff}
-.btn-red:hover{background:#d12f3c}
-.btn-line{border-color:rgba(245,239,230,.4)}
-.btn-line:hover{border-color:var(--screen)}
+/* The oxblood header with its torn-stub bottom edge: a row of paper-coloured half-discs eats
+   into the bar every 18 px, like the perforation of a tear-off ticket. */
+.fr-header{position:relative;z-index:20;background:var(--oxblood);color:var(--oxblood-ink);margin-bottom:9px}
+.fr-header::after{content:"";position:absolute;left:0;right:0;bottom:-9px;height:9px;
+  background:radial-gradient(circle at 9px 0,var(--oxblood) 8.5px,transparent 9px) repeat-x;background-size:18px 9px}
+.fr-header :focus-visible{outline-color:#FFD29A}
+.fr-header a{color:inherit}
 
-/* hero */
-.hero{padding:36px 0 40px;display:grid;grid-template-columns:1fr;gap:28px}
-.hero-top{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:end}
-.hero h1{font-size:clamp(56px,9vw,128px)}
-.hero h1 span{color:var(--red)}
-.hero .lede{font-size:19px;color:var(--muted);max-width:40ch}
-.hero .lede strong{color:var(--screen);font-weight:600}
-.hero-actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+/* Hero poster wash for film pages: the banner photo under a paper fade. */
+.fr-banner{position:relative;isolation:isolate;overflow:hidden}
+.fr-banner>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;filter:saturate(.9)}
+.fr-banner::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgb(42 11 30 / .92) 0%,rgb(42 11 30 / .78) 45%,rgb(42 11 30 / .35) 100%)}
 
-/* seat map */
-.hall{background:var(--plum-2);border:1px solid rgba(245,239,230,.1);border-radius:14px;padding:26px 26px 22px;position:relative;overflow:hidden}
-.screen{height:6px;border-radius:999px;background:linear-gradient(90deg,transparent,var(--screen),transparent);opacity:.7;margin:0 10% 8px}
-.screen-label{text-align:center;font-family:var(--cond);font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:22px}
-.rows{display:grid;gap:9px;justify-content:center}
-.row{display:flex;gap:7px;align-items:center;justify-content:center}
-.row .lbl{width:18px;font-family:var(--cond);font-size:13px;color:var(--muted);text-align:center}
-.seat{width:22px;height:20px;border-radius:5px 5px 3px 3px;background:transparent;border:1.5px solid rgba(245,239,230,.55);position:relative}
-.seat.aisle{margin-right:14px}
-.seat.sold{border-color:transparent;background:#5A3A50}
-.seat.held{border-color:transparent;background:var(--amber);animation:hold 0s forwards}
-.seat.mine{border-color:transparent;background:var(--red);box-shadow:0 0 0 3px rgba(230,57,70,.35)}
-.seat.h1{animation-delay:1.2s}.seat.h2{animation-delay:2.1s}.seat.h3{animation-delay:2.15s}.seat.h4{animation-delay:3.4s}.seat.h5{animation-delay:4.6s}.seat.h6{animation-delay:4.65s}.seat.h7{animation-delay:5.9s}
-.seat.held{background:transparent;border-color:rgba(245,239,230,.55)}
-@keyframes hold{to{background:var(--amber);border-color:transparent}}
-@media (prefers-reduced-motion:reduce){.seat.held{background:var(--amber);border-color:transparent;animation:none}}
-.legend{display:flex;gap:18px;justify-content:center;margin-top:22px;font-size:14px;color:var(--muted);flex-wrap:wrap}
-.legend span{display:inline-flex;align-items:center;gap:7px}
-.legend i{width:14px;height:12px;border-radius:3px;border:1.5px solid rgba(245,239,230,.55);display:inline-block}
-.legend i.a{background:var(--amber);border-color:transparent}.legend i.s{background:#5A3A50;border-color:transparent}.legend i.m{background:var(--red);border-color:transparent}
-.hold-pill{position:absolute;top:22px;right:22px;background:var(--screen);color:var(--plum);border-radius:8px;padding:10px 14px;font-family:var(--cond);font-size:16px;letter-spacing:.04em;text-transform:uppercase;display:flex;gap:12px;align-items:center}
-.hold-pill b{font-size:26px;font-variant-numeric:tabular-nums;color:var(--red)}
-.checkout{position:absolute;bottom:22px;right:22px;left:22px;display:flex;justify-content:space-between;align-items:center;background:var(--plum);border:1px solid rgba(245,239,230,.15);border-radius:10px;padding:12px 16px}
-.checkout .sum{font-size:15px;color:var(--muted)}
-.checkout .sum b{color:var(--screen);font-family:var(--cond);font-size:22px;margin-right:8px}
-
-/* now showing */
-.shows{padding:56px 0}
-.shows h2{font-size:clamp(36px,4.5vw,64px)}
-.shows .sub{color:var(--muted);margin-top:8px;max-width:50ch}
-
-
-
-
-
-
-
-
-
-
-/* the hard part */
-.hard{background:var(--screen);color:var(--plum);padding:72px 0}
-.hard-in{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
-.hard h2{font-size:clamp(36px,4.5vw,64px)}
-.hard p{margin-top:14px;max-width:46ch;color:#4b2a40}
-.timeline{display:grid;gap:0;border-left:3px solid var(--red);padding-left:22px}
-.tl{padding:12px 0 14px;border-bottom:1px solid rgba(42,11,30,.12)}
-.tl:last-child{border-bottom:0}
-.tl .t{font-family:var(--cond);font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:#7a2f40}
-.tl .e{font-weight:600;margin-top:2px}
-.tl .d{font-size:14px;color:#4b2a40;margin-top:2px}
-
-/* ticket */
-.ticket-sec{padding:72px 0 40px}
-.ticket-in{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
-.ticket-sec h2{font-size:clamp(36px,4.5vw,64px)}
-.ticket-sec p{color:var(--muted);margin-top:14px;max-width:44ch}
-.ticket{background:var(--screen);color:var(--plum);border-radius:14px;display:grid;grid-template-columns:1fr 150px;overflow:hidden;position:relative}
-.ticket::before,.ticket::after{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:var(--plum);right:137px}
-.ticket::before{top:-13px}.ticket::after{bottom:-13px}
-.tk-main{padding:22px 24px}
-.tk-main .film{font-family:var(--cond);font-size:38px;font-weight:800;text-transform:uppercase;line-height:1}
-.tk-main .meta{display:grid;grid-template-columns:repeat(3,auto);gap:18px;margin-top:16px;font-size:14px}
-.tk-main .meta b{display:block;font-family:var(--cond);font-size:22px}
-.tk-stub{border-left:2px dashed rgba(42,11,30,.3);display:grid;place-items:center;padding:18px}
-.qr{width:96px;height:96px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
-.qr i{background:var(--plum);border-radius:1px}
-.qr i.o{background:transparent}
-
-.cta{padding:40px 0 96px;text-align:center}
-.cta h2{font-size:clamp(40px,6vw,88px)}
-.cta p{color:var(--muted);margin:12px auto 24px;max-width:44ch}
-.foot{display:flex;justify-content:space-between;align-items:center;padding:24px 0 40px;font-size:14px;color:var(--muted);border-top:1px solid rgba(245,239,230,.15)}
-
-@media (max-width:900px){
-  .hero-top{grid-template-columns:1fr}
-  .nav ul{display:none}
-
-  .hard-in,.ticket-in{grid-template-columns:1fr}
-  .hall{padding:18px 12px 96px}
-  .seat{width:16px;height:15px}.seat.aisle{margin-right:8px}
-  .hold-pill{position:static;margin:0 0 14px;justify-content:center}
-  .checkout{left:12px;right:12px;bottom:12px;flex-direction:column;gap:10px;align-items:stretch;text-align:center}
-}
+/* A stub card: cream with a dashed perforation and two notches (tickets, the stub, home cards). */
+.fr-stub{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:10px}
 }
 
-/* S4 seat map (components/seat-map). `sm-` keeps it apart from the landing's CSS-only hall above.
+/* The seat map (components/seat-map).
    Motion = direction B's "map load": rows popIn 400 ms, 40 ms per row; the stub slides in. */
 @layer components {
 .sm-map{overflow:visible}
 .sm-map text{font-family:var(--cond);letter-spacing:.06em;text-anchor:middle;dominant-baseline:central;pointer-events:none}
-.sm-stage-arc{fill:none;stroke:var(--screen);stroke-width:3;stroke-linecap:round;opacity:.85}
-.sm-stage-block{fill:var(--screen);opacity:.9}
+.sm-stage-arc{fill:none;stroke:var(--ink-3);stroke-width:3;stroke-linecap:round;opacity:.7}
+.sm-stage-block{fill:var(--ink);opacity:.9}
 .sm-stage-label{font-size:14px;fill:var(--muted-2);letter-spacing:.2em}
-.sm-stage-label.on-block{fill:var(--plum);font-weight:800;font-size:24px}
+.sm-stage-label.on-block{fill:var(--paper);font-weight:800;font-size:24px}
 .sm-row-label{font-size:13px;fill:var(--muted-2)}
 /* Wedge row letters sit on the end seats (no room between wedges); only once zoomed in. */
-.sm-seat-tag{font-size:12px;font-weight:700;fill:var(--plum);opacity:.85;transition:opacity .2s}
-.sm-seat-tag.on-dark{fill:var(--screen)}
+.sm-seat-tag{font-size:12px;font-weight:700;fill:var(--ink);opacity:.85;transition:opacity .2s}
+.sm-seat-tag.on-dark{fill:var(--paper)}
 .is-overview .sm-seat-tag{opacity:0}
 .sm-section polygon,.sm-section rect{fill:currentColor;fill-opacity:.07;stroke:currentColor;stroke-opacity:.25;stroke-width:1.5;transition:fill-opacity .2s}
-.sm-section-label{font-size:52px;font-weight:800;fill:var(--screen);stroke:var(--plum);stroke-width:8px;stroke-linejoin:round;paint-order:stroke;opacity:0;transition:opacity .2s}
+.sm-section-label{font-size:52px;font-weight:800;fill:var(--ink);stroke:var(--plum-2);stroke-width:8px;stroke-linejoin:round;paint-order:stroke;opacity:0;transition:opacity .2s}
 .is-overview .sm-section{cursor:zoom-in;outline:none}
 .is-overview .sm-section:focus-visible polygon,.is-overview .sm-section:focus-visible rect{fill-opacity:.25;stroke:var(--amber);stroke-opacity:1;stroke-width:6}
 .is-overview .sm-section-label{opacity:.95}
@@ -162,8 +79,8 @@ p{margin:0}
 .sm-seat{cursor:pointer;outline:none;transition:fill .18s,transform .18s;transform-box:fill-box;transform-origin:center}
 .sm-seat.t-classic{fill:var(--classic)} .sm-seat.t-mint{fill:var(--mint)} .sm-seat.t-prime{fill:var(--prime)} .sm-seat.t-recliner{fill:var(--recliner)}
 .sm-seat.held{fill:var(--held);cursor:not-allowed}
-.sm-seat.sold{fill:var(--sold);stroke:rgb(245 239 230 / .14);stroke-width:1;cursor:not-allowed}
-.sm-seat.off{fill:transparent;stroke:rgb(245 239 230 / .2);stroke-width:1;cursor:not-allowed}
+.sm-seat.sold{fill:var(--sold);stroke:rgb(255 251 244 / .25);stroke-width:1;cursor:not-allowed}
+.sm-seat.off{fill:transparent;stroke:rgb(42 11 30 / .25);stroke-width:1;cursor:not-allowed}
 .sm-seat.mine{fill:var(--red);filter:drop-shadow(0 0 6px rgb(230 57 70 / .75))}
 .sm-seat:focus-visible{stroke:var(--amber);stroke-width:3;paint-order:stroke}
 .is-overview .sm-seat{cursor:zoom-in}
@@ -174,29 +91,54 @@ p{margin:0}
 .sm-sheet{animation:sm-rise .6s cubic-bezier(.2,.8,.2,1) .2s both}
 @keyframes sm-rise{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
 
+.sm-toast{animation:sm-drop .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sm-drop{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+/* A seat you just took pulses once (the hold moment). */
+.sm-seat.mine{animation:sm-take .45s ease-out}
+@keyframes sm-take{0%{transform:scale(.8)}60%{transform:scale(1.22)}100%{transform:none}}
+
+/* Pay → ticket, the signature (04-ui-mockups): the stub tears along its perforation and falls;
+   the ticket rises; each QR draws in. */
+.tk-tear{animation:tk-tear 1.1s cubic-bezier(.5,0,.8,.4) forwards;transform-origin:20% 0}
+@keyframes tk-tear{0%{transform:none}25%{transform:rotate(-1.5deg)}100%{transform:translateY(120%) rotate(-8deg);opacity:0}}
+.tk-rise{animation:tk-rise .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes tk-rise{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
+.tk-qr svg{width:100%;height:auto;display:block}
+.tk-qr{animation:tk-qr .9s steps(9,end) .35s both}
+@keyframes tk-qr{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+
 @media (prefers-reduced-motion:reduce){
+  .sm-toast,.sm-seat.mine,.tk-rise,.tk-qr{animation:none}
+  .tk-tear{animation:tk-fade .3s linear forwards}
   .sm-row,.sm-stub,.sm-sheet{animation:none}
   .sm-seat,.sm-section polygon,.sm-section rect,.sm-section-label,.sm-seat-tag{transition:none}
 }
 }
 
-::selection{background:var(--amber);color:var(--plum)}
-html{scrollbar-color:var(--muted-2) var(--plum-2)}
+@keyframes tk-fade{to{opacity:0}}
+@media print{
+  body{background:#fff;color:#000}
+  .no-print{display:none!important}
+  .tk-rise,.tk-qr{animation:none}
+}
+
+::selection{background:var(--amber-soft);color:var(--ink)}
+html{scrollbar-color:var(--muted-2) var(--plum)}
 body{caret-color:var(--red)}
 
 /* shadcn semantic colours mapped onto the brand, plus the brand palette as utilities
-   (`bg-plum-2`, `text-muted-foreground`, `font-cond` …). `--muted` stays the brand's text
-   colour above, so `muted` here is defined straight from the palette. */
+   (`bg-plum-2` = a card on paper, `text-muted-foreground`, `bg-oxblood`, `font-cond` …). */
 @theme inline {
   --font-sans:var(--sans);
   --font-cond:var(--cond);
   --font-heading:var(--cond);
   --font-mono:var(--mono);
 
+  --color-oxblood:var(--oxblood); --color-oxblood-2:var(--oxblood-2); --color-oxblood-ink:var(--oxblood-ink);
   --color-plum:var(--plum); --color-plum-2:var(--plum-2); --color-plum-3:var(--plum-3);
   --color-screen:var(--screen); --color-paper:var(--paper); --color-paper-2:var(--paper-2);
   --color-ink:var(--ink); --color-ink-2:var(--ink-2); --color-ink-3:var(--ink-3);
-  --color-red:var(--red); --color-red-dark:var(--red-dark); --color-amber:var(--amber);
+  --color-red:var(--red); --color-red-dark:var(--red-dark); --color-amber:var(--amber); --color-amber-soft:var(--amber-soft);
   --color-faint:var(--muted-2); --color-held:var(--held); --color-sold:var(--sold);
   --color-classic:var(--classic); --color-prime:var(--prime); --color-recliner:var(--recliner); --color-mint:var(--mint);
 
@@ -207,8 +149,8 @@ body{caret-color:var(--red)}
   --color-secondary:var(--plum-3); --color-secondary-foreground:var(--screen);
   --color-muted:var(--plum-2); --color-muted-foreground:var(--muted);
   --color-accent:var(--plum-3); --color-accent-foreground:var(--screen);
-  --color-destructive:var(--red); --color-border:rgb(245 239 230 / .14);
-  --color-input:rgb(245 239 230 / .22); --color-ring:var(--amber);
+  --color-destructive:var(--red); --color-border:var(--line);
+  --color-input:rgb(42 11 30 / .22); --color-ring:var(--amber);
 
   --radius-seat:3px; --radius-chip:5px; --radius-btn:6px; --radius-card:10px;
   --radius-sm:4px; --radius-md:6px; --radius-lg:10px; --radius-xl:14px;

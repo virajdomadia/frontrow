@@ -1,11 +1,6 @@
-"""The six Postgres enums (06 §A). Values are what is stored."""
+"""The Postgres enums of the movies-only model (06 §A). Values are what is stored."""
 
 from enum import StrEnum
-
-
-class UserRole(StrEnum):
-    CUSTOMER = "customer"
-    ORGANISER = "organiser"
 
 
 class SessionKind(StrEnum):
@@ -13,17 +8,31 @@ class SessionKind(StrEnum):
     MOBILE = "mobile"
 
 
-class EventType(StrEnum):
-    MOVIE = "movie"
-    CONCERT = "concert"
+class Cert(StrEnum):
+    U = "U"
+    UA = "UA"
+    A = "A"
 
 
-class EventStatus(StrEnum):
-    DRAFT = "draft"
-    LIVE = "live"
+class FilmStatus(StrEnum):
+    COMING_SOON = "coming_soon"
+    NOW_SHOWING = "now_showing"
+    ENDED = "ended"
 
 
-class ShowtimeStatus(StrEnum):
+class BusinessStatus(StrEnum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"  # v2
+
+
+class LayoutTemplate(StrEnum):
+    GRID = "grid"
+    STALLS_BALCONY = "stalls_balcony"
+
+
+class ShowStatus(StrEnum):
     SCHEDULED = "scheduled"
     CANCELLED = "cancelled"
 
@@ -36,7 +45,12 @@ class OrderStatus(StrEnum):
     FAILED = "failed"
 
 
-class LayoutTemplate(StrEnum):
-    GRID = "grid"
-    STALLS_BALCONY = "stalls_balcony"
-    ARENA = "arena"
+class OrderChannel(StrEnum):
+    ONLINE = "online"
+    COUNTER = "counter"  # v2
+
+
+class RequestStatus(StrEnum):
+    OPEN = "open"
+    ADDED = "added"
+    DECLINED = "declined"

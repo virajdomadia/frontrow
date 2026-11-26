@@ -357,13 +357,15 @@ export function startSeat(index: SeatIndex, isFree: (id: string) => boolean): st
 
 export type SeatStatus = "free" | "sold" | "held" | "mine";
 
-/** `GET /showtimes/{id}/seats` (and the v2 stream's `snapshot`). */
+/** `GET /shows/{id}/seats` (and the v2 stream's `snapshot`). */
 export type SeatSnapshot = {
   v: number;
   server_time: string;
   sold: string[];
   held: { seat_id: string; expires_at: string }[];
   mine: string[];
+  /** When the caller's own holds lapse (one shared clock). */
+  mine_expires_at?: string | null;
 };
 
 /** The v2 stream's `diff`. */

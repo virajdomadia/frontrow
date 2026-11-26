@@ -1,23 +1,24 @@
-"""users + sessions (06 §A). Emails are stored lowercased; `sessions.kind` ships in v1 so the
-v4 app's bearer tokens are just rows with kind = mobile."""
+"""users + sessions (06 §A). Sign-in is by email code only, so there is no password column.
+One email = one person: every user can book; business access (`business_members`) and the staff
+flag sit on top. `sessions.kind` ships in v1 so the v4 app's bearer tokens are just rows with
+kind = mobile."""
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Text, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, CreatedMixin, UuidMixin, pg_enum
-from app.models.enums import SessionKind, UserRole
+from app.models.enums import SessionKind
 
 
 class User(UuidMixin, CreatedMixin, Base):
     __tablename__ = "users"
 
-    email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    password_hash: Mapped[str] = mapped_column(Text, nullable=False)  # argon2
+    email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)  # stored lowercased
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    role: Mapped[UserRole] = mapped_column(pg_enum(UserRole, "user_role"), nullable=False)
+    is_staff: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user")
 
@@ -26,7 +27,7 @@ class Session(CreatedMixin, Base):
     __tablename__ = "sessions"
     __table_args__ = (Index("ix_sessions_user_id", "user_id"),)
 
-    id: Mapped[str] = mapped_column(Text, primary_key=True)  # the cookie / bearer value
+    id: Mapped[str] = mapped_column(Text, primary_key=True)  # HMAC of the cookie / bearer value
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )

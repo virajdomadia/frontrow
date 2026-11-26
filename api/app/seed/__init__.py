@@ -1,36 +1,62 @@
-"""Seed the demo catalogue (R9): `uv run python -m app.seed [--url URL] [--reset]`.
+"""Seed the demo marketplace (R2, B1): `uv run python -m app.seed [--url URL] [--reset]`.
 
-Idempotent by construction — running it twice never duplicates anything:
-- users are upserted by email;
-- venues are looked up by (organiser, name) and only generated when missing, so seat ids stay
-  stable across runs (holds and tickets key on them);
-- events are upserted by slug;
-- the demo organiser's showtimes are **replaced** every run (they are relative to "now"), which
-  cascades their orders and tickets; sold seats are then re-scattered with a fixed RNG seed.
-`--reset` also drops the organiser's venues first (use after changing knobs).
+Idempotent and non-destructive — run it any number of times, against a live site too:
+- users are upserted by email (demo customer, demo owner, demo staff, `STAFF_EMAILS`, bookers);
+- businesses by slug, cinemas by (business, name), screens by (cinema, name) — a screen is
+  generated once, so seat ids stay stable (holds and tickets key on them);
+- films by slug; schedules by (screen, film, language, format, times);
+- shows are never deleted or replaced: the open-ended schedules materialise the next 14 days
+  (`schedules.materialise`, the same code a page view runs), so real bookings survive a reseed.
+`--reset` empties every table first (local use).
 """
 
 import argparse
 import asyncio
-import random
 import sys
 import uuid
-from datetime import UTC, datetime
-from typing import Any
+from datetime import UTC, date, datetime, timedelta
 
-from argon2 import PasswordHasher
-from sqlalchemy import delete, insert, select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.config import get_settings
 from app.db import asyncpg_url, make_engine
-from app.models import Event, Order, OrderSeat, PriceTier, Seat, Showtime, Ticket, User, Venue
-from app.models.enums import EventStatus, EventType, OrderStatus, ShowtimeStatus, UserRole
+from app.models import (
+    Base,
+    Business,
+    BusinessMember,
+    Cinema,
+    Film,
+    FilmRequest,
+    Order,
+    Screen,
+    Show,
+    ShowPrice,
+    ShowSchedule,
+    User,
+)
+from app.models.enums import (
+    BusinessStatus,
+    Cert,
+    FilmStatus,
+    OrderStatus,
+    RequestStatus,
+    ShowStatus,
+)
 from app.seed import content
-from app.seed.content import EVENTS, FEE_PAISE, SHOWTIMES, VENUES, EventSpec, VenueSpec
-from app.services.layouts import generate, layout_json, seat_rows
-
-RNG_SEED = 42
+from app.seed.content import BUSINESSES, FILM_REQUESTS, FILMS, PAST_BOOKING, BusinessSpec
+from app.services import demo
+from app.services.schedules import (
+    BOOKER_DOMAIN,
+    _Batch,
+    at_ist,
+    clashes,
+    ends,
+    ist_today,
+    materialise,
+    occurrences,
+)
+from app.services.screens import create_screen
 
 
 class SeedReport(dict[str, int]):
@@ -38,279 +64,269 @@ class SeedReport(dict[str, int]):
         return ", ".join(f"{k} {v}" for k, v in self.items())
 
 
+def check_no_overlap() -> None:
+    """Every seeded screen's weekly slots fit without overlapping (a week of occurrences)."""
+    runtime = {f.slug: f.runtime_min for f in FILMS}
+    monday = date(2026, 11, 2)
+    for b in BUSINESSES:
+        for c in b.cinemas:
+            for s in c.screens:
+                starts = sorted(
+                    (st, slot.film)
+                    for slot in s.slots
+                    for st in occurrences(slot.days, slot.times, monday, monday + timedelta(days=7))
+                )
+                for (a, fa), (z, fz) in zip(starts, starts[1:], strict=False):
+                    if clashes(a, ends(a, runtime[fa]), z, ends(z, runtime[fz])):
+                        raise ValueError(f"seed slots overlap on {c.name} {s.name}: {fa}/{fz}")
+
+
 async def seed(
-    engine: AsyncEngine, *, now: datetime | None = None, reset: bool = False
+    engine: AsyncEngine, *, now: datetime | None = None, reset: bool = False, staff: str = ""
 ) -> SeedReport:
+    check_no_overlap()
     now = now or datetime.now(UTC)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as db:
-        organiser, customer, bookers = await _users(db)
         if reset:
-            # Showtimes first: showtimes.venue_id is ON DELETE RESTRICT, and their orders /
-            # tickets still reference the seats.
-            owned = select(Venue.id).where(Venue.organiser_id == organiser.id)
-            await db.execute(delete(Showtime).where(Showtime.venue_id.in_(owned)))
-            await db.execute(delete(Venue).where(Venue.organiser_id == organiser.id))
-        venues = {spec.key: await _venue(db, organiser.id, spec) for spec in VENUES}
-        specs = {spec.slug: spec for spec in EVENTS}
-        events = {spec.slug: await _event(db, organiser.id, spec) for spec in EVENTS}
-        await db.execute(
-            delete(Showtime).where(Showtime.event_id.in_([e.id for e in events.values()]))
-        )
-        await db.flush()
-
-        day0 = content.day_zero(now)
-        rng = random.Random(RNG_SEED)
-        tickets = 0
-        for spec in SHOWTIMES:
-            event, venue = events[spec.event], venues[spec.venue]
-            showtime = Showtime(
-                event_id=event.id,
-                venue_id=venue.id,
-                starts_at=content.starts_at(spec, day0),
-                status=ShowtimeStatus.SCHEDULED,
-            )
-            db.add(showtime)
-            await db.flush()
-            tiers = _tiers_for(venue, specs[spec.event])
-            db.add_all(
-                PriceTier(showtime_id=showtime.id, tier_key=k, label=label, price_paise=p)
-                for k, (label, p) in tiers.items()
-            )
-            tickets += await _sell(db, showtime, venue, tiers, spec.fill, bookers, rng)
+            tables = ", ".join(t.name for t in Base.metadata.sorted_tables)
+            await db.execute(text(f"truncate table {tables} restart identity cascade"))
+            await db.commit()
+        users = await _users(db, staff)
+        films = {spec.slug: await _film(db, spec, now) for spec in FILMS}
+        screens: dict[str, Screen] = {}
+        businesses: dict[str, Business] = {}
+        for spec in BUSINESSES:
+            businesses[spec.slug] = await _business(db, spec, users, now)
+            for cinema_spec in spec.cinemas:
+                cinema = await _cinema(db, businesses[spec.slug], cinema_spec)
+                for screen_spec in cinema_spec.screens:
+                    screen = await _screen(db, cinema, screen_spec)
+                    screens[f"{cinema_spec.name}/{screen_spec.name}"] = screen
+                    for slot in screen_spec.slots:
+                        await _schedule(db, screen, films[slot.film], slot, screen_spec.prices, now)
+        await _requests(db, businesses)
         await db.commit()
+
+        created = await materialise(db, now=now)
+        orbit = screens["Orbit Cinemas · Indiranagar/Screen 2"]
+        await _past_booking(db, orbit, films, users["customer"], now)
+        await demo.ensure_bookings(db, None, users["customer"], now=now)
+        shows = await db.scalar(select(Show.id).where(Show.starts_at > now).limit(1))
     return SeedReport(
-        users=2 + len(bookers), venues=len(venues), events=len(events), showtimes=len(SHOWTIMES),
-        tickets=tickets,
-    )  # fmt: skip
+        users=len(users) + content.BOOKER_COUNT - 1,
+        films=len(films),
+        businesses=len(businesses),
+        screens=len(screens),
+        new_shows=created,
+        ok=int(shows is not None),
+    )
 
 
 # --- users ----------------------------------------------------------------------------------------
 
 
-async def _users(db: AsyncSession) -> tuple[User, User, list[User]]:
-    hasher = PasswordHasher()
-    demo_hash = hasher.hash(content.DEMO_PASSWORD)
-    organiser = await _upsert_user(
-        db, content.ORGANISER_EMAIL, "Orbit Cinemas", UserRole.ORGANISER, demo_hash
-    )
-    customer = await _upsert_user(
-        db, content.CUSTOMER_EMAIL, "Demo customer", UserRole.CUSTOMER, demo_hash
-    )
-    # Bookers can never sign in: an unguessable password hashed once and shared.
-    locked = hasher.hash(uuid.uuid4().hex)
-    bookers = [
-        await _upsert_user(
-            db, f"booker-{i + 1:02d}@frontrow.demo", name, UserRole.CUSTOMER, locked, keep=True
-        )
-        for i, name in enumerate(content.BOOKER_NAMES[: content.BOOKER_COUNT])
-    ]
-    return organiser, customer, bookers
-
-
 async def _upsert_user(
-    db: AsyncSession,
-    email: str,
-    name: str,
-    role: UserRole,
-    password_hash: str,
-    *,
-    keep: bool = False,
+    db: AsyncSession, email: str, name: str, *, staff: bool = False, keep_name: bool = False
 ) -> User:
     user = await db.scalar(select(User).where(User.email == email))
     if user is None:
-        user = User(email=email, name=name, role=role, password_hash=password_hash)
+        user = User(email=email, name=name, is_staff=staff)
         db.add(user)
         await db.flush()
-    elif not keep:
-        user.name, user.role, user.password_hash = name, role, password_hash
+    else:
+        if not keep_name:
+            user.name = name
+        user.is_staff = user.is_staff or staff
     return user
 
 
-# --- venues ---------------------------------------------------------------------------------------
+async def _users(db: AsyncSession, staff: str) -> dict[str, User]:
+    users = {
+        "customer": await _upsert_user(db, content.DEMO_CUSTOMER, "Aarav (demo customer)"),
+        "owner": await _upsert_user(db, content.DEMO_OWNER, "Kavitha (Orbit Cinemas demo)"),
+        "staff": await _upsert_user(db, content.DEMO_STAFF, "Demo staff", staff=True),
+    }
+    for spec in BUSINESSES:
+        if spec.owner_email != content.DEMO_OWNER:
+            users[spec.owner_email] = await _upsert_user(db, spec.owner_email, spec.owner_name)
+    for email in (e.strip().lower() for e in staff.split(",")):
+        if email:
+            users[email] = await _upsert_user(
+                db, email, email.split("@")[0].title(), staff=True, keep_name=True
+            )
+    for i, name in enumerate(content.BOOKER_NAMES[: content.BOOKER_COUNT]):
+        await _upsert_user(db, f"booker-{i + 1:02d}{BOOKER_DOMAIN}", name)
+    return users
 
 
-async def _venue(db: AsyncSession, organiser_id: uuid.UUID, spec: VenueSpec) -> Venue:
-    venue = await db.scalar(
-        select(Venue).where(Venue.organiser_id == organiser_id, Venue.name == spec.name)
-    )
-    if venue is not None:
-        venue.address, venue.photo_url = spec.address, spec.photo_url
-        return venue
-    return await create_venue(
-        db, organiser_id, name=spec.name, address=spec.address, photo_url=spec.photo_url,
-        knobs=spec.knobs,
-    )  # fmt: skip
+# --- catalogue ------------------------------------------------------------------------------------
 
 
-async def create_venue(
-    db: AsyncSession,
-    organiser_id: uuid.UUID,
-    *,
-    name: str,
-    address: str,
-    photo_url: str | None,
-    knobs: Any,
-) -> Venue:
-    """Generate the layout, insert the seat rows, store the layout JSON with their ids.
-    Shared with the organiser console (F7)."""
-    gen = generate(knobs)
-    venue = Venue(
-        organiser_id=organiser_id,
-        name=name,
-        address=address,
-        photo_url=photo_url,
-        template=knobs.template,
-        knobs=knobs.model_dump(),
-        layout={},
-        seat_count=gen.seat_count,
-    )
-    db.add(venue)
+async def _film(db: AsyncSession, spec: content.FilmSpec, now: datetime) -> Film:
+    film = await db.scalar(select(Film).where(Film.slug == spec.slug))
+    if film is None:
+        film = Film(slug=spec.slug)
+        db.add(film)
+    film.title = spec.title
+    film.synopsis = spec.synopsis
+    film.cast_crew = spec.cast_crew
+    film.runtime_min = spec.runtime_min
+    film.cert = Cert(spec.cert)
+    film.genres = spec.genres
+    film.languages = spec.languages
+    film.formats = spec.formats
+    film.poster_url = f"/img/posters/{spec.poster}.jpg"
+    film.banner_url = film.poster_url
+    film.trailer_url = spec.trailer_url
+    # Release dates float with "now" so the catalogue always reads as current.
+    film.release_date = ist_today(now) - timedelta(days=spec.released_days_ago)
+    film.status = FilmStatus(spec.status)
     await db.flush()
-    rows = []
-    ids: dict[tuple[str, str, int], str] = {}
-    for key, tier, x, y in seat_rows(gen):
-        seat_id = uuid.uuid4()
-        ids[key] = str(seat_id)
-        rows.append(
-            {
-                "id": seat_id,
-                "venue_id": venue.id,
-                "section_key": key[0],
-                "row_label": key[1],
-                "number": key[2],
-                "tier_key": tier,
-                "x": x,
-                "y": y,
-            }
+    return film
+
+
+async def _business(
+    db: AsyncSession, spec: BusinessSpec, users: dict[str, User], now: datetime
+) -> Business:
+    business = await db.scalar(select(Business).where(Business.slug == spec.slug))
+    if business is None:
+        business = Business(
+            slug=spec.slug,
+            name=spec.name,
+            phone=spec.phone,
+            status=BusinessStatus(spec.status),
+            verified_at=now if spec.status == "verified" else None,
         )
-    await db.execute(insert(Seat), rows)
-    venue.layout = layout_json(gen, ids)
+        db.add(business)
+        await db.flush()
+    business.name, business.phone = spec.name, spec.phone
+    if spec.status == "verified" and business.status != BusinessStatus.VERIFIED:
+        business.status, business.verified_at = BusinessStatus.VERIFIED, now
+    owner = users["owner" if spec.owner_email == content.DEMO_OWNER else spec.owner_email]
+    member = await db.get(BusinessMember, (business.id, owner.id))
+    if member is None:
+        db.add(BusinessMember(business_id=business.id, user_id=owner.id, role="owner"))
     await db.flush()
-    return venue
+    return business
 
 
-# --- events ---------------------------------------------------------------------------------------
-
-
-async def _event(db: AsyncSession, organiser_id: uuid.UUID, spec: EventSpec) -> Event:
-    event = await db.scalar(select(Event).where(Event.slug == spec.slug))
-    if event is None:
-        event = Event(organiser_id=organiser_id, slug=spec.slug)
-        db.add(event)
-    event.title = spec.title
-    event.type = EventType(spec.type)
-    event.genre = spec.genre
-    event.duration_min = spec.duration_min
-    event.rating = spec.rating
-    event.synopsis = spec.synopsis
-    event.cast_lineup = list(spec.cast_lineup)
-    event.poster_url = spec.poster_url
-    event.gallery_urls = list(spec.gallery_urls)
-    event.status = EventStatus.LIVE
+async def _cinema(db: AsyncSession, business: Business, spec: content.CinemaSpec) -> Cinema:
+    cinema = await db.scalar(
+        select(Cinema).where(Cinema.business_id == business.id, Cinema.name == spec.name)
+    )
+    if cinema is None:
+        cinema = Cinema(business_id=business.id, name=spec.name)
+        db.add(cinema)
+    cinema.area, cinema.address = spec.area, spec.address
+    cinema.facilities = spec.facilities
+    cinema.photo_url = f"/img/cinemas/{spec.photo}.jpg" if spec.photo else None
     await db.flush()
-    return event
+    return cinema
 
 
-def _tiers_for(venue: Venue, event: EventSpec) -> dict[str, tuple[str, int]]:
-    """`tier_key → (label, price_paise)` for every tier the venue's layout uses."""
-    return {t["key"]: (t["label"], event.prices[t["key"]]) for t in venue.layout["tiers"]}
+async def _screen(db: AsyncSession, cinema: Cinema, spec: content.ScreenSpec) -> Screen:
+    screen = await db.scalar(
+        select(Screen).where(Screen.cinema_id == cinema.id, Screen.name == spec.name)
+    )
+    if screen is None:
+        screen = await create_screen(
+            db, cinema.id, name=spec.name, formats=spec.formats, knobs=spec.knobs
+        )
+    screen.formats = spec.formats
+    await db.flush()
+    return screen
 
 
-# --- sold seats -----------------------------------------------------------------------------------
-
-
-async def _sell(
+async def _schedule(
     db: AsyncSession,
-    showtime: Showtime,
-    venue: Venue,
-    tiers: dict[str, tuple[str, int]],
-    fill: float,
-    bookers: list[User],
-    rng: random.Random,
-) -> int:
-    """Paid orders of 1–4 adjacent seats until `fill` of the venue is sold, at least one seat
-    left free (R9). Pass 1 takes runs with gaps between them (scattered); later passes fill what
-    is left, so a 90 % show ends with a few singles free, the way a near-sold-out hall looks."""
-    target = min(int(venue.seat_count * fill), venue.seat_count - 1)
-    remaining = [
-        (section["tier"], [s["id"] for s in row["seats"]])
-        for section in venue.layout["sections"]
-        for row in section["rows"]
-    ]
-    rng.shuffle(remaining)
-    batch = _Batch()
-    sold = 0
-    gapped = True
-    while sold < target and any(seat_ids for _, seat_ids in remaining):
-        for tier, seat_ids in remaining:
-            if sold >= target:
-                break
-            cursor = rng.randrange(0, 3) if gapped else 0
-            skipped: list[str] = seat_ids[:cursor]  # the leading gap goes back into the pool
-            while cursor < len(seat_ids) and sold < target:
-                size = min(rng.choice([1, 2, 2, 3, 4]), target - sold, len(seat_ids) - cursor)
-                run = seat_ids[cursor : cursor + size]
-                batch.order(showtime, run, tier, tiers[tier][1], rng.choice(bookers))
-                sold += size
-                gap = rng.randrange(1, 4) if gapped else 0
-                skipped += seat_ids[cursor + size : cursor + size + gap]
-                cursor += size + gap
-            seat_ids[:] = skipped + seat_ids[cursor:]
-        gapped = False
+    screen: Screen,
+    film: Film,
+    slot: content.Slot,
+    prices: dict[str, int],
+    now: datetime,
+) -> None:
+    times = sorted(slot.times)
+    existing = await db.scalar(
+        select(ShowSchedule).where(
+            ShowSchedule.screen_id == screen.id,
+            ShowSchedule.film_id == film.id,
+            ShowSchedule.language == slot.language,
+            ShowSchedule.format == slot.format,
+            ShowSchedule.times == times,
+            ShowSchedule.to_date.is_(None),
+        )
+    )
+    if existing is None:
+        existing = ShowSchedule(
+            screen_id=screen.id,
+            film_id=film.id,
+            language=slot.language,
+            format=slot.format,
+            times=times,
+            from_date=ist_today(now),
+        )
+        db.add(existing)
+    existing.days_of_week = sorted(slot.days)
+    existing.prices = prices
+    existing.seed_fill = slot.fill or None
+    await db.flush()
+
+
+async def _requests(db: AsyncSession, businesses: dict[str, Business]) -> None:
+    for slug, title, note in FILM_REQUESTS:
+        business = businesses[slug]
+        found = await db.scalar(
+            select(FilmRequest.id).where(
+                FilmRequest.business_id == business.id, FilmRequest.title == title
+            )
+        )
+        if found is None:
+            db.add(
+                FilmRequest(
+                    business_id=business.id, title=title, note=note, status=RequestStatus.OPEN
+                )
+            )
+    await db.flush()
+
+
+async def _past_booking(
+    db: AsyncSession, screen: Screen, films: dict[str, Film], customer: User, now: datetime
+) -> None:
+    """One booking the demo customer has already watched (scanned in), so My tickets has a
+    "past" side. Made once; it stays in the past for ever."""
+    if await db.scalar(
+        select(Order.id)
+        .join(Show, Show.id == Order.show_id)
+        .where(Order.user_id == customer.id, Order.status == OrderStatus.PAID, Show.ends_at < now)
+        .limit(1)
+    ):
+        return
+    slug, days_ago, at, tier, count = PAST_BOOKING
+    film = films[slug]
+    starts = at_ist(ist_today(now) - timedelta(days=days_ago), at)
+    show = Show(
+        id=uuid.uuid4(),
+        screen_id=screen.id,
+        film_id=film.id,
+        language=film.languages[0],
+        format="2D",
+        starts_at=starts,
+        ends_at=ends(starts, film.runtime_min),
+        status=ShowStatus.SCHEDULED,
+    )
+    db.add(show)
+    await db.flush()
+    prices = {"classic": 16000, "prime": 22000}
+    db.add_all(ShowPrice(show_id=show.id, tier_key=k, price_paise=p) for k, p in prices.items())
+    pair = demo.centre_pair(screen, tier, set(), count)
+    assert pair is not None
+    batch = _Batch(show.id)
+    batch.order(pair, tier, prices[tier], customer.id, starts - timedelta(days=2), "UPI")
+    for t in batch.tickets:
+        t["checked_in_at"] = starts - timedelta(minutes=12)
     await batch.insert(db)
-    return sold
-
-
-class _Batch:
-    """Rows for one showtime's paid orders, inserted in three bulk statements."""
-
-    def __init__(self) -> None:
-        self.orders: list[dict[str, Any]] = []
-        self.order_seats: list[dict[str, Any]] = []
-        self.tickets: list[dict[str, Any]] = []
-
-    def order(
-        self, showtime: Showtime, run: list[str], tier: str, price: int, booker: User
-    ) -> None:
-        order_id = uuid.uuid4()
-        self.orders.append(
-            {
-                "id": order_id,
-                "user_id": booker.id,
-                "sid": f"seed-{order_id.hex[:12]}",
-                "showtime_id": showtime.id,
-                "status": OrderStatus.PAID,
-                "subtotal_paise": price * len(run),
-                "fee_paise": FEE_PAISE * len(run),
-                "total_paise": (price + FEE_PAISE) * len(run),
-                "paid_at": datetime.now(UTC),
-            }
-        )
-        for seat_id in run:
-            self.order_seats.append(
-                {
-                    "order_id": order_id,
-                    "seat_id": uuid.UUID(seat_id),
-                    "tier_key": tier,
-                    "price_paise": price,
-                }
-            )
-            self.tickets.append(
-                {
-                    "id": uuid.uuid4(),
-                    "order_id": order_id,
-                    "showtime_id": showtime.id,
-                    "seat_id": uuid.UUID(seat_id),
-                    "user_id": booker.id,
-                }
-            )
-
-    async def insert(self, db: AsyncSession) -> None:
-        if self.orders:
-            await db.execute(insert(Order), self.orders)
-            await db.execute(insert(OrderSeat), self.order_seats)
-            await db.execute(insert(Ticket), self.tickets)
+    await db.commit()
 
 
 # --- CLI ------------------------------------------------------------------------------------------
@@ -319,19 +335,19 @@ class _Batch:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])  # type: ignore[union-attr]
     parser.add_argument("--url", help="asyncpg URL; default DATABASE_URL from api/.env.local")
-    parser.add_argument("--reset", action="store_true", help="drop the demo venues first")
+    parser.add_argument("--reset", action="store_true", help="empty every table first (local)")
     args = parser.parse_args(argv)
+    settings = get_settings()
     url = args.url
     if not url:
-        secret = get_settings().database_url
-        if secret is None:
+        if settings.database_url is None:
             raise SystemExit("Set DATABASE_URL (api/.env.local) or pass --url")
-        url = secret.get_secret_value()
+        url = settings.database_url.get_secret_value()
 
     async def run() -> SeedReport:
         engine = make_engine(asyncpg_url(url))
         try:
-            return await seed(engine, reset=args.reset)
+            return await seed(engine, reset=args.reset, staff=settings.staff_emails)
         finally:
             await engine.dispose()
 

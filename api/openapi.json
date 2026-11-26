@@ -38,11 +38,718 @@
         "title": "ApiErrorResponse",
         "type": "object"
       },
-      "EventCard": {
+      "Booking": {
         "properties": {
-          "duration_min": {
-            "title": "Duration Min",
+          "amount_paise": {
+            "title": "Amount Paise",
             "type": "integer"
+          },
+          "checked_in": {
+            "title": "Checked In",
+            "type": "integer"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "payment_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Method"
+          },
+          "seats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seats",
+            "type": "array"
+          },
+          "tier_labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tier Labels",
+            "type": "array"
+          }
+        },
+        "required": [
+          "order_id",
+          "name",
+          "email",
+          "seats",
+          "tier_labels",
+          "amount_paise",
+          "payment_method",
+          "paid_at",
+          "checked_in"
+        ],
+        "title": "Booking",
+        "type": "object"
+      },
+      "Bookings": {
+        "properties": {
+          "bookings": {
+            "items": {
+              "$ref": "#/components/schemas/Booking"
+            },
+            "title": "Bookings",
+            "type": "array"
+          },
+          "show": {
+            "$ref": "#/components/schemas/OwnerShow"
+          }
+        },
+        "required": [
+          "show",
+          "bookings"
+        ],
+        "title": "Bookings",
+        "type": "object"
+      },
+      "BulkResult": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "first": {
+            "format": "date-time",
+            "title": "First",
+            "type": "string"
+          },
+          "last": {
+            "format": "date-time",
+            "title": "Last",
+            "type": "string"
+          },
+          "shows": {
+            "description": "The first few, soonest first.",
+            "items": {
+              "$ref": "#/components/schemas/OwnerShow"
+            },
+            "title": "Shows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "created",
+          "first",
+          "last",
+          "shows"
+        ],
+        "title": "BulkResult",
+        "type": "object"
+      },
+      "BulkShows": {
+        "properties": {
+          "days": {
+            "description": "0 = Monday … 6 = Sunday",
+            "items": {
+              "maximum": 6.0,
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Days",
+            "type": "array"
+          },
+          "film_id": {
+            "format": "uuid",
+            "title": "Film Id",
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "2D",
+              "3D",
+              "IMAX"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "from_date": {
+            "format": "date",
+            "title": "From Date",
+            "type": "string"
+          },
+          "language": {
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "prices": {
+            "additionalProperties": {
+              "maximum": 200000.0,
+              "minimum": 5000.0,
+              "type": "integer"
+            },
+            "description": "`{tier_key: paise}` for every tier of the screen (₹50–₹2,000).",
+            "title": "Prices",
+            "type": "object"
+          },
+          "screen_id": {
+            "format": "uuid",
+            "title": "Screen Id",
+            "type": "string"
+          },
+          "times": {
+            "description": "IST start times",
+            "items": {
+              "format": "time",
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Times",
+            "type": "array"
+          },
+          "to_date": {
+            "format": "date",
+            "title": "To Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "screen_id",
+          "film_id",
+          "language",
+          "format",
+          "days",
+          "times",
+          "from_date",
+          "to_date",
+          "prices"
+        ],
+        "title": "BulkShows",
+        "type": "object"
+      },
+      "BusinessDecision": {
+        "properties": {
+          "action": {
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required to reject.",
+            "title": "Note"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "BusinessDecision",
+        "type": "object"
+      },
+      "BusinessDetails": {
+        "properties": {
+          "logo_url": {
+            "anyOf": [
+              {
+                "pattern": "^/img/logos/[a-z0-9-]+\\.svg$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 20,
+            "minLength": 6,
+            "pattern": "^[0-9+()\\- ]+$",
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ],
+        "title": "BusinessDetails",
+        "type": "object"
+      },
+      "BusinessPatch": {
+        "description": "Edit details; a rejected business that edits goes back into the approvals queue.",
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 20,
+            "minLength": 6,
+            "pattern": "^[0-9+()\\- ]+$",
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ],
+        "title": "BusinessPatch",
+        "type": "object"
+      },
+      "BusinessRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "verified",
+              "rejected",
+              "suspended"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "role"
+        ],
+        "title": "BusinessRef",
+        "type": "object"
+      },
+      "CastMember": {
+        "properties": {
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "description": "\"Actor\", \"Director\", …",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "role"
+        ],
+        "title": "CastMember",
+        "type": "object"
+      },
+      "CheckIn": {
+        "properties": {
+          "show_id": {
+            "format": "uuid",
+            "title": "Show Id",
+            "type": "string"
+          },
+          "token": {
+            "description": "What the QR encodes.",
+            "maxLength": 300,
+            "minLength": 10,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "show_id"
+        ],
+        "title": "CheckIn",
+        "type": "object"
+      },
+      "CheckInResult": {
+        "properties": {
+          "admitted": {
+            "description": "Tickets scanned in for this show so far.",
+            "title": "Admitted",
+            "type": "integer"
+          },
+          "checked_in_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked In At"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "result": {
+            "enum": [
+              "valid",
+              "used",
+              "wrong_show",
+              "invalid"
+            ],
+            "title": "Result",
+            "type": "string"
+          },
+          "seat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat"
+          },
+          "sold": {
+            "title": "Sold",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "result",
+          "message",
+          "admitted",
+          "sold"
+        ],
+        "title": "CheckInResult",
+        "type": "object"
+      },
+      "CinemaIn": {
+        "properties": {
+          "address": {
+            "maxLength": 200,
+            "minLength": 6,
+            "title": "Address",
+            "type": "string"
+          },
+          "area": {
+            "description": "Neighbourhood, e.g. \"Indiranagar\".",
+            "maxLength": 60,
+            "minLength": 2,
+            "title": "Area",
+            "type": "string"
+          },
+          "facilities": {
+            "items": {
+              "enum": [
+                "Dolby Atmos",
+                "4K laser",
+                "Recliners",
+                "Wheelchair access",
+                "Food court",
+                "Parking",
+                "M-ticket"
+              ],
+              "type": "string"
+            },
+            "maxItems": 7,
+            "title": "Facilities",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "pattern": "^/img/cinemas/[a-z0-9-]+\\.jpg$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          }
+        },
+        "required": [
+          "name",
+          "area",
+          "address"
+        ],
+        "title": "CinemaIn",
+        "type": "object"
+      },
+      "CinemaShows": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "area": {
+            "title": "Area",
+            "type": "string"
+          },
+          "facilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Facilities",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "shows": {
+            "items": {
+              "$ref": "#/components/schemas/ShowSlot"
+            },
+            "title": "Shows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "area",
+          "address",
+          "facilities",
+          "shows"
+        ],
+        "title": "CinemaShows",
+        "type": "object"
+      },
+      "CodeRequest": {
+        "properties": {
+          "door": {
+            "default": "customer",
+            "enum": [
+              "customer",
+              "business",
+              "staff"
+            ],
+            "title": "Door",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 254,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "CodeRequest",
+        "type": "object"
+      },
+      "CreateOrder": {
+        "properties": {
+          "seat_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          },
+          "show_id": {
+            "format": "uuid",
+            "title": "Show Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "show_id",
+          "seat_ids"
+        ],
+        "title": "CreateOrder",
+        "type": "object"
+      },
+      "Customer": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ],
+        "title": "Customer",
+        "type": "object"
+      },
+      "DateOption": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "show_count": {
+            "title": "Show Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "show_count"
+        ],
+        "title": "DateOption",
+        "type": "object"
+      },
+      "DayCount": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "show_count": {
+            "title": "Show Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "show_count"
+        ],
+        "title": "DayCount",
+        "type": "object"
+      },
+      "Demo": {
+        "properties": {
+          "as": {
+            "description": "Which seeded demo account to sign in as.",
+            "enum": [
+              "customer",
+              "owner",
+              "staff"
+            ],
+            "title": "As",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as"
+        ],
+        "title": "Demo",
+        "type": "object"
+      },
+      "FilmCard": {
+        "properties": {
+          "banner_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banner Url"
+          },
+          "cert": {
+            "enum": [
+              "U",
+              "UA",
+              "A"
+            ],
+            "title": "Cert",
+            "type": "string"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Formats",
+            "type": "array"
           },
           "from_price_paise": {
             "anyOf": [
@@ -53,93 +760,118 @@
                 "type": "null"
               }
             ],
-            "description": "Cheapest tier across upcoming showtimes.",
+            "description": "Cheapest ticket across those shows.",
             "title": "From Price Paise"
           },
-          "genre": {
-            "title": "Genre",
-            "type": "string"
+          "genres": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Genres",
+            "type": "array"
           },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "next_showtime": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/NextShowtime"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
           },
           "poster_url": {
             "title": "Poster Url",
             "type": "string"
           },
-          "rating": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rating"
+          "release_date": {
+            "format": "date",
+            "title": "Release Date",
+            "type": "string"
+          },
+          "runtime_min": {
+            "title": "Runtime Min",
+            "type": "integer"
+          },
+          "show_count": {
+            "description": "Bookable shows in the next 14 days.",
+            "title": "Show Count",
+            "type": "integer"
           },
           "slug": {
             "title": "Slug",
             "type": "string"
           },
+          "status": {
+            "enum": [
+              "coming_soon",
+              "now_showing",
+              "ended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
           "title": {
             "title": "Title",
             "type": "string"
-          },
-          "type": {
-            "enum": [
-              "movie",
-              "concert"
-            ],
-            "title": "Type",
-            "type": "string"
-          },
-          "upcoming_count": {
-            "description": "Upcoming showtimes matching the list's date filter.",
-            "title": "Upcoming Count",
-            "type": "integer"
           }
         },
         "required": [
           "id",
           "slug",
           "title",
-          "type",
-          "genre",
-          "rating",
-          "duration_min",
+          "cert",
+          "runtime_min",
+          "genres",
+          "languages",
+          "formats",
           "poster_url",
-          "from_price_paise",
-          "next_showtime",
-          "upcoming_count"
+          "banner_url",
+          "status",
+          "release_date",
+          "show_count",
+          "from_price_paise"
         ],
-        "title": "EventCard",
+        "title": "FilmCard",
         "type": "object"
       },
-      "EventDetail": {
+      "FilmDetail": {
         "properties": {
-          "cast_lineup": {
+          "banner_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banner Url"
+          },
+          "cast_crew": {
+            "items": {
+              "$ref": "#/components/schemas/CastMember"
+            },
+            "title": "Cast Crew",
+            "type": "array"
+          },
+          "cert": {
+            "enum": [
+              "U",
+              "UA",
+              "A"
+            ],
+            "title": "Cert",
+            "type": "string"
+          },
+          "formats": {
             "items": {
               "type": "string"
             },
-            "title": "Cast Lineup",
+            "title": "Formats",
             "type": "array"
-          },
-          "duration_min": {
-            "title": "Duration Min",
-            "type": "integer"
           },
           "from_price_paise": {
             "anyOf": [
@@ -150,59 +882,57 @@
                 "type": "null"
               }
             ],
-            "description": "Cheapest tier across upcoming showtimes.",
+            "description": "Cheapest ticket across those shows.",
             "title": "From Price Paise"
           },
-          "gallery_urls": {
+          "genres": {
             "items": {
               "type": "string"
             },
-            "title": "Gallery Urls",
+            "title": "Genres",
             "type": "array"
-          },
-          "genre": {
-            "title": "Genre",
-            "type": "string"
           },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "next_showtime": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/NextShowtime"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
           },
           "poster_url": {
             "title": "Poster Url",
             "type": "string"
           },
-          "rating": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rating"
+          "release_date": {
+            "format": "date",
+            "title": "Release Date",
+            "type": "string"
           },
-          "showtimes": {
-            "items": {
-              "$ref": "#/components/schemas/ShowtimeSummary"
-            },
-            "title": "Showtimes",
-            "type": "array"
+          "runtime_min": {
+            "title": "Runtime Min",
+            "type": "integer"
+          },
+          "show_count": {
+            "description": "Bookable shows in the next 14 days.",
+            "title": "Show Count",
+            "type": "integer"
           },
           "slug": {
             "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "coming_soon",
+              "now_showing",
+              "ended"
+            ],
+            "title": "Status",
             "type": "string"
           },
           "synopsis": {
@@ -213,103 +943,389 @@
             "title": "Title",
             "type": "string"
           },
-          "type": {
-            "enum": [
-              "movie",
-              "concert"
+          "trailer_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Type",
-            "type": "string"
+            "title": "Trailer Url"
           },
-          "upcoming_count": {
-            "description": "Upcoming showtimes matching the list's date filter.",
-            "title": "Upcoming Count",
-            "type": "integer"
+          "versions": {
+            "description": "Language × format pairs with shows on sale.",
+            "items": {
+              "$ref": "#/components/schemas/Version"
+            },
+            "title": "Versions",
+            "type": "array"
           }
         },
         "required": [
           "id",
           "slug",
           "title",
-          "type",
-          "genre",
-          "rating",
-          "duration_min",
+          "cert",
+          "runtime_min",
+          "genres",
+          "languages",
+          "formats",
           "poster_url",
+          "banner_url",
+          "status",
+          "release_date",
+          "show_count",
           "from_price_paise",
-          "next_showtime",
-          "upcoming_count",
           "synopsis",
-          "cast_lineup",
-          "gallery_urls",
-          "showtimes"
+          "cast_crew",
+          "trailer_url",
+          "versions"
         ],
-        "title": "EventDetail",
+        "title": "FilmDetail",
         "type": "object"
       },
-      "EventList": {
+      "FilmIn": {
         "properties": {
-          "events": {
+          "banner_url": {
+            "anyOf": [
+              {
+                "pattern": "^/img/posters/[a-z0-9-]+\\.jpg$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banner Url"
+          },
+          "cast_crew": {
             "items": {
-              "$ref": "#/components/schemas/EventCard"
+              "$ref": "#/components/schemas/CastMember"
             },
-            "title": "Events",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Cast Crew",
+            "type": "array"
+          },
+          "cert": {
+            "enum": [
+              "U",
+              "UA",
+              "A"
+            ],
+            "title": "Cert",
+            "type": "string"
+          },
+          "formats": {
+            "items": {
+              "enum": [
+                "2D",
+                "3D",
+                "IMAX"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Formats",
             "type": "array"
           },
           "genres": {
             "items": {
-              "$ref": "#/components/schemas/FilterOption"
+              "maxLength": 30,
+              "minLength": 1,
+              "type": "string"
             },
+            "maxItems": 4,
+            "minItems": 1,
             "title": "Genres",
             "type": "array"
           },
-          "showtime_count": {
-            "title": "Showtime Count",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
-          },
-          "venues": {
+          "languages": {
             "items": {
-              "$ref": "#/components/schemas/FilterOption"
+              "maxLength": 30,
+              "minLength": 1,
+              "type": "string"
             },
-            "title": "Venues",
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Languages",
+            "type": "array"
+          },
+          "poster_url": {
+            "pattern": "^/img/posters/[a-z0-9-]+\\.jpg$",
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "release_date": {
+            "format": "date",
+            "title": "Release Date",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Add the film an owner asked for: the request is linked.",
+            "title": "Request Id"
+          },
+          "runtime_min": {
+            "maximum": 240.0,
+            "minimum": 40.0,
+            "title": "Runtime Min",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "coming_soon",
+              "now_showing",
+              "ended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synopsis": {
+            "maxLength": 1500,
+            "minLength": 20,
+            "title": "Synopsis",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "trailer_url": {
+            "anyOf": [
+              {
+                "pattern": "^https://(www\\.)?(youtube\\.com|youtu\\.be|vimeo\\.com)/\\S+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer Url"
+          }
+        },
+        "required": [
+          "title",
+          "synopsis",
+          "cast_crew",
+          "runtime_min",
+          "cert",
+          "genres",
+          "languages",
+          "formats",
+          "poster_url",
+          "release_date",
+          "status"
+        ],
+        "title": "FilmIn",
+        "type": "object"
+      },
+      "FilmList": {
+        "properties": {
+          "films": {
+            "items": {
+              "$ref": "#/components/schemas/FilmCard"
+            },
+            "title": "Films",
+            "type": "array"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          }
+        },
+        "required": [
+          "films",
+          "q"
+        ],
+        "title": "FilmList",
+        "type": "object"
+      },
+      "FilmRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title"
+        ],
+        "title": "FilmRef",
+        "type": "object"
+      },
+      "FilmRequestIn": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Language, release, …",
+            "title": "Note"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "FilmRequestIn",
+        "type": "object"
+      },
+      "FilmShows": {
+        "properties": {
+          "cinemas": {
+            "items": {
+              "$ref": "#/components/schemas/CinemaShows"
+            },
+            "title": "Cinemas",
+            "type": "array"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "dates": {
+            "description": "The next 7 days, with how many shows each has.",
+            "items": {
+              "$ref": "#/components/schemas/DateOption"
+            },
+            "title": "Dates",
+            "type": "array"
+          },
+          "film": {
+            "$ref": "#/components/schemas/FilmCard"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/Version"
+            },
+            "title": "Versions",
             "type": "array"
           }
         },
         "required": [
-          "events",
-          "total",
-          "showtime_count",
-          "genres",
-          "venues"
+          "film",
+          "language",
+          "format",
+          "versions",
+          "date",
+          "dates",
+          "cinemas"
         ],
-        "title": "EventList",
+        "title": "FilmShows",
         "type": "object"
       },
-      "FilterOption": {
+      "GridKnobs": {
+        "description": "Straight rows, one centre aisle, tiers by row band (a cinema screen).",
         "properties": {
-          "count": {
-            "title": "Count",
+          "aisle_after": {
+            "default": 9,
+            "maximum": 22.0,
+            "minimum": 2.0,
+            "title": "Aisle After",
             "type": "integer"
           },
-          "label": {
-            "title": "Label",
+          "rows": {
+            "default": 14,
+            "maximum": 20.0,
+            "minimum": 8.0,
+            "title": "Rows",
+            "type": "integer"
+          },
+          "seats_per_row": {
+            "default": 18,
+            "maximum": 24.0,
+            "minimum": 10.0,
+            "title": "Seats Per Row",
+            "type": "integer"
+          },
+          "stage_label": {
+            "default": "SCREEN",
+            "title": "Stage Label",
             "type": "string"
           },
-          "value": {
-            "title": "Value",
+          "template": {
+            "const": "grid",
+            "default": "grid",
+            "title": "Template",
             "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TierBand"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Tiers",
+            "type": "array"
           }
         },
-        "required": [
-          "value",
-          "label",
-          "count"
-        ],
-        "title": "FilterOption",
+        "title": "GridKnobs",
         "type": "object"
       },
       "Health": {
@@ -354,18 +1370,68 @@
         "title": "HeldSeat",
         "type": "object"
       },
+      "HoldGranted": {
+        "properties": {
+          "expires_at": {
+            "description": "When these holds lapse — the countdown's zero.",
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "held": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Held",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expires_at",
+          "held"
+        ],
+        "title": "HoldGranted",
+        "type": "object"
+      },
+      "HoldRequest": {
+        "properties": {
+          "seat_ids": {
+            "description": "The whole current selection (POST) or the seats to let go (DELETE).",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seat_ids"
+        ],
+        "title": "HoldRequest",
+        "type": "object"
+      },
       "Home": {
         "properties": {
+          "coming_soon": {
+            "items": {
+              "$ref": "#/components/schemas/FilmCard"
+            },
+            "title": "Coming Soon",
+            "type": "array"
+          },
           "now_showing": {
             "items": {
-              "$ref": "#/components/schemas/EventCard"
+              "$ref": "#/components/schemas/FilmCard"
             },
             "title": "Now Showing",
             "type": "array"
           }
         },
         "required": [
-          "now_showing"
+          "now_showing",
+          "coming_soon"
         ],
         "title": "Home",
         "type": "object"
@@ -389,8 +1455,7 @@
           "template": {
             "enum": [
               "grid",
-              "stalls_balcony",
-              "arena"
+              "stalls_balcony"
             ],
             "title": "Template",
             "type": "string"
@@ -571,15 +1636,18 @@
         "title": "LayoutTier",
         "type": "object"
       },
-      "NextShowtime": {
+      "Me": {
         "properties": {
-          "fill": {
-            "enum": [
-              "available",
-              "filling",
-              "sold_out"
-            ],
-            "title": "Fill",
+          "businesses": {
+            "description": "Business access on top of the account.",
+            "items": {
+              "$ref": "#/components/schemas/BusinessRef"
+            },
+            "title": "Businesses",
+            "type": "array"
+          },
+          "email": {
+            "title": "Email",
             "type": "string"
           },
           "id": {
@@ -587,23 +1655,998 @@
             "title": "Id",
             "type": "string"
           },
+          "is_demo": {
+            "description": "A one-click demo account (never emailed; staff demo is view-only).",
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "is_staff": {
+            "title": "Is Staff",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "is_staff",
+          "is_demo",
+          "businesses"
+        ],
+        "title": "Me",
+        "type": "object"
+      },
+      "MyTickets": {
+        "properties": {
+          "past": {
+            "items": {
+              "$ref": "#/components/schemas/TicketGroup"
+            },
+            "title": "Past",
+            "type": "array"
+          },
+          "upcoming": {
+            "items": {
+              "$ref": "#/components/schemas/TicketGroup"
+            },
+            "title": "Upcoming",
+            "type": "array"
+          }
+        },
+        "required": [
+          "upcoming",
+          "past"
+        ],
+        "title": "MyTickets",
+        "type": "object"
+      },
+      "Order": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "fee_paise": {
+            "title": "Fee Paise",
+            "type": "integer"
+          },
+          "gateway": {
+            "description": "`razorpay` → open Razorpay Checkout with `key_id`; `demo` → no keys are configured, pay with `POST /orders/{id}/demo-pay` (test mode, no money moves).",
+            "enum": [
+              "razorpay",
+              "demo"
+            ],
+            "title": "Gateway",
+            "type": "string"
+          },
+          "hold_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "While pending: when the seat holds lapse (the checkout countdown).",
+            "title": "Hold Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Id"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "pay_by": {
+            "description": "A pending order expires 15 minutes after creation.",
+            "format": "date-time",
+            "title": "Pay By",
+            "type": "string"
+          },
+          "payment_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Receipt line once paid.",
+            "title": "Payment Method"
+          },
+          "razorpay_order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Razorpay Order Id"
+          },
+          "refund_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`seat_sold` when paid after the hold lapsed.",
+            "title": "Refund Reason"
+          },
+          "seats": {
+            "items": {
+              "$ref": "#/components/schemas/OrderSeatOut"
+            },
+            "title": "Seats",
+            "type": "array"
+          },
+          "show": {
+            "$ref": "#/components/schemas/OrderShow"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "paid",
+              "expired",
+              "refunded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subtotal_paise": {
+            "title": "Subtotal Paise",
+            "type": "integer"
+          },
+          "total_paise": {
+            "title": "Total Paise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "show",
+          "seats",
+          "subtotal_paise",
+          "fee_paise",
+          "total_paise",
+          "created_at",
+          "paid_at",
+          "payment_method",
+          "pay_by",
+          "hold_expires_at",
+          "refund_reason",
+          "gateway",
+          "razorpay_order_id",
+          "key_id",
+          "customer"
+        ],
+        "title": "Order",
+        "type": "object"
+      },
+      "OrderCinema": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "area": {
+            "title": "Area",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "area",
+          "address"
+        ],
+        "title": "OrderCinema",
+        "type": "object"
+      },
+      "OrderFilm": {
+        "properties": {
+          "cert": {
+            "enum": [
+              "U",
+              "UA",
+              "A"
+            ],
+            "title": "Cert",
+            "type": "string"
+          },
+          "poster_url": {
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "runtime_min": {
+            "title": "Runtime Min",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "cert",
+          "poster_url",
+          "runtime_min"
+        ],
+        "title": "OrderFilm",
+        "type": "object"
+      },
+      "OrderSeatOut": {
+        "properties": {
+          "label": {
+            "description": "\"G9\"; \"Balcony · C7\" when a screen has a balcony.",
+            "title": "Label",
+            "type": "string"
+          },
+          "price_paise": {
+            "title": "Price Paise",
+            "type": "integer"
+          },
+          "seat_id": {
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "tier_key": {
+            "title": "Tier Key",
+            "type": "string"
+          },
+          "tier_label": {
+            "title": "Tier Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seat_id",
+          "label",
+          "tier_key",
+          "tier_label",
+          "price_paise"
+        ],
+        "title": "OrderSeatOut",
+        "type": "object"
+      },
+      "OrderShow": {
+        "properties": {
+          "cinema": {
+            "$ref": "#/components/schemas/OrderCinema"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "film": {
+            "$ref": "#/components/schemas/OrderFilm"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "screen_name": {
+            "title": "Screen Name",
+            "type": "string"
+          },
           "starts_at": {
             "format": "date-time",
             "title": "Starts At",
-            "type": "string"
-          },
-          "venue_name": {
-            "title": "Venue Name",
             "type": "string"
           }
         },
         "required": [
           "id",
           "starts_at",
-          "venue_name",
-          "fill"
+          "ends_at",
+          "language",
+          "format",
+          "screen_name",
+          "film",
+          "cinema"
         ],
-        "title": "NextShowtime",
+        "title": "OrderShow",
+        "type": "object"
+      },
+      "OwnerBusiness": {
+        "properties": {
+          "cinema_count": {
+            "title": "Cinema Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "screen_count": {
+            "title": "Screen Count",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "verified",
+              "rejected",
+              "suspended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "upcoming_shows": {
+            "title": "Upcoming Shows",
+            "type": "integer"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "phone",
+          "status",
+          "review_note",
+          "created_at",
+          "verified_at",
+          "cinema_count",
+          "screen_count",
+          "upcoming_shows"
+        ],
+        "title": "OwnerBusiness",
+        "type": "object"
+      },
+      "OwnerCinema": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "area": {
+            "title": "Area",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "facilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Facilities",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "screens": {
+            "items": {
+              "$ref": "#/components/schemas/OwnerScreen"
+            },
+            "title": "Screens",
+            "type": "array"
+          },
+          "upcoming_shows": {
+            "title": "Upcoming Shows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "area",
+          "address",
+          "facilities",
+          "photo_url",
+          "screens",
+          "upcoming_shows",
+          "created_at"
+        ],
+        "title": "OwnerCinema",
+        "type": "object"
+      },
+      "OwnerFilmRequest": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "film": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FilmRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reply": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "added",
+              "declined"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "note",
+          "status",
+          "reply",
+          "film",
+          "created_at"
+        ],
+        "title": "OwnerFilmRequest",
+        "type": "object"
+      },
+      "OwnerScreen": {
+        "properties": {
+          "cinema_id": {
+            "format": "uuid",
+            "title": "Cinema Id",
+            "type": "string"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Formats",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony"
+            ],
+            "title": "Template",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutTier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "upcoming_shows": {
+            "title": "Upcoming Shows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "cinema_id",
+          "name",
+          "template",
+          "seat_count",
+          "formats",
+          "tiers",
+          "upcoming_shows"
+        ],
+        "title": "OwnerScreen",
+        "type": "object"
+      },
+      "OwnerScreenDetail": {
+        "properties": {
+          "cinema_id": {
+            "format": "uuid",
+            "title": "Cinema Id",
+            "type": "string"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Formats",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "knobs": {
+            "additionalProperties": true,
+            "title": "Knobs",
+            "type": "object"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/Layout"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony"
+            ],
+            "title": "Template",
+            "type": "string"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/LayoutTier"
+            },
+            "title": "Tiers",
+            "type": "array"
+          },
+          "upcoming_shows": {
+            "title": "Upcoming Shows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "cinema_id",
+          "name",
+          "template",
+          "seat_count",
+          "formats",
+          "tiers",
+          "upcoming_shows",
+          "knobs",
+          "layout"
+        ],
+        "title": "OwnerScreenDetail",
+        "type": "object"
+      },
+      "OwnerShow": {
+        "properties": {
+          "checked_in": {
+            "title": "Checked In",
+            "type": "integer"
+          },
+          "cinema_name": {
+            "title": "Cinema Name",
+            "type": "string"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "film": {
+            "$ref": "#/components/schemas/ShowFilmRef"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "public": {
+            "description": "Customers can see it (business verified, film showing).",
+            "title": "Public",
+            "type": "boolean"
+          },
+          "revenue_paise": {
+            "description": "Ticket sales for the cinema (excludes the fee).",
+            "title": "Revenue Paise",
+            "type": "integer"
+          },
+          "screen_id": {
+            "format": "uuid",
+            "title": "Screen Id",
+            "type": "string"
+          },
+          "screen_name": {
+            "title": "Screen Name",
+            "type": "string"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "sold": {
+            "title": "Sold",
+            "type": "integer"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "ends_at",
+          "status",
+          "film",
+          "language",
+          "format",
+          "cinema_name",
+          "screen_id",
+          "screen_name",
+          "seat_count",
+          "sold",
+          "checked_in",
+          "revenue_paise",
+          "public"
+        ],
+        "title": "OwnerShow",
+        "type": "object"
+      },
+      "OwnerShows": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "dates": {
+            "description": "The next 14 days with how many shows each has.",
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "title": "Dates",
+            "type": "array"
+          },
+          "shows": {
+            "items": {
+              "$ref": "#/components/schemas/OwnerShow"
+            },
+            "title": "Shows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date",
+          "dates",
+          "shows"
+        ],
+        "title": "OwnerShows",
+        "type": "object"
+      },
+      "Person": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ],
+        "title": "Person",
+        "type": "object"
+      },
+      "RegisterBusiness": {
+        "description": "A signed-in customer registering a business on top of their account.",
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 20,
+            "minLength": 6,
+            "pattern": "^[0-9+()\\- ]+$",
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ],
+        "title": "RegisterBusiness",
+        "type": "object"
+      },
+      "RequestDecision": {
+        "properties": {
+          "action": {
+            "enum": [
+              "decline",
+              "link"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "film_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An existing film, on a link.",
+            "title": "Film Id"
+          },
+          "reply": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why, on a decline.",
+            "title": "Reply"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "RequestDecision",
+        "type": "object"
+      },
+      "ScreenIn": {
+        "properties": {
+          "formats": {
+            "items": {
+              "enum": [
+                "2D",
+                "3D",
+                "IMAX"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Formats",
+            "type": "array"
+          },
+          "knobs": {
+            "discriminator": {
+              "mapping": {
+                "grid": "#/components/schemas/GridKnobs",
+                "stalls_balcony": "#/components/schemas/StallsBalconyKnobs"
+              },
+              "propertyName": "template"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GridKnobs"
+              },
+              {
+                "$ref": "#/components/schemas/StallsBalconyKnobs"
+              }
+            ],
+            "title": "Knobs"
+          },
+          "name": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "formats",
+          "knobs"
+        ],
+        "title": "ScreenIn",
+        "type": "object"
+      },
+      "ScreenPreview": {
+        "properties": {
+          "knobs": {
+            "discriminator": {
+              "mapping": {
+                "grid": "#/components/schemas/GridKnobs",
+                "stalls_balcony": "#/components/schemas/StallsBalconyKnobs"
+              },
+              "propertyName": "template"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GridKnobs"
+              },
+              {
+                "$ref": "#/components/schemas/StallsBalconyKnobs"
+              }
+            ],
+            "title": "Knobs"
+          }
+        },
+        "required": [
+          "knobs"
+        ],
+        "title": "ScreenPreview",
         "type": "object"
       },
       "SeatState": {
@@ -623,6 +2666,19 @@
             },
             "title": "Mine",
             "type": "array"
+          },
+          "mine_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the caller's holds lapse (one shared 10-minute clock).",
+            "title": "Mine Expires At"
           },
           "server_time": {
             "format": "date-time",
@@ -652,13 +2708,47 @@
         "title": "SeatState",
         "type": "object"
       },
-      "ShowtimeDetail": {
+      "ShowCinema": {
         "properties": {
-          "event": {
-            "$ref": "#/components/schemas/ShowtimeEvent"
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "area": {
+            "title": "Area",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "area",
+          "address"
+        ],
+        "title": "ShowCinema",
+        "type": "object"
+      },
+      "ShowDetail": {
+        "properties": {
+          "cinema": {
+            "$ref": "#/components/schemas/ShowCinema"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
           },
           "fee_paise": {
-            "description": "Convenience fee per ticket (03 R5: flat ₹30).",
+            "description": "Convenience fee per ticket (R6: flat ₹30).",
             "title": "Fee Paise",
             "type": "integer"
           },
@@ -671,15 +2761,29 @@
             "title": "Fill",
             "type": "string"
           },
+          "film": {
+            "$ref": "#/components/schemas/ShowFilm"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
           "layout_url": {
-            "description": "`/venues/{id}/layout` — immutable, cache it forever.",
+            "description": "`/screens/{id}/layout` — immutable, cache it forever.",
             "title": "Layout Url",
             "type": "string"
+          },
+          "screen": {
+            "$ref": "#/components/schemas/ShowScreen"
           },
           "seats_left": {
             "title": "Seats Left",
@@ -699,41 +2803,50 @@
             "type": "string"
           },
           "tiers": {
-            "description": "Every tier of the venue with this show's price.",
+            "description": "The screen's tiers with this show's prices.",
             "items": {
               "$ref": "#/components/schemas/TierPrice"
             },
             "title": "Tiers",
             "type": "array"
-          },
-          "venue": {
-            "$ref": "#/components/schemas/ShowtimeVenue"
           }
         },
         "required": [
           "id",
           "starts_at",
+          "ends_at",
+          "language",
+          "format",
           "status",
-          "event",
-          "venue",
+          "film",
+          "cinema",
+          "screen",
           "tiers",
           "layout_url",
           "fee_paise",
           "fill",
           "seats_left"
         ],
-        "title": "ShowtimeDetail",
+        "title": "ShowDetail",
         "type": "object"
       },
-      "ShowtimeEvent": {
+      "ShowFilm": {
         "properties": {
-          "duration_min": {
-            "title": "Duration Min",
-            "type": "integer"
-          },
-          "genre": {
-            "title": "Genre",
+          "cert": {
+            "enum": [
+              "U",
+              "UA",
+              "A"
+            ],
+            "title": "Cert",
             "type": "string"
+          },
+          "genres": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Genres",
+            "type": "array"
           },
           "id": {
             "format": "uuid",
@@ -744,16 +2857,9 @@
             "title": "Poster Url",
             "type": "string"
           },
-          "rating": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rating"
+          "runtime_min": {
+            "title": "Runtime Min",
+            "type": "integer"
           },
           "slug": {
             "title": "Slug",
@@ -762,13 +2868,41 @@
           "title": {
             "title": "Title",
             "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "cert",
+          "runtime_min",
+          "poster_url",
+          "genres"
+        ],
+        "title": "ShowFilm",
+        "type": "object"
+      },
+      "ShowFilmRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
           },
-          "type": {
-            "enum": [
-              "movie",
-              "concert"
-            ],
-            "title": "Type",
+          "poster_url": {
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "runtime_min": {
+            "title": "Runtime Min",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
             "type": "string"
           }
         },
@@ -776,16 +2910,46 @@
           "id",
           "slug",
           "title",
-          "type",
-          "genre",
-          "rating",
-          "duration_min",
-          "poster_url"
+          "poster_url",
+          "runtime_min"
         ],
-        "title": "ShowtimeEvent",
+        "title": "ShowFilmRef",
         "type": "object"
       },
-      "ShowtimeSummary": {
+      "ShowScreen": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "seat_count": {
+            "title": "Seat Count",
+            "type": "integer"
+          },
+          "template": {
+            "enum": [
+              "grid",
+              "stalls_balcony"
+            ],
+            "title": "Template",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "template",
+          "seat_count"
+        ],
+        "title": "ShowScreen",
+        "type": "object"
+      },
+      "ShowSlot": {
         "properties": {
           "fill": {
             "enum": [
@@ -796,18 +2960,22 @@
             "title": "Fill",
             "type": "string"
           },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "price_max_paise": {
-            "title": "Price Max Paise",
-            "type": "integer"
+          "language": {
+            "title": "Language",
+            "type": "string"
           },
-          "price_min_paise": {
-            "title": "Price Min Paise",
-            "type": "integer"
+          "screen_name": {
+            "title": "Screen Name",
+            "type": "string"
           },
           "seats_left": {
             "title": "Seats Left",
@@ -824,28 +2992,33 @@
             },
             "title": "Tiers",
             "type": "array"
-          },
-          "venue": {
-            "$ref": "#/components/schemas/VenueRef"
           }
         },
         "required": [
           "id",
           "starts_at",
-          "venue",
-          "tiers",
-          "price_min_paise",
-          "price_max_paise",
+          "screen_name",
+          "language",
+          "format",
           "fill",
-          "seats_left"
+          "seats_left",
+          "tiers"
         ],
-        "title": "ShowtimeSummary",
+        "title": "ShowSlot",
         "type": "object"
       },
-      "ShowtimeVenue": {
+      "StaffBusiness": {
         "properties": {
-          "address": {
-            "title": "Address",
+          "cinemas": {
+            "items": {
+              "$ref": "#/components/schemas/StaffCinema"
+            },
+            "title": "Cinemas",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
             "type": "string"
           },
           "id": {
@@ -857,7 +3030,18 @@
             "title": "Name",
             "type": "string"
           },
-          "photo_url": {
+          "owners": {
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            },
+            "title": "Owners",
+            "type": "array"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "review_note": {
             "anyOf": [
               {
                 "type": "string"
@@ -866,31 +3050,575 @@
                 "type": "null"
               }
             ],
-            "title": "Photo Url"
+            "title": "Review Note"
           },
-          "seat_count": {
-            "title": "Seat Count",
+          "scheduled_shows": {
+            "title": "Scheduled Shows",
             "type": "integer"
           },
-          "template": {
-            "enum": [
-              "grid",
-              "stalls_balcony",
-              "arena"
-            ],
-            "title": "Template",
+          "slug": {
+            "title": "Slug",
             "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "verified",
+              "rejected",
+              "suspended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
           }
         },
         "required": [
           "id",
           "name",
-          "address",
-          "seat_count",
-          "photo_url",
-          "template"
+          "slug",
+          "phone",
+          "status",
+          "review_note",
+          "created_at",
+          "verified_at",
+          "owners",
+          "cinemas",
+          "scheduled_shows"
         ],
-        "title": "ShowtimeVenue",
+        "title": "StaffBusiness",
+        "type": "object"
+      },
+      "StaffBusinessRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "StaffBusinessRef",
+        "type": "object"
+      },
+      "StaffCinema": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "area": {
+            "title": "Area",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "screens": {
+            "title": "Screens",
+            "type": "integer"
+          },
+          "seats": {
+            "title": "Seats",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "area",
+          "address",
+          "screens",
+          "seats"
+        ],
+        "title": "StaffCinema",
+        "type": "object"
+      },
+      "StaffCounts": {
+        "properties": {
+          "films": {
+            "title": "Films",
+            "type": "integer"
+          },
+          "open_requests": {
+            "title": "Open Requests",
+            "type": "integer"
+          },
+          "pending_businesses": {
+            "title": "Pending Businesses",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending_businesses",
+          "open_requests",
+          "films"
+        ],
+        "title": "StaffCounts",
+        "type": "object"
+      },
+      "StaffFilm": {
+        "properties": {
+          "banner_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banner Url"
+          },
+          "cast_crew": {
+            "items": {
+              "$ref": "#/components/schemas/CastMember"
+            },
+            "title": "Cast Crew",
+            "type": "array"
+          },
+          "cert": {
+            "enum": [
+              "U",
+              "UA",
+              "A"
+            ],
+            "title": "Cert",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Formats",
+            "type": "array"
+          },
+          "from_price_paise": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cheapest ticket across those shows.",
+            "title": "From Price Paise"
+          },
+          "genres": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Genres",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "poster_url": {
+            "title": "Poster Url",
+            "type": "string"
+          },
+          "release_date": {
+            "format": "date",
+            "title": "Release Date",
+            "type": "string"
+          },
+          "runtime_min": {
+            "title": "Runtime Min",
+            "type": "integer"
+          },
+          "scheduled_shows": {
+            "description": "Upcoming shows across every cinema.",
+            "title": "Scheduled Shows",
+            "type": "integer"
+          },
+          "show_count": {
+            "description": "Bookable shows in the next 14 days.",
+            "title": "Show Count",
+            "type": "integer"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "coming_soon",
+              "now_showing",
+              "ended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synopsis": {
+            "title": "Synopsis",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "trailer_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer Url"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "cert",
+          "runtime_min",
+          "genres",
+          "languages",
+          "formats",
+          "poster_url",
+          "banner_url",
+          "status",
+          "release_date",
+          "show_count",
+          "from_price_paise",
+          "synopsis",
+          "cast_crew",
+          "trailer_url",
+          "created_at",
+          "scheduled_shows"
+        ],
+        "title": "StaffFilm",
+        "type": "object"
+      },
+      "StaffFilmRequest": {
+        "properties": {
+          "business": {
+            "$ref": "#/components/schemas/StaffBusinessRef"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "film": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FilmRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reply": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "added",
+              "declined"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "note",
+          "status",
+          "reply",
+          "business",
+          "film",
+          "created_at"
+        ],
+        "title": "StaffFilmRequest",
+        "type": "object"
+      },
+      "StallsBalconyKnobs": {
+        "description": "Two curved blocks — stalls split into front/rear tiers, a balcony behind an aisle.",
+        "properties": {
+          "balcony_rows": {
+            "default": 6,
+            "maximum": 10.0,
+            "minimum": 3.0,
+            "title": "Balcony Rows",
+            "type": "integer"
+          },
+          "balcony_seats": {
+            "default": 24,
+            "maximum": 30.0,
+            "minimum": 14.0,
+            "title": "Balcony Seats",
+            "type": "integer"
+          },
+          "curve": {
+            "default": 0.5,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Curve",
+            "type": "number"
+          },
+          "front_rows": {
+            "default": 5,
+            "maximum": 8.0,
+            "minimum": 2.0,
+            "title": "Front Rows",
+            "type": "integer"
+          },
+          "stage_label": {
+            "default": "SCREEN",
+            "title": "Stage Label",
+            "type": "string"
+          },
+          "stalls_rows": {
+            "default": 12,
+            "maximum": 16.0,
+            "minimum": 8.0,
+            "title": "Stalls Rows",
+            "type": "integer"
+          },
+          "stalls_seats": {
+            "default": 28,
+            "maximum": 36.0,
+            "minimum": 18.0,
+            "title": "Stalls Seats",
+            "type": "integer"
+          },
+          "template": {
+            "const": "stalls_balcony",
+            "default": "stalls_balcony",
+            "title": "Template",
+            "type": "string"
+          }
+        },
+        "title": "StallsBalconyKnobs",
+        "type": "object"
+      },
+      "TicketBundle": {
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/Order"
+          },
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/TicketOut"
+            },
+            "title": "Tickets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "order",
+          "tickets"
+        ],
+        "title": "TicketBundle",
+        "type": "object"
+      },
+      "TicketGroup": {
+        "properties": {
+          "checked_in": {
+            "description": "How many of these tickets were scanned at the door.",
+            "title": "Checked In",
+            "type": "integer"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "seats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seats",
+            "type": "array"
+          },
+          "show": {
+            "$ref": "#/components/schemas/OrderShow"
+          },
+          "tier_labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tier Labels",
+            "type": "array"
+          },
+          "total_paise": {
+            "title": "Total Paise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order_id",
+          "show",
+          "seats",
+          "tier_labels",
+          "total_paise",
+          "paid_at",
+          "checked_in"
+        ],
+        "title": "TicketGroup",
+        "type": "object"
+      },
+      "TicketOut": {
+        "properties": {
+          "checked_in_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked In At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "qr_token": {
+            "description": "Signed token the QR encodes; the door verifies it.",
+            "title": "Qr Token",
+            "type": "string"
+          },
+          "seat_id": {
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "tier_label": {
+            "title": "Tier Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "seat_id",
+          "label",
+          "tier_label",
+          "qr_token",
+          "checked_in_at"
+        ],
+        "title": "TicketOut",
+        "type": "object"
+      },
+      "TierBand": {
+        "description": "A run of rows sharing one tier, front to back (grid) — bands sum to `rows`.",
+        "properties": {
+          "key": {
+            "pattern": "^[a-z][a-z0-9_-]{0,23}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "rows": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "rows"
+        ],
+        "title": "TierBand",
         "type": "object"
       },
       "TierPrice": {
@@ -916,45 +3644,145 @@
         "title": "TierPrice",
         "type": "object"
       },
-      "VenueRef": {
+      "Token": {
         "properties": {
-          "address": {
-            "title": "Address",
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
             "type": "string"
           },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
+          "me": {
+            "$ref": "#/components/schemas/Me"
+          },
+          "token": {
+            "description": "Send as `Authorization: Bearer <token>`.",
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expires_at",
+          "me"
+        ],
+        "title": "Token",
+        "type": "object"
+      },
+      "TokenRequest": {
+        "properties": {
+          "code": {
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 254,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "TokenRequest",
+        "type": "object"
+      },
+      "Verify": {
+        "properties": {
+          "business": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BusinessDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "code": {
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "door": {
+            "default": "customer",
+            "enum": [
+              "customer",
+              "business",
+              "staff"
+            ],
+            "title": "Door",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 254,
+            "title": "Email",
             "type": "string"
           },
           "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "photo_url": {
             "anyOf": [
               {
+                "maxLength": 80,
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Photo Url"
+            "title": "Name"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "Verify",
+        "type": "object"
+      },
+      "VerifyPayment": {
+        "properties": {
+          "razorpay_payment_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Razorpay Payment Id",
+            "type": "string"
           },
-          "seat_count": {
-            "title": "Seat Count",
+          "razorpay_signature": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Razorpay Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "razorpay_payment_id",
+          "razorpay_signature"
+        ],
+        "title": "VerifyPayment",
+        "type": "object"
+      },
+      "Version": {
+        "properties": {
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "show_count": {
+            "title": "Show Count",
             "type": "integer"
           }
         },
         "required": [
-          "id",
-          "name",
-          "address",
-          "seat_count",
-          "photo_url"
+          "language",
+          "format",
+          "show_count"
         ],
-        "title": "VenueRef",
+        "title": "Version",
         "type": "object"
       }
     }
@@ -965,105 +3793,61 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/events": {
-      "get": {
-        "operationId": "list_events_events_get",
-        "parameters": [
-          {
-            "description": "today · tomorrow · weekend · YYYY-MM-DD (IST days)",
-            "in": "query",
-            "name": "date",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "pattern": "^(today|tomorrow|weekend|\\d{4}-\\d{2}-\\d{2})$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "today · tomorrow · weekend · YYYY-MM-DD (IST days)",
-              "title": "Date"
+    "/auth/code": {
+      "post": {
+        "description": "Email a 6-digit code (10 minutes, 5 tries). Same answer at the staff door for any\nemail. 429 when asked too often; 503 `email_unavailable` when this deployment has no SMTP.",
+        "operationId": "send_code_auth_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeRequest"
+              }
             }
           },
-          {
-            "in": "query",
-            "name": "type",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "movie",
-                    "concert"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Type"
-            }
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
-          {
-            "in": "query",
-            "name": "genre",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 40,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
-              ],
-              "title": "Genre"
-            }
-          },
-          {
-            "in": "query",
-            "name": "venue",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Venue"
-            }
-          },
-          {
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "soonest",
-              "enum": [
-                "soonest",
-                "price",
-                "title"
-              ],
-              "title": "Sort",
-              "type": "string"
-            }
+              }
+            },
+            "description": "Error envelope (06 §C)"
           }
-        ],
+        },
+        "summary": "Send Code",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/demo": {
+      "post": {
+        "description": "One click, no email: the seeded demo customer, theatre owner (Orbit Cinemas) or staff\nmember (view-only). The demo customer always has an upcoming and a past booking.",
+        "operationId": "demo_auth_demo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Demo"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EventList"
+                  "$ref": "#/components/schemas/Me"
                 }
               }
             },
@@ -1080,15 +3864,272 @@
             "description": "Error envelope (06 §C)"
           }
         },
-        "summary": "List Events",
+        "summary": "Demo",
         "tags": [
-          "catalog"
+          "auth"
         ]
       }
     },
-    "/events/{slug}": {
+    "/auth/me": {
       "get": {
-        "operationId": "get_event_events__slug__get",
+        "operationId": "me_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/sign-out": {
+      "post": {
+        "operationId": "sign_out_auth_sign_out_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Sign Out",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/token": {
+      "delete": {
+        "operationId": "delete_token_auth_token_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Delete Token",
+        "tags": [
+          "auth"
+        ]
+      },
+      "post": {
+        "description": "Bearer session for the v4 app (`sessions.kind = mobile`, 90 days), from a code sent by\n`POST /auth/code` (existing accounts only).",
+        "operationId": "create_token_auth_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Create Token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "operationId": "verify_auth_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Verify"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "`code_invalid` — wrong or expired; `details.tries_left`"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Verify",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/checkin": {
+      "post": {
+        "description": "The door (B10): valid once; then \"already checked in at HH:MM\"; wrong show; not a\nticket. Only the business that owns the show can scan it.",
+        "operationId": "check_in_checkin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Check In",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/films": {
+      "get": {
+        "operationId": "films_films_get",
+        "parameters": [
+          {
+            "description": "Search by title or genre",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search by title or genre",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilmList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Films",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
+    "/films/{slug}": {
+      "get": {
+        "operationId": "film_films__slug__get",
         "parameters": [
           {
             "in": "path",
@@ -1105,7 +4146,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EventDetail"
+                  "$ref": "#/components/schemas/FilmDetail"
                 }
               }
             },
@@ -1122,9 +4163,104 @@
             "description": "Error envelope (06 §C)"
           }
         },
-        "summary": "Get Event",
+        "summary": "Film",
         "tags": [
-          "catalog"
+          "catalogue"
+        ]
+      }
+    },
+    "/films/{slug}/shows": {
+      "get": {
+        "operationId": "film_shows_films__slug__shows_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          },
+          {
+            "description": "IST day; default the first with shows",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "IST day; default the first with shows",
+              "title": "Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 30,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Language"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 10,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilmShows"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Film Shows",
+        "tags": [
+          "catalogue"
         ]
       }
     },
@@ -1186,30 +4322,19 @@
         },
         "summary": "Home",
         "tags": [
-          "catalog"
+          "catalogue"
         ]
       }
     },
-    "/showtimes/{showtime_id}": {
+    "/my/tickets": {
       "get": {
-        "operationId": "get_showtime_showtimes__showtime_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "showtime_id",
-            "required": true,
-            "schema": {
-              "title": "Showtime Id",
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "my_tickets_my_tickets_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ShowtimeDetail"
+                  "$ref": "#/components/schemas/MyTickets"
                 }
               }
             },
@@ -1226,39 +4351,1025 @@
             "description": "Error envelope (06 §C)"
           }
         },
-        "summary": "Get Showtime",
+        "summary": "My Tickets",
         "tags": [
-          "seat map"
+          "orders"
         ]
       }
     },
-    "/showtimes/{showtime_id}/seats": {
+    "/orders": {
+      "post": {
+        "description": "Check the holds, price the seats server-side, open a gateway order. 409 `hold_missing`\nwhen a hold lapsed; pressing Proceed twice returns the same pending order.",
+        "operationId": "create_order_orders_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Create Order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{order_id}": {
       "get": {
-        "operationId": "get_seats_showtimes__showtime_id__seats_get",
+        "operationId": "get_order_orders__order_id__get",
         "parameters": [
           {
             "in": "path",
-            "name": "showtime_id",
+            "name": "order_id",
             "required": true,
             "schema": {
-              "title": "Showtime Id",
+              "title": "Order Id",
               "type": "string"
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
           },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{order_id}/demo-pay": {
+      "post": {
+        "description": "Test-mode payment when no Razorpay keys are configured: confirms through the same path\nas a webhook. 409 when real Razorpay is configured.",
+        "operationId": "demo_pay_orders__order_id__demo_pay_post",
+        "parameters": [
           {
-            "in": "cookie",
-            "name": "fr_sid",
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Demo Pay",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/orders/{order_id}/verify": {
+      "post": {
+        "description": "The Checkout handler's fast path: a valid signature confirms at once (the webhook,\narriving later, finds the order paid and does nothing).",
+        "operationId": "verify_payment_orders__order_id__verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPayment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Verify Payment",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/owner/business": {
+      "get": {
+        "operationId": "business_owner_business_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerBusiness"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Business",
+        "tags": [
+          "theatre owner"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_business_owner_business_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BusinessPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerBusiness"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Patch Business",
+        "tags": [
+          "theatre owner"
+        ]
+      },
+      "post": {
+        "description": "A signed-in account registers a business (pending until staff verify it).",
+        "operationId": "register_owner_business_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterBusiness"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerBusiness"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Register",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/cinemas": {
+      "get": {
+        "operationId": "cinemas_owner_cinemas_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OwnerCinema"
+                  },
+                  "title": "Response Cinemas Owner Cinemas Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Cinemas",
+        "tags": [
+          "theatre owner"
+        ]
+      },
+      "post": {
+        "operationId": "add_cinema_owner_cinemas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CinemaIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerCinema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Add Cinema",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/cinemas/{cinema_id}": {
+      "get": {
+        "operationId": "cinema_owner_cinemas__cinema_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cinema_id",
+            "required": true,
+            "schema": {
+              "title": "Cinema Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerCinema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Cinema",
+        "tags": [
+          "theatre owner"
+        ]
+      },
+      "patch": {
+        "operationId": "edit_cinema_owner_cinemas__cinema_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cinema_id",
+            "required": true,
+            "schema": {
+              "title": "Cinema Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CinemaIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerCinema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Edit Cinema",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/cinemas/{cinema_id}/screens": {
+      "post": {
+        "description": "Generate the seats from a template (grid, or stalls + balcony).",
+        "operationId": "add_screen_owner_cinemas__cinema_id__screens_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cinema_id",
+            "required": true,
+            "schema": {
+              "title": "Cinema Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerScreen"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Add Screen",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/film-requests": {
+      "get": {
+        "operationId": "film_requests_owner_film_requests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OwnerFilmRequest"
+                  },
+                  "title": "Response Film Requests Owner Film Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Film Requests",
+        "tags": [
+          "theatre owner"
+        ]
+      },
+      "post": {
+        "description": "Ask Frontrow staff to add a film that isn't in the catalogue yet.",
+        "operationId": "request_film_owner_film_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilmRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerFilmRequest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Request Film",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/screens/preview": {
+      "post": {
+        "description": "The layout these knobs would produce — the live preview while setting up a screen.",
+        "operationId": "preview_screen_owner_screens_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenPreview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Layout"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Preview Screen",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/screens/{screen_id}": {
+      "get": {
+        "operationId": "screen_owner_screens__screen_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "screen_id",
+            "required": true,
+            "schema": {
+              "title": "Screen Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerScreenDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Screen",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/shows": {
+      "get": {
+        "operationId": "shows_owner_shows_get",
+        "parameters": [
+          {
+            "description": "IST day; default today",
+            "in": "query",
+            "name": "date",
             "required": false,
             "schema": {
               "anyOf": [
                 {
+                  "format": "date",
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Fr Sid"
+              "description": "IST day; default today",
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerShows"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Shows",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/shows/bulk": {
+      "post": {
+        "description": "Film + language + format + screen + days + times + a price per tier → every show in the\nrange, or none if any of them overlaps another show on the screen.",
+        "operationId": "bulk_shows_owner_shows_bulk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkShows"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`overlap` — `details.show` names the clashing show"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Bulk Shows",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/shows/{show_id}/bookings": {
+      "get": {
+        "operationId": "bookings_owner_shows__show_id__bookings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "pattern": "^(json|csv)$",
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Bookings"
+                }
+              },
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Bookings",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/screens/{screen_id}/layout": {
+      "get": {
+        "operationId": "get_layout_screens__screen_id__layout_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "screen_id",
+            "required": true,
+            "schema": {
+              "title": "Screen Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Layout"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Layout",
+        "tags": [
+          "seat map"
+        ]
+      }
+    },
+    "/shows/{show_id}": {
+      "get": {
+        "operationId": "get_show_shows__show_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShowDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Show",
+        "tags": [
+          "seat map"
+        ]
+      }
+    },
+    "/shows/{show_id}/holds": {
+      "delete": {
+        "operationId": "drop_holds_shows__show_id__holds_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Drop Holds",
+        "tags": [
+          "seat map"
+        ]
+      },
+      "post": {
+        "description": "Hold the caller's whole selection for 10 minutes — all of it or none of it.",
+        "operationId": "place_holds_shows__show_id__holds_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldGranted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`seat_taken` — `details.taken` names the seats"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Place Holds",
+        "tags": [
+          "seat map"
+        ]
+      }
+    },
+    "/shows/{show_id}/seats": {
+      "get": {
+        "operationId": "get_seats_shows__show_id__seats_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
             }
           }
         ],
@@ -1290,17 +5401,30 @@
         ]
       }
     },
-    "/venues/{venue_id}/layout": {
+    "/staff/businesses": {
       "get": {
-        "operationId": "get_layout_venues__venue_id__layout_get",
+        "operationId": "businesses_staff_businesses_get",
         "parameters": [
           {
-            "in": "path",
-            "name": "venue_id",
-            "required": true,
+            "in": "query",
+            "name": "status",
+            "required": false,
             "schema": {
-              "title": "Venue Id",
-              "type": "string"
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "verified",
+                    "rejected",
+                    "suspended"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           }
         ],
@@ -1309,7 +5433,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Layout"
+                  "items": {
+                    "$ref": "#/components/schemas/StaffBusiness"
+                  },
+                  "title": "Response Businesses Staff Businesses Get",
+                  "type": "array"
                 }
               }
             },
@@ -1326,9 +5454,452 @@
             "description": "Error envelope (06 §C)"
           }
         },
-        "summary": "Get Layout",
+        "summary": "Businesses",
         "tags": [
-          "seat map"
+          "frontrow staff"
+        ]
+      }
+    },
+    "/staff/businesses/{business_id}": {
+      "patch": {
+        "description": "Approve (their shows go public) or reject with a reason.",
+        "operationId": "decide_business_staff_businesses__business_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "business_id",
+            "required": true,
+            "schema": {
+              "title": "Business Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BusinessDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffBusiness"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Decide Business",
+        "tags": [
+          "frontrow staff"
+        ]
+      }
+    },
+    "/staff/counts": {
+      "get": {
+        "operationId": "counts_staff_counts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCounts"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Counts",
+        "tags": [
+          "frontrow staff"
+        ]
+      }
+    },
+    "/staff/film-requests": {
+      "get": {
+        "operationId": "film_requests_staff_film_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "added",
+                    "declined"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StaffFilmRequest"
+                  },
+                  "title": "Response Film Requests Staff Film Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Film Requests",
+        "tags": [
+          "frontrow staff"
+        ]
+      }
+    },
+    "/staff/film-requests/{request_id}": {
+      "patch": {
+        "description": "Decline with a reason, or link a film that is already in the catalogue.",
+        "operationId": "decide_request_staff_film_requests__request_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFilmRequest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Decide Request",
+        "tags": [
+          "frontrow staff"
+        ]
+      }
+    },
+    "/staff/films": {
+      "get": {
+        "operationId": "films_staff_films_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StaffFilm"
+                  },
+                  "title": "Response Films Staff Films Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Films",
+        "tags": [
+          "frontrow staff"
+        ]
+      },
+      "post": {
+        "description": "Add a film to the shared catalogue; with `request_id`, the owner's request is answered.",
+        "operationId": "add_film_staff_films_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFilm"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Add Film",
+        "tags": [
+          "frontrow staff"
+        ]
+      }
+    },
+    "/staff/films/{film_id}": {
+      "get": {
+        "operationId": "film_staff_films__film_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "film_id",
+            "required": true,
+            "schema": {
+              "title": "Film Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFilm"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Film",
+        "tags": [
+          "frontrow staff"
+        ]
+      },
+      "patch": {
+        "description": "Edit details or move the status on (coming soon → now showing → ended).",
+        "operationId": "edit_film_staff_films__film_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "film_id",
+            "required": true,
+            "schema": {
+              "title": "Film Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffFilm"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Edit Film",
+        "tags": [
+          "frontrow staff"
+        ]
+      }
+    },
+    "/tickets/{order_id}": {
+      "get": {
+        "description": "One QR per seat. Someone else's order → 404.",
+        "operationId": "get_tickets_tickets__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketBundle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Tickets",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/webhooks/razorpay": {
+      "post": {
+        "description": "HMAC-checked; deduplicated by Razorpay's event id (a replay is a no-op); always 200\nonce the signature is good, so Razorpay stops retrying.",
+        "operationId": "razorpay_webhook_webhooks_razorpay_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Razorpay Webhook Webhooks Razorpay Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Razorpay Webhook",
+        "tags": [
+          "orders",
+          "webhooks"
         ]
       }
     }

@@ -11,7 +11,8 @@ from app.config import Settings, get_settings
 from app.db import dispose_engine
 from app.errors import install_error_handlers
 from app.middleware import BlankQueryParamsMiddleware, NoSniffMiddleware, RequestIdMiddleware
-from app.routers import events, health, showtimes
+from app.redis import close_redis
+from app.routers import auth, catalog, health, orders, owner, shows, staff
 
 # Swagger UI from jsdelivr at an exact version, not FastAPI's floating `@5`: the docs page runs
 # whatever that tag points at, so a release can't change (or break) it under us.
@@ -19,11 +20,13 @@ SWAGGER_UI = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.34.1"
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # The engine is created lazily by the first session (app/db.py); only disposal lives here.
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # The engine and the Redis client are created lazily on first use (app/db.py, app/redis.py);
+    # only disposal lives here.
     try:
         yield
     finally:
+        await close_redis(app)
         await dispose_engine()
 
 
@@ -45,8 +48,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
 
     app.include_router(health.router)
-    app.include_router(events.router)
-    app.include_router(showtimes.router)
+    app.include_router(auth.router)
+    app.include_router(catalog.router)
+    app.include_router(shows.router)
+    app.include_router(orders.router)
+    app.include_router(owner.router)
+    app.include_router(owner.door)
+    app.include_router(staff.router)
 
     @app.get("/docs", include_in_schema=False)
     async def docs() -> HTMLResponse:

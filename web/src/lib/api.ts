@@ -1,5 +1,6 @@
 import { headers as requestHeaders } from "next/headers";
-import type { components, paths } from "./api-types";
+import { errorFromResponse } from "./api-error";
+import type { paths } from "./api-types";
 
 /**
  * Typed server-side client for the api. Paths, responses and the error envelope come from
@@ -7,35 +8,10 @@ import type { components, paths } from "./api-types";
  * Browser code calls the same routes through the `/api/*` rewrite with plain `fetch`.
  */
 
-export type ApiErrorBody = components["schemas"]["ApiErrorBody"];
+export { ApiRequestError, errorFromResponse, type ApiErrorBody } from "./api-error";
 
 // `new URL(path, BASE)` tolerates a trailing slash on API_URL; next.config.ts strips it for rewrites.
 const BASE = process.env.API_URL ?? "http://localhost:8000";
-
-export class ApiRequestError extends Error {
-  constructor(
-    public status: number,
-    public body: ApiErrorBody,
-  ) {
-    super(body.message);
-  }
-}
-
-/** Only a body shaped like the api envelope is trusted; anything else keeps the HTTP status. */
-export function errorFromResponse(status: number, statusText: string, raw: unknown) {
-  const error = (raw as { error?: unknown } | undefined)?.error;
-  if (isErrorBody(error)) return new ApiRequestError(status, error);
-  return new ApiRequestError(status, { code: "internal", message: statusText || `HTTP ${status}` });
-}
-
-function isErrorBody(x: unknown): x is ApiErrorBody {
-  return (
-    typeof x === "object" &&
-    x !== null &&
-    typeof (x as ApiErrorBody).code === "string" &&
-    typeof (x as ApiErrorBody).message === "string"
-  );
-}
 
 /** Paths that have a GET operation in the contract. */
 export type GetPath = {
@@ -47,7 +23,7 @@ type JsonOf<R> = R extends { content: { "application/json": infer J } } ? J : ne
 export type GetResponse<P extends GetPath> = JsonOf<paths[P]["get"]["responses"][200]>;
 
 export interface ApiInit {
-  /** Values for `{name}` tokens in the path (`/events/{slug}`), URL-encoded. */
+  /** Values for `{name}` tokens in the path (`/films/{slug}`), URL-encoded. */
   params?: Record<string, string>;
   /** Cache tags for on-demand revalidation. */
   tags?: string[];

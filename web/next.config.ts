@@ -13,13 +13,15 @@ const API_URL = (process.env.API_URL ?? "http://localhost:8000").replace(/\/$/, 
  * origin allowed at all, an injected `<script src>` still can't load anything; the JSON-LD is
  * escaped (`jsonLd()` in events/[slug]).
  *
- * Everything is same-origin today: posters and venue photos are files in public/ served through
- * /_next/image, next/font self-hosts the fonts, and the browser reaches the api only through the
- * `/api/*` rewrite. F5 adds Razorpay's hosts here when Checkout arrives.
+ * Everything is same-origin except Razorpay Checkout (F5): posters and venue photos are files in
+ * public/ served through /_next/image, next/font self-hosts the fonts, and the browser reaches the
+ * api only through the `/api/*` rewrite. Checkout loads Razorpay's script, which opens its own
+ * iframe and talks to its own API — those origins and nothing else.
  *
  * HSTS is absent on purpose: Vercel sends it on every response already.
  */
 const isDev = process.env.NODE_ENV === "development";
+const RAZORPAY = "https://checkout.razorpay.com https://api.razorpay.com";
 
 const csp = [
   "default-src 'self'",
@@ -27,11 +29,12 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'", // the /events filter form (GET, same origin)
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`, // eval: React Refresh in dev
+  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com${isDev ? " 'unsafe-eval'" : ""}`, // eval: React Refresh in dev
+  `frame-src ${RAZORPAY}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind + Next inject <style> elements
-  "img-src 'self' data:",
+  "img-src 'self' data: https://*.razorpay.com",
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws:" : ""}`, // ws: the dev server's HMR socket
+  `connect-src 'self' ${RAZORPAY} https://lumberjack.razorpay.com${isDev ? " ws:" : ""}`, // ws: the dev server's HMR socket
   // On Vercel only: `next start` on http://localhost would have its own requests upgraded.
   ...(process.env.VERCEL ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
@@ -42,7 +45,8 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" }, // for browsers older than `frame-ancestors`
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  // `payment` only for Razorpay's checkout frame (UPI / saved cards use the Payment Request API).
+  { key: "Permissions-Policy", value: 'camera=(self), microphone=(), geolocation=(), payment=(self "https://api.razorpay.com"), usb=()' },
 ];
 
 const nextConfig: NextConfig = {

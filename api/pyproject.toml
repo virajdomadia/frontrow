@@ -5,10 +5,11 @@ description = "Frontrow API — FastAPI backend (see docs/04-technical-design.md
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.20.0",
-    "argon2-cffi>=25.1.0",
     "asyncpg>=0.31.0",
     "fastapi>=0.141.1",
+    "httpx>=0.28.1",
     "pydantic-settings>=2.15.0",
+    "redis>=8.2.0",
     "sqlalchemy[asyncio]>=2.0.53",
     "tzdata>=2026.4",
     "uvicorn[standard]>=0.52.4",
@@ -23,6 +24,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Request/assert one-liners read better unwrapped; the formatter still owns layout.
+"tests/*" = ["E501"]
 
 [tool.ruff.lint.isort]
 # api/alembic/ is the migrations dir, not the `alembic` package.
