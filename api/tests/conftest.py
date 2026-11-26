@@ -34,6 +34,8 @@ from app.db import get_session
 from app.main import create_app
 from app.models import Base
 from app.redis import close_redis, redis_for
+from app.services import schedules
+from tests.helpers import Outbox
 from tests.settings import make_settings
 
 API_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -57,6 +59,12 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
                 item.add_marker(skip)
 
 
+@pytest.fixture(autouse=True)
+def short_horizon(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests materialise 7 days of shows, not 14 — the same code, half the rows to insert."""
+    monkeypatch.setattr(schedules, "HORIZON_DAYS", 7)
+
+
 @pytest.fixture
 async def app() -> AsyncIterator[FastAPI]:
     # Pure defaults (tests/settings.py): no env, no .env.local — the DB stays off; Redis is the
@@ -65,6 +73,7 @@ async def app() -> AsyncIterator[FastAPI]:
     if TEST_REDIS_URL:
         overrides.update(redis_url=TEST_REDIS_URL, hold_ttl_seconds=TEST_HOLD_TTL)
     app = create_app(settings=make_settings(**overrides))
+    app.state.mailer = Outbox()  # sign-in codes and ticket emails land here
     redis = redis_for(app)
     if redis is not None:
         await redis.flushdb()

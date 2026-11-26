@@ -1,4 +1,4 @@
-"""Template knobs (04 §2) — validated here so the organiser POST in F7 and the seed share one
+"""Screen template knobs (04 §2) — validated here so the owner POST in B8 and the seed share one
 definition — and the `Layout` JSON shape the seat map renders (06 §D)."""
 
 from typing import Annotated, Literal
@@ -56,7 +56,7 @@ class StallsBalconyKnobs(BaseModel):
     balcony_rows: Annotated[int, Field(ge=3, le=10)] = 6
     balcony_seats: Annotated[int, Field(ge=14, le=30)] = 24
     curve: Annotated[float, Field(ge=0.0, le=1.0)] = 0.5
-    stage_label: str = "STAGE"
+    stage_label: str = "SCREEN"
 
     @model_validator(mode="after")
     def _front_inside_stalls(self) -> "StallsBalconyKnobs":
@@ -65,20 +65,7 @@ class StallsBalconyKnobs(BaseModel):
         return self
 
 
-class ArenaKnobs(BaseModel):
-    """Wedge sections around a floor block, stage at the top; tier by distance from the stage."""
-
-    template: Literal["arena"] = "arena"
-    sections: Annotated[int, Field(ge=6, le=12)] = 8
-    rows_per_section: Annotated[int, Field(ge=6, le=14)] = 12
-    seats_per_row: Annotated[int, Field(ge=10, le=20)] = 16
-    floor_rows: Annotated[int, Field(ge=0, le=24)] = 20
-    floor_seats: Annotated[int, Field(ge=0, le=24)] = 20
-    floor_radius: Annotated[int, Field(ge=200, le=420)] = 360
-    stage_label: str = "STAGE"
-
-
-Knobs = Annotated[GridKnobs | StallsBalconyKnobs | ArenaKnobs, Field(discriminator="template")]
+Knobs = Annotated[GridKnobs | StallsBalconyKnobs, Field(discriminator="template")]
 
 
 # --- The Layout JSON (06 §D) ----------------------------------------------------------------------
@@ -118,7 +105,7 @@ class LayoutTier(ApiModel):
 
 
 class Layout(ApiModel):
-    template: Literal["grid", "stalls_balcony", "arena"]
+    template: Literal["grid", "stalls_balcony"]
     width: int
     height: int
     stage: LayoutStage

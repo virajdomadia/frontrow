@@ -1,4 +1,4 @@
-"""The hand-written 0001_v1 migration must match the models, and the view must exist."""
+"""The hand-written migrations must match the models, and the view must exist."""
 
 import pytest
 from alembic.autogenerate import compare_metadata
@@ -18,15 +18,15 @@ async def test_migration_matches_models(db_engine: AsyncEngine) -> None:
 
     async with db_engine.connect() as conn:
         drift = await conn.run_sync(diff)
-    assert drift == [], f"models and 0001_v1 disagree: {drift}"
+    assert drift == [], f"models and the migrations disagree: {drift}"
 
 
-async def test_showtime_fill_view_exists(db_engine: AsyncEngine) -> None:
+async def test_show_fill_view_exists(db_engine: AsyncEngine) -> None:
     async with db_engine.connect() as conn:
         cols = await conn.execute(
             text(
                 "select column_name from information_schema.columns "
-                "where table_name = 'showtime_fill' order by ordinal_position"
+                "where table_name = 'show_fill' order by ordinal_position"
             )
         )
-    assert [c[0] for c in cols] == ["showtime_id", "seat_count", "sold"]
+    assert [c[0] for c in cols] == ["show_id", "seat_count", "sold"]

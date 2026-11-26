@@ -1,4 +1,4 @@
-"""F5/F6: orders, payment confirmation, refunds and QR tickets (04 §11).
+"""B6/B7: orders, payment confirmation, refunds and QR tickets (04 §11).
 
 - `test_order_total`            server-side total = Σ tier price + ₹30 × seats
 - `test_webhook_signature_and_replay`
@@ -9,36 +9,29 @@
 import asyncio
 import json
 import uuid
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from pydantic import SecretStr
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from app.models import Order, OrderSeat, PriceTier, Seat, Showtime, Ticket, User, Venue
+from app.models import Order, OrderSeat, Screen, Show, ShowPrice, Ticket, User
 from app.models.enums import OrderStatus
 from app.seed import seed
 from app.services import orders as svc
 from app.services import tickets
 from app.services.payments import DemoGateway, RazorpayGateway, hmac_hex
 from tests.conftest import TEST_HOLD_TTL
+from tests.helpers import open_show, signed_in, tab
 
 pytestmark = [pytest.mark.db, pytest.mark.redis]
 
 KEY_SECRET = "rzp-test-key-secret"
 WEBHOOK_SECRET = "rzp-test-webhook-secret"
-
-
-def tab(app: FastAPI) -> AsyncClient:
-    return AsyncClient(
-        transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://test"
-    )
 
 
 class RazorpayStub:
@@ -68,47 +61,15 @@ def use_razorpay(app: FastAPI) -> RazorpayStub:
     return stub
 
 
-async def grid_showtime(db: AsyncSession) -> tuple[Showtime, Venue, dict[str, list[str]]]:
-    """The emptiest upcoming cinema showtime and its free seats by tier."""
-    sold_count = (
-        select(func.count()).select_from(Ticket).where(Ticket.showtime_id == Showtime.id)
-    ).scalar_subquery()
-    showtime = await db.scalar(
-        select(Showtime)
-        .join(Venue, Venue.id == Showtime.venue_id)
-        .where(Venue.template == "grid", Showtime.starts_at > datetime.now(UTC))
-        .order_by(sold_count)
-        .limit(1)
-    )
-    assert showtime is not None
-    venue = await db.get(Venue, showtime.venue_id)
-    assert venue is not None
-    sold = set(await db.scalars(select(Ticket.seat_id).where(Ticket.showtime_id == showtime.id)))
-    free: dict[str, list[str]] = {}
-    for s in await db.scalars(select(Seat).where(Seat.venue_id == venue.id).order_by(Seat.y)):
-        if s.id not in sold:
-            free.setdefault(s.tier_key, []).append(str(s.id))
-    return showtime, venue, free
+async def grid_showtime(db: AsyncSession) -> tuple[Show, Screen, dict[str, list[str]]]:
+    found = await open_show(db)
+    return found.show, found.screen, found.free
 
 
-@asynccontextmanager
-async def signed_in(app: FastAPI, who: str = "customer") -> AsyncIterator[AsyncClient]:
-    async with tab(app) as c:
-        if who == "customer":
-            res = await c.post("/auth/demo", json={"as": "customer"})
-        else:
-            res = await c.post(
-                "/auth/sign-up",
-                json={"email": f"{who}@example.com", "password": "password1", "name": who},
-            )
-        assert res.status_code in (200, 201), res.text
-        yield c
-
-
-async def hold_and_order(c: AsyncClient, showtime: Showtime, seats: list[str]) -> dict:
-    held = await c.post(f"/showtimes/{showtime.id}/holds", json={"seat_ids": seats})
+async def hold_and_order(c: AsyncClient, showtime: Show, seats: list[str]) -> dict:
+    held = await c.post(f"/shows/{showtime.id}/holds", json={"seat_ids": seats})
     assert held.status_code == 200, held.text
-    res = await c.post("/orders", json={"showtime_id": str(showtime.id), "seat_ids": seats})
+    res = await c.post("/orders", json={"show_id": str(showtime.id), "seat_ids": seats})
     assert res.status_code == 201, res.text
     return res.json()
 
@@ -141,7 +102,7 @@ async def test_order_total(db_engine: AsyncEngine, db: AsyncSession, db_app: Fas
     seats = [free["classic"][0], free["recliner"][0]]
     prices = {
         t.tier_key: t.price_paise
-        for t in await db.scalars(select(PriceTier).where(PriceTier.showtime_id == showtime.id))
+        for t in await db.scalars(select(ShowPrice).where(ShowPrice.show_id == showtime.id))
     }
     async with signed_in(db_app) as c:
         order = await hold_and_order(c, showtime, seats)
@@ -153,9 +114,7 @@ async def test_order_total(db_engine: AsyncEngine, db: AsyncSession, db_app: Fas
         assert {s["tier_label"] for s in order["seats"]} == {"Classic", "Recliner"}
 
         # Proceed twice → the same pending order, not a second one.
-        again = await c.post(
-            "/orders", json={"showtime_id": str(showtime.id), "seat_ids": seats[::-1]}
-        )
+        again = await c.post("/orders", json={"show_id": str(showtime.id), "seat_ids": seats[::-1]})
         assert again.json()["id"] == order["id"]
 
 
@@ -164,7 +123,7 @@ async def test_order_needs_a_live_hold(
 ) -> None:
     await seed(db_engine, now=datetime.now(UTC))
     showtime, _, free = await grid_showtime(db)
-    body = {"showtime_id": str(showtime.id), "seat_ids": [free["prime"][0]]}
+    body = {"show_id": str(showtime.id), "seat_ids": [free["prime"][0]]}
     async with tab(db_app) as anon:
         assert (await anon.post("/orders", json=body)).status_code == 401
     async with signed_in(db_app) as c:
@@ -185,7 +144,7 @@ async def test_demo_pay_tickets_and_privacy(
         # Replaying the payment is a no-op.
         assert (await c.post(f"/orders/{order['id']}/demo-pay")).json()["status"] == "paid"
 
-        state = (await c.get(f"/showtimes/{showtime.id}/seats")).json()
+        state = (await c.get(f"/shows/{showtime.id}/seats")).json()
         assert set(seats) <= set(state["sold"]) and state["mine"] == []
 
         bundle = await c.get(f"/tickets/{order['id']}")
@@ -195,8 +154,10 @@ async def test_demo_pay_tickets_and_privacy(
         for t in issued:
             verified = tickets.verify(db_app.state.settings, t["qr_token"], now=datetime.now(UTC))
             assert verified is not None and str(verified.ticket_id) == t["id"]
-            assert verified.showtime_id == showtime.id
-        forged = issued[0]["qr_token"][:-2] + "AA"
+            assert verified.show_id == showtime.id
+        token = issued[0]["qr_token"]
+        # Change one character in the middle of the MAC (the last one carries padding bits).
+        forged = token[:-6] + ("B" if token[-6] != "B" else "C") + token[-5:]
         assert tickets.verify(db_app.state.settings, forged, now=datetime.now(UTC)) is None
 
         mine = (await c.get("/my/tickets")).json()
@@ -254,15 +215,15 @@ async def test_webhook_signature_and_replay(
 
 async def test_confirm_unique(db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI) -> None:
     """Two paid orders for the same seat, confirmed at the same moment: one gets the ticket,
-    the other is refunded — the UNIQUE (showtime_id, seat_id) guard, not Redis, decides."""
+    the other is refunded — the UNIQUE (show_id, seat_id) guard, not Redis, decides."""
     await seed(db_engine, now=datetime.now(UTC))
     showtime, _, free = await grid_showtime(db)
     seat = uuid.UUID(free["classic"][5])
-    users = list(await db.scalars(select(User).limit(2)))
+    users = list(await db.scalars(select(User).order_by(User.email).limit(2)))
     order_ids = []
     for u in users:
         o = Order(
-            user_id=u.id, sid=f"sid-{u.id}", showtime_id=showtime.id, status=OrderStatus.PENDING,
+            user_id=u.id, sid=f"sid-{u.id}", show_id=showtime.id, status=OrderStatus.PENDING,
             subtotal_paise=22000, fee_paise=3000, total_paise=25000, razorpay_order_id=None,
         )  # fmt: skip
         db.add(o)
@@ -287,7 +248,7 @@ async def test_confirm_unique(db_engine: AsyncEngine, db: AsyncSession, db_app: 
     tickets_for_seat = await db.scalar(
         select(func.count())
         .select_from(Ticket)
-        .where(Ticket.seat_id == seat, Ticket.showtime_id == showtime.id)
+        .where(Ticket.seat_id == seat, Ticket.show_id == showtime.id)
     )
     assert tickets_for_seat == 1
     refunded = await db.scalar(select(Order).where(Order.status == OrderStatus.REFUNDED))

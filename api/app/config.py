@@ -2,7 +2,7 @@
 
 Secrets are `SecretStr | None` so the app imports and serves `/health` with no environment at all
 (CI has no secrets) and never reprs a secret. Keys arrive just-in-time per plan row: Neon in S2,
-Upstash in F2, Razorpay in F5, Resend + Blob in L5.
+Upstash + Gmail in B2, Razorpay in B6.
 """
 
 from functools import lru_cache
@@ -31,9 +31,20 @@ class Settings(BaseSettings):
     razorpay_key_secret: SecretStr | None = None
     razorpay_webhook_secret: SecretStr | None = None
 
-    # --- Auth + tickets — F4 / F6 ---
+    # --- Auth + tickets — B2 / B7 ---
     session_secret: SecretStr | None = None
     ticket_secret: SecretStr | None = None
+    code_ttl_seconds: int = 600  # sign-in code life (R1)
+
+    # --- Email: Gmail SMTP (B2). Unset → codes are logged locally, refused on a deployment ---
+    smtp_host: str | None = None
+    smtp_port: int = 587  # STARTTLS
+    smtp_user: str | None = None
+    smtp_password: SecretStr | None = None
+    email_from: str = "Frontrow <no-reply@frontrow.local>"
+
+    # --- Seed: real staff accounts (comma-separated emails) for the hidden /staff door ---
+    staff_emails: str = ""
 
     # --- Cross-service ---
     web_url: str = "http://localhost:3000"

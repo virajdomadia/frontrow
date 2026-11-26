@@ -7,14 +7,14 @@ from uuid import UUID
 from pydantic import Field
 
 from app.schemas import ApiModel
-from app.schemas.events import EventType
+from app.schemas.catalog import Cert
 
 OrderStatus = Literal["pending", "paid", "expired", "refunded", "failed"]
 GatewayMode = Literal["razorpay", "demo"]
 
 
 class CreateOrder(ApiModel):
-    showtime_id: UUID
+    show_id: UUID
     seat_ids: list[str] = Field(min_length=1, max_length=10)
 
 
@@ -23,32 +23,35 @@ class VerifyPayment(ApiModel):
     razorpay_signature: str = Field(min_length=1, max_length=256)
 
 
-class OrderEvent(ApiModel):
+class OrderFilm(ApiModel):
     slug: str
     title: str
-    type: EventType
+    cert: Cert
     poster_url: str
-    duration_min: int
-    rating: str | None
+    runtime_min: int
 
 
-class OrderVenue(ApiModel):
+class OrderCinema(ApiModel):
     id: UUID
     name: str
+    area: str
     address: str
 
 
-class OrderShowtime(ApiModel):
+class OrderShow(ApiModel):
     id: UUID
     starts_at: datetime
     ends_at: datetime
-    event: OrderEvent
-    venue: OrderVenue
+    language: str
+    format: str
+    screen_name: str
+    film: OrderFilm
+    cinema: OrderCinema
 
 
 class OrderSeatOut(ApiModel):
     seat_id: str
-    label: str = Field(description='"G9", or "Section 3 · C7" in an arena.')
+    label: str = Field(description='"G9"; "Balcony · C7" when a screen has a balcony.')
     tier_key: str
     tier_label: str
     price_paise: int
@@ -62,13 +65,14 @@ class Customer(ApiModel):
 class Order(ApiModel):
     id: UUID
     status: OrderStatus
-    showtime: OrderShowtime
+    show: OrderShow
     seats: list[OrderSeatOut]
     subtotal_paise: int
     fee_paise: int
     total_paise: int
     created_at: datetime
     paid_at: datetime | None
+    payment_method: str | None = Field(description="Receipt line once paid.")
     pay_by: datetime = Field(description="A pending order expires 15 minutes after creation.")
     hold_expires_at: datetime | None = Field(
         description="While pending: when the seat holds lapse (the checkout countdown)."
@@ -99,11 +103,12 @@ class TicketBundle(ApiModel):
 
 class TicketGroup(ApiModel):
     order_id: UUID
-    showtime: OrderShowtime
+    show: OrderShow
     seats: list[str]
     tier_labels: list[str]
     total_paise: int
     paid_at: datetime | None
+    checked_in: int = Field(description="How many of these tickets were scanned at the door.")
 
 
 class MyTickets(ApiModel):

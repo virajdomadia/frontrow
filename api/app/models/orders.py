@@ -1,6 +1,6 @@
 """orders + order_seats + tickets + webhook_events (06 §A).
 
-`tickets` carries the one constraint the whole engine leans on: UNIQUE (showtime_id, seat_id) —
+`tickets` carries the one constraint the whole engine leans on: UNIQUE (show_id, seat_id) —
 the final guard on confirm, so even a Redis mishap cannot double-sell.
 """
 
@@ -11,20 +11,25 @@ from sqlalchemy import DateTime, ForeignKey, Index, Integer, Text, UniqueConstra
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, CreatedMixin, UuidMixin, pg_enum
-from app.models.enums import OrderStatus
+from app.models.enums import OrderChannel, OrderStatus
 
 
 class Order(UuidMixin, CreatedMixin, Base):
     __tablename__ = "orders"
     __table_args__ = (
         Index("ix_orders_user_id_created_at", "user_id", "created_at"),
-        Index("ix_orders_showtime_id_status", "showtime_id", "status"),
+        Index("ix_orders_show_id_status", "show_id", "status"),
     )
 
     user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     sid: Mapped[str] = mapped_column(Text, nullable=False)
-    showtime_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("showtimes.id", ondelete="CASCADE"), nullable=False
+    show_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("shows.id", ondelete="CASCADE"), nullable=False
+    )
+    channel: Mapped[OrderChannel] = mapped_column(
+        pg_enum(OrderChannel, "order_channel"),
+        nullable=False,
+        server_default=OrderChannel.ONLINE.value,
     )
     status: Mapped[OrderStatus] = mapped_column(
         pg_enum(OrderStatus, "order_status"), nullable=False
@@ -36,6 +41,7 @@ class Order(UuidMixin, CreatedMixin, Base):
     razorpay_payment_id: Mapped[str | None] = mapped_column(Text)
     refund_id: Mapped[str | None] = mapped_column(Text)
     refund_reason: Mapped[str | None] = mapped_column(Text)
+    payment_method: Mapped[str | None] = mapped_column(Text)  # receipt line
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     seats: Mapped[list["OrderSeat"]] = relationship(
@@ -64,7 +70,7 @@ class OrderSeat(Base):
 class Ticket(UuidMixin, CreatedMixin, Base):
     __tablename__ = "tickets"
     __table_args__ = (
-        UniqueConstraint("showtime_id", "seat_id"),
+        UniqueConstraint("show_id", "seat_id"),
         Index("ix_tickets_user_id", "user_id"),
         Index("ix_tickets_order_id", "order_id"),
     )
@@ -72,8 +78,8 @@ class Ticket(UuidMixin, CreatedMixin, Base):
     order_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
     )
-    showtime_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("showtimes.id", ondelete="CASCADE"), nullable=False
+    show_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("shows.id", ondelete="CASCADE"), nullable=False
     )
     seat_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("seats.id", ondelete="RESTRICT"), nullable=False

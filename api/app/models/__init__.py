@@ -6,21 +6,27 @@ the test harness rely on every model being registered on `Base.metadata`.
 
 from app.models.auth import Session, User
 from app.models.base import Base
-from app.models.events import Event, PriceTier, Showtime
+from app.models.business import Business, BusinessMember, Cinema, Screen, Seat
+from app.models.films import Film, FilmRequest
 from app.models.orders import Order, OrderSeat, Ticket, WebhookEvent
-from app.models.venues import Seat, Venue
+from app.models.shows import Show, ShowPrice, ShowSchedule
 
 __all__ = [
     "Base",
-    "Event",
+    "Business",
+    "BusinessMember",
+    "Cinema",
+    "Film",
+    "FilmRequest",
     "Order",
     "OrderSeat",
-    "PriceTier",
+    "Screen",
     "Seat",
     "Session",
-    "Showtime",
+    "Show",
+    "ShowPrice",
+    "ShowSchedule",
     "Ticket",
     "User",
-    "Venue",
     "WebhookEvent",
 ]

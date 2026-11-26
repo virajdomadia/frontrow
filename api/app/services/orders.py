@@ -1,14 +1,14 @@
-"""Orders, payment confirmation and tickets (04 §6, R5/R6).
+"""Orders, payment confirmation and tickets (04 §6, R6/R7).
 
 Create: every seat must still be held by the caller (Redis) and unsold (Postgres); the total is
-computed here from `price_tiers` + the flat fee, never taken from the client; the gateway order
+computed here from `show_prices` + the flat fee, never taken from the client; the gateway order
 is created; the price per seat is frozen in `order_seats`.
 
 Confirm (`verify` fast path, webhook, demo pay — all the same function, all idempotent through
-`orders.status` under a row lock): insert one ticket per seat. `UNIQUE (showtime_id, seat_id)`
-is the final guard — if the hold lapsed and someone else bought a seat meanwhile, the insert
-fails, the payment is refunded and the order is `refunded` with `refund_reason = seat_sold`. If
-the hold lapsed but the seats are still free, the sale simply goes through (paid after expiry).
+`orders.status` under a row lock): insert one ticket per seat. `UNIQUE (show_id, seat_id)` is
+the final guard — if the hold lapsed and someone else bought a seat meanwhile, the insert fails,
+the payment is refunded and the order is `refunded` with `refund_reason = seat_sold`. If the
+hold lapsed but the seats are still free, the sale simply goes through (paid after expiry).
 
 Pending orders older than 15 minutes read as `expired` (no cron).
 """
@@ -18,24 +18,25 @@ from __future__ import annotations
 import logging
 import secrets
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 
 from redis.asyncio import Redis
-from sqlalchemy import insert, select
+from sqlalchemy import func, insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.errors import ApiError
-from app.models import Event, Order, OrderSeat, PriceTier, Seat, Showtime, Ticket, User, Venue
+from app.models import Cinema, Film, Order, OrderSeat, Screen, Seat, Show, ShowPrice, Ticket, User
 from app.models.enums import OrderStatus
 from app.schemas.orders import (
     Customer,
     MyTickets,
-    OrderEvent,
+    OrderCinema,
+    OrderFilm,
     OrderSeatOut,
-    OrderShowtime,
-    OrderVenue,
+    OrderShow,
     TicketBundle,
     TicketGroup,
     TicketOut,
@@ -44,24 +45,20 @@ from app.schemas.orders import Order as OrderOut
 from app.services import holds
 from app.services import tickets as tokens
 from app.services.payments import Gateway
-from app.services.showtimes import FEE_PAISE, _check_seats, _load, _sold
+from app.services.schedules import FEE_PAISE
+from app.services.shows import check_seats, load, parse_id, sold_seats
 
 log = logging.getLogger(__name__)
 
 PAY_WINDOW = timedelta(minutes=15)
 SEAT_SOLD = "seat_sold"
 
-
-def seat_label(template: str, section_label: str, row: str, n: int) -> str:
-    """ "G9"; in an arena every wedge has its own row A, so "Section 3 · C7" / "Floor · C7"."""
-    return f"{section_label} · {row}{n}" if template == "arena" else f"{row}{n}"
+OnPaid = Callable[[Order], Awaitable[None]]
 
 
-def _bad_id(raw: str) -> uuid.UUID:
-    try:
-        return uuid.UUID(raw)
-    except ValueError as e:
-        raise ApiError("not_found", "No such order") from e
+def seat_label(row: str, n: int) -> str:
+    """ "G9" — row letters run on from the stalls into the balcony, so they're unique."""
+    return f"{row}{n}"
 
 
 # --- create ---------------------------------------------------------------------------------------
@@ -74,32 +71,32 @@ async def create(
     *,
     user: User,
     holder: str,
-    showtime_id: uuid.UUID,
+    show_id: uuid.UUID,
     seat_ids: list[str],
     now: datetime,
 ) -> Order:
-    showtime, _, venue = await _load(db, str(showtime_id), now)
-    ids = await _check_seats(db, showtime, venue, seat_ids)
+    show, _, _, _ = await load(db, show_id, now)
+    ids = await check_seats(db, show, seat_ids)
 
     # Idempotent: Proceed pressed twice (or a refresh) returns the same pending order.
     for existing in await db.scalars(
         select(Order).where(
             Order.user_id == user.id,
-            Order.showtime_id == showtime.id,
+            Order.show_id == show.id,
             Order.status == OrderStatus.PENDING,
             Order.created_at > now - PAY_WINDOW,
         )
     ):
-        seats = set(
+        seats = {
             str(s)
             for s in await db.scalars(
                 select(OrderSeat.seat_id).where(OrderSeat.order_id == existing.id)
             )
-        )
+        }
         if seats == set(ids):
             return existing
 
-    mine, _ = await holds.owned(redis, showtime.id, holder, ids)
+    mine, _ = await holds.owned(redis, show.id, holder, ids)
     missing = [s for s in ids if s not in set(mine)]
     if missing:
         raise ApiError(
@@ -108,24 +105,24 @@ async def create(
             status=409,
             details={"missing": missing},
         )
-    sold = set(await _sold(db, showtime.id)) & set(ids)
+    sold = set(await sold_seats(db, show.id)) & set(ids)
     if sold:
         raise ApiError(
             "seat_taken", "Some of these seats were just sold", status=409,
             details={"taken": sorted(sold)},
         )  # fmt: skip
 
-    tiers = {
-        t.tier_key: t
-        for t in await db.scalars(select(PriceTier).where(PriceTier.showtime_id == showtime.id))
+    prices = {
+        p.tier_key: p.price_paise
+        for p in await db.scalars(select(ShowPrice).where(ShowPrice.show_id == show.id))
     }
     seat_rows = list(await db.scalars(select(Seat).where(Seat.id.in_([uuid.UUID(i) for i in ids]))))
-    subtotal = sum(tiers[s.tier_key].price_paise for s in seat_rows)
+    subtotal = sum(prices[s.tier_key] for s in seat_rows)
     fee = FEE_PAISE * len(seat_rows)
     order = Order(
         user_id=user.id,
         sid=holder,
-        showtime_id=showtime.id,
+        show_id=show.id,
         status=OrderStatus.PENDING,
         subtotal_paise=subtotal,
         fee_paise=fee,
@@ -135,10 +132,7 @@ async def create(
     await db.flush()
     db.add_all(
         OrderSeat(
-            order_id=order.id,
-            seat_id=s.id,
-            tier_key=s.tier_key,
-            price_paise=tiers[s.tier_key].price_paise,
+            order_id=order.id, seat_id=s.id, tier_key=s.tier_key, price_paise=prices[s.tier_key]
         )
         for s in seat_rows
     )
@@ -158,78 +152,65 @@ async def expire_if_stale(db: AsyncSession, order: Order, now: datetime) -> None
 
 async def owned_order(db: AsyncSession, order_id: str, user: User, now: datetime) -> Order:
     """The caller's order, or 404 — someone else's order doesn't exist for them."""
-    order = await db.get(Order, _bad_id(order_id))
+    order = await db.get(Order, parse_id(order_id, "order"))
     if order is None or order.user_id != user.id:
         raise ApiError("not_found", "No such order")
     await expire_if_stale(db, order, now)
     return order
 
 
-async def _showtime_out(db: AsyncSession, showtime_id: uuid.UUID) -> tuple[OrderShowtime, Venue]:
+async def show_out(db: AsyncSession, show_id: uuid.UUID) -> tuple[OrderShow, Screen]:
     row = (
         await db.execute(
-            select(Showtime, Event, Venue)
-            .join(Event, Event.id == Showtime.event_id)
-            .join(Venue, Venue.id == Showtime.venue_id)
-            .where(Showtime.id == showtime_id)
+            select(Show, Film, Screen, Cinema)
+            .join(Film, Film.id == Show.film_id)
+            .join(Screen, Screen.id == Show.screen_id)
+            .join(Cinema, Cinema.id == Screen.cinema_id)
+            .where(Show.id == show_id)
         )
     ).one()
-    showtime, event, venue = row._tuple()
+    show, film, screen, cinema = row._tuple()
     return (
-        OrderShowtime(
-            id=showtime.id,
-            starts_at=showtime.starts_at,
-            ends_at=showtime.starts_at + timedelta(minutes=event.duration_min),
-            event=OrderEvent(
-                slug=event.slug,
-                title=event.title,
-                type=event.type.value,  # type: ignore[arg-type]
-                poster_url=event.poster_url,
-                duration_min=event.duration_min,
-                rating=event.rating,
+        OrderShow(
+            id=show.id,
+            starts_at=show.starts_at,
+            ends_at=show.ends_at,
+            language=show.language,
+            format=show.format,
+            screen_name=screen.name,
+            film=OrderFilm(
+                slug=film.slug,
+                title=film.title,
+                cert=film.cert.value,  # type: ignore[arg-type]
+                poster_url=film.poster_url,
+                runtime_min=film.runtime_min,
             ),
-            venue=OrderVenue(id=venue.id, name=venue.name, address=venue.address),
+            cinema=OrderCinema(
+                id=cinema.id, name=cinema.name, area=cinema.area, address=cinema.address
+            ),
         ),
-        venue,
+        screen,
     )
 
 
-def _labels(venue: Venue) -> tuple[dict[str, str], dict[str, str]]:
-    """section key → label, tier key → label, from the stored layout."""
-    sections = {s["key"]: s["label"] for s in venue.layout["sections"]}
-    tiers = {t["key"]: t["label"] for t in venue.layout["tiers"]}
-    return sections, tiers
-
-
-async def _seats_out(db: AsyncSession, order: Order, venue: Venue) -> list[OrderSeatOut]:
-    sections, tier_labels = _labels(venue)
-    tier_names = {
-        t.tier_key: t.label
-        for t in await db.scalars(
-            select(PriceTier).where(PriceTier.showtime_id == order.showtime_id)
-        )
-    }
+async def seats_out(db: AsyncSession, order: Order, screen: Screen) -> list[OrderSeatOut]:
+    tier_labels = {t["key"]: t["label"] for t in screen.tiers}
     rows = (
         await db.execute(
             select(OrderSeat, Seat)
             .join(Seat, Seat.id == OrderSeat.seat_id)
             .where(OrderSeat.order_id == order.id)
-            .order_by(Seat.section_key, Seat.row_label, Seat.number)
+            .order_by(Seat.row_label, Seat.number)
         )
     ).all()
     return [
         OrderSeatOut(
             seat_id=str(seat.id),
-            label=seat_label(
-                venue.template.value,
-                sections.get(seat.section_key, ""),
-                seat.row_label,
-                seat.number,
-            ),
+            label=seat_label(seat.row_label, seat.number),
             tier_key=os.tier_key,
-            tier_label=tier_names.get(os.tier_key) or tier_labels.get(os.tier_key, os.tier_key),
+            tier_label=tier_labels.get(os.tier_key, os.tier_key),
             price_paise=os.price_paise,
-        )  # fmt: skip
+        )
         for os, seat in (r._tuple() for r in rows)
     ]
 
@@ -242,26 +223,27 @@ async def view(
     user: User,
     redis: Redis | None,
 ) -> OrderOut:
-    showtime, venue = await _showtime_out(db, order.showtime_id)
-    seats = await _seats_out(db, order, venue)
+    show, screen = await show_out(db, order.show_id)
+    seats = await seats_out(db, order, screen)
     hold_expires_at = None
     if order.status == OrderStatus.PENDING and redis is not None:
         try:
             _, hold_expires_at = await holds.owned(
-                redis, order.showtime_id, order.sid, [s.seat_id for s in seats]
+                redis, order.show_id, order.sid, [s.seat_id for s in seats]
             )
         except ApiError:
             hold_expires_at = None
     return OrderOut(
         id=order.id,
         status=order.status.value,  # type: ignore[arg-type]
-        showtime=showtime,
+        show=show,
         seats=seats,
         subtotal_paise=order.subtotal_paise,
         fee_paise=order.fee_paise,
         total_paise=order.total_paise,
         created_at=order.created_at,
         paid_at=order.paid_at,
+        payment_method=order.payment_method,
         pay_by=order.created_at + PAY_WINDOW,
         hold_expires_at=hold_expires_at,
         refund_reason=order.refund_reason,
@@ -283,9 +265,12 @@ async def confirm(
     *,
     payment_id: str,
     now: datetime,
+    method: str | None = None,
+    on_paid: OnPaid | None = None,
 ) -> Order:
     """Turn a captured payment into tickets — or a refund when a seat went to someone else.
-    Safe to call any number of times, from any path, concurrently."""
+    Safe to call any number of times, from any path, concurrently. `on_paid` runs once, after
+    the commit, on the call that actually sold the seats (the ticket email)."""
     order = await db.scalar(select(Order).where(Order.id == order_id).with_for_update())
     if order is None:
         raise ApiError("not_found", "No such order")
@@ -298,13 +283,14 @@ async def confirm(
         {
             "id": uuid.uuid4(),
             "order_id": order.id,
-            "showtime_id": order.showtime_id,
+            "show_id": order.show_id,
             "seat_id": s.seat_id,
             "user_id": order.user_id,
         }
         for s in seats
     ]
     order.razorpay_payment_id = payment_id
+    order.payment_method = method or ("Test payment" if gateway.mode == "demo" else "Razorpay")
     try:
         async with db.begin_nested():
             await db.execute(insert(Ticket), rows)
@@ -320,7 +306,12 @@ async def confirm(
     order.status = OrderStatus.PAID
     order.paid_at = now
     await db.commit()
-    await holds.clear_sold(redis, order.showtime_id, [str(s.seat_id) for s in seats])
+    await holds.clear_sold(redis, order.show_id, [str(s.seat_id) for s in seats])
+    if on_paid is not None:
+        try:
+            await on_paid(order)
+        except Exception:  # the sale stands whatever happens to the email
+            log.exception("after-payment hook failed for order %s", order.id)
     return order
 
 
@@ -354,10 +345,11 @@ async def ticket_bundle(
         raise ApiError("not_found", "No tickets for this order")
     out = await view(db, order, gateway, user=user, redis=None)
     labels = {s.seat_id: s for s in out.seats}
-    exp = tokens.expiry_for(out.showtime.ends_at)
+    order_of_seats = list(labels)
+    exp = tokens.expiry_for(out.show.ends_at)
     tickets = sorted(
         await db.scalars(select(Ticket).where(Ticket.order_id == order.id)),
-        key=lambda t: list(labels).index(str(t.seat_id)),
+        key=lambda t: order_of_seats.index(str(t.seat_id)),
     )
     return TicketBundle(
         order=out,
@@ -367,7 +359,7 @@ async def ticket_bundle(
                 seat_id=str(t.seat_id),
                 label=labels[str(t.seat_id)].label,
                 tier_label=labels[str(t.seat_id)].tier_label,
-                qr_token=tokens.sign(settings, t.id, t.showtime_id, exp),
+                qr_token=tokens.sign(settings, t.id, t.show_id, exp),
                 checked_in_at=t.checked_in_at,
             )
             for t in tickets
@@ -381,27 +373,43 @@ async def my_tickets(db: AsyncSession, user: User, *, now: datetime) -> MyTicket
             select(Order).where(Order.user_id == user.id, Order.status == OrderStatus.PAID)
         )
     )
+    scanned = (
+        {
+            oid: n
+            for oid, n in (
+                await db.execute(
+                    select(Ticket.order_id, func.count())
+                    .where(
+                        Ticket.order_id.in_([o.id for o in orders]),
+                        Ticket.checked_in_at.is_not(None),
+                    )
+                    .group_by(Ticket.order_id)
+                )
+            ).tuples()
+        }
+        if orders
+        else {}
+    )
     groups: list[TicketGroup] = []
-    venues: dict[uuid.UUID, tuple[OrderShowtime, Venue]] = {}
+    cache: dict[uuid.UUID, tuple[OrderShow, Screen]] = {}
     for order in orders:
-        if order.showtime_id not in venues:
-            venues[order.showtime_id] = await _showtime_out(db, order.showtime_id)
-        showtime, venue = venues[order.showtime_id]
-        seats = await _seats_out(db, order, venue)
+        if order.show_id not in cache:
+            cache[order.show_id] = await show_out(db, order.show_id)
+        show, screen = cache[order.show_id]
+        seats = await seats_out(db, order, screen)
         groups.append(
             TicketGroup(
                 order_id=order.id,
-                showtime=showtime,
+                show=show,
                 seats=[s.label for s in seats],
                 tier_labels=list(dict.fromkeys(s.tier_label for s in seats)),
                 total_paise=order.total_paise,
                 paid_at=order.paid_at,
+                checked_in=scanned.get(order.id, 0),
             )
         )
-    upcoming = sorted((g for g in groups if g.showtime.ends_at > now), key=_when)
-    past = sorted((g for g in groups if g.showtime.ends_at <= now), key=_when, reverse=True)
+    upcoming = sorted((g for g in groups if g.show.ends_at > now), key=lambda g: g.show.starts_at)
+    past = sorted(
+        (g for g in groups if g.show.ends_at <= now), key=lambda g: g.show.starts_at, reverse=True
+    )
     return MyTickets(upcoming=upcoming, past=past)
-
-
-def _when(g: TicketGroup) -> datetime:
-    return g.showtime.starts_at

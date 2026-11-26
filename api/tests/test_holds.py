@@ -1,4 +1,4 @@
-"""F2: the hold engine (04 §11) — the race, all-or-none, expiry — and the routes around it.
+"""B5: the hold engine (04 §11) — the race, all-or-none, expiry — and the routes around it.
 
 The engine tests run the real Lua against a real Redis (`TEST_REDIS_URL`); the route tests go
 through the app with the seeded catalogue, so the two-tabs story is tested end to end: tab A
@@ -11,16 +11,16 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.errors import ApiError
-from app.models import Showtime, Ticket, Venue
+from app.models import Ticket
 from app.redis import close_redis, redis_for
 from app.seed import seed
 from app.services import holds
 from tests.conftest import TEST_HOLD_TTL
+from tests.helpers import open_show, tab
 
 ST = uuid.uuid4()
 
@@ -100,45 +100,14 @@ async def test_hold_expiry(app: FastAPI) -> None:
 # --- routes ---------------------------------------------------------------------------------------
 
 
-async def _open_showtime(db: AsyncSession, template: str = "grid") -> tuple[Showtime, list[str]]:
-    showtime = await db.scalar(
-        select(Showtime)
-        .join(Venue, Venue.id == Showtime.venue_id)
-        .where(Venue.template == template, Showtime.starts_at > datetime.now(UTC))
-        .order_by(Showtime.starts_at)
-        .limit(1)
-    )
-    assert showtime is not None
-    venue = await db.get(Venue, showtime.venue_id)
-    assert venue is not None
-    sold = {
-        str(s)
-        for s in await db.scalars(select(Ticket.seat_id).where(Ticket.showtime_id == showtime.id))
-    }
-    free = [
-        s["id"]
-        for sec in venue.layout["sections"]
-        for r in sec["rows"]
-        for s in r["seats"]
-        if s["id"] not in sold
-    ]
-    return showtime, free
-
-
-def tab(app: FastAPI) -> AsyncClient:
-    """A browser tab with its own cookie jar."""
-    return AsyncClient(
-        transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://test"
-    )
-
-
 @pytest.mark.db
 @pytest.mark.redis
 async def test_two_tabs_one_seat(db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI) -> None:
     await seed(db_engine, now=datetime.now(UTC))
-    showtime, free = await _open_showtime(db)
+    found = await open_show(db)
+    showtime, free = found.show, found.all_free
     f6, f7 = free[0], free[1]
-    url = f"/showtimes/{showtime.id}"
+    url = f"/shows/{showtime.id}"
 
     async with tab(db_app) as a, tab(db_app) as b:
         held = await a.post(f"{url}/holds", json={"seat_ids": [f7]})
@@ -171,9 +140,10 @@ async def test_two_tabs_one_seat(db_engine: AsyncEngine, db: AsyncSession, db_ap
 @pytest.mark.redis
 async def test_hold_rules(db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI) -> None:
     await seed(db_engine, now=datetime.now(UTC))
-    showtime, free = await _open_showtime(db)
-    url = f"/showtimes/{showtime.id}/holds"
-    sold = await db.scalar(select(Ticket.seat_id).where(Ticket.showtime_id == showtime.id))
+    found = await open_show(db)
+    showtime, free = found.show, found.all_free
+    url = f"/shows/{showtime.id}/holds"
+    sold = await db.scalar(select(Ticket.seat_id).where(Ticket.show_id == showtime.id))
 
     async with tab(db_app) as a:
         too_many = await a.post(url, json={"seat_ids": free[:11]})
@@ -198,8 +168,9 @@ async def test_holds_rate_limited(
     db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI
 ) -> None:
     await seed(db_engine, now=datetime.now(UTC))
-    showtime, free = await _open_showtime(db)
-    url = f"/showtimes/{showtime.id}/holds"
+    found = await open_show(db)
+    showtime, free = found.show, found.all_free
+    url = f"/shows/{showtime.id}/holds"
     async with tab(db_app) as a:
         codes = [(await a.post(url, json={"seat_ids": [free[0]]})).status_code for _ in range(31)]
     assert codes[:30] == [200] * 30 and codes[30] == 429
@@ -211,9 +182,10 @@ async def test_holds_need_redis(db_engine: AsyncEngine, db: AsyncSession, db_app
     await close_redis(db_app)
     db_app.state.settings = db_app.state.settings.model_copy(update={"redis_url": None})
     await seed(db_engine, now=datetime.now(UTC))
-    showtime, free = await _open_showtime(db)
+    found = await open_show(db)
+    showtime, free = found.show, found.all_free
     async with tab(db_app) as a:
-        res = await a.post(f"/showtimes/{showtime.id}/holds", json={"seat_ids": [free[0]]})
+        res = await a.post(f"/shows/{showtime.id}/holds", json={"seat_ids": [free[0]]})
         assert res.status_code == 503 and res.json()["error"]["code"] == "unavailable"
-        seats = await a.get(f"/showtimes/{showtime.id}/seats")
+        seats = await a.get(f"/shows/{showtime.id}/seats")
         assert seats.status_code == 200 and seats.json()["held"] == []

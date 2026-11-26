@@ -27,7 +27,7 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from app.errors import ApiError
-from app.schemas.showtimes import HeldSeat
+from app.schemas.shows import HeldSeat
 
 log = logging.getLogger(__name__)
 

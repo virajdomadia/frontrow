@@ -1,10 +1,10 @@
-"""Seat-map routes (06 §C): `/showtimes/{id}`, `/venues/{id}/layout`, `/showtimes/{id}/seats`,
-and the hold engine's `POST/DELETE /showtimes/{id}/holds`.
+"""Seat-map routes (06 §C): `/shows/{id}`, `/screens/{id}/layout`, `/shows/{id}/seats`, and the
+hold engine's `POST/DELETE /shows/{id}/holds`.
 
-The layout never changes once a venue is generated, so it is cached for a year; the detail is
-catalog-fresh (a minute, never past the start); the seat state and holds are live and never
-cached. Showtime reads and hold writes answer 410 `showtime_closed` once the show has started or
-was cancelled.
+A screen's layout never changes once generated, so it is cached for a year; the show detail is
+catalogue-fresh (a minute, never past the start); seat state and holds are live and never
+cached. Reads and hold writes answer 410 `show_closed` once the show has started or was
+cancelled.
 """
 
 from datetime import UTC, datetime
@@ -17,10 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import Settings
 from app.db import get_session
 from app.redis import optional_redis, require_redis
-from app.routers.events import cache_until
+from app.routers.catalog import cache_until
 from app.schemas.layouts import Layout
-from app.schemas.showtimes import HoldGranted, HoldRequest, SeatState, ShowtimeDetail
-from app.services import showtimes
+from app.schemas.shows import HoldGranted, HoldRequest, SeatState, ShowDetail
+from app.services import shows
 from app.services.auth import Auth, holder_of, optional_auth
 
 router = APIRouter(tags=["seat map"])
@@ -31,29 +31,28 @@ Db = Annotated[AsyncSession, Depends(get_session)]
 OptAuth = Annotated[Auth | None, Depends(optional_auth)]
 
 
-@router.get("/showtimes/{showtime_id}", response_model=ShowtimeDetail)
-async def get_showtime(
-    showtime_id: str,
+@router.get("/shows/{show_id}", response_model=ShowDetail)
+async def get_show(
+    show_id: str,
     response: Response,
     db: Db,
     redis: Annotated[Redis | None, Depends(optional_redis)],
-) -> ShowtimeDetail:
+) -> ShowDetail:
     now = datetime.now(UTC)
-    detail = await showtimes.get_showtime(db, showtime_id, now=now, redis=redis)
-    # Fresh for a minute as the catalog is, but no cache may hand it out once the show starts.
+    detail = await shows.get_show(db, show_id, now=now, redis=redis)
     response.headers["Cache-Control"] = cache_until(detail.starts_at, now)
     return detail
 
 
-@router.get("/venues/{venue_id}/layout", response_model=Layout)
-async def get_layout(venue_id: str, response: Response, db: Db) -> Any:
+@router.get("/screens/{screen_id}/layout", response_model=Layout)
+async def get_layout(screen_id: str, response: Response, db: Db) -> Any:
     response.headers["Cache-Control"] = IMMUTABLE
-    return await showtimes.get_layout(db, venue_id)
+    return await shows.get_layout(db, screen_id)
 
 
-@router.get("/showtimes/{showtime_id}/seats", response_model=SeatState)
+@router.get("/shows/{show_id}/seats", response_model=SeatState)
 async def get_seats(
-    showtime_id: str,
+    show_id: str,
     request: Request,
     response: Response,
     db: Db,
@@ -62,18 +61,16 @@ async def get_seats(
 ) -> SeatState:
     response.headers["Cache-Control"] = "no-store"
     holder = holder_of(request, response, auth, create=False)
-    return await showtimes.seat_state(
-        db, showtime_id, redis=redis, holder=holder, now=datetime.now(UTC)
-    )
+    return await shows.seat_state(db, show_id, redis=redis, holder=holder, now=datetime.now(UTC))
 
 
 @router.post(
-    "/showtimes/{showtime_id}/holds",
+    "/shows/{show_id}/holds",
     response_model=HoldGranted,
     responses={409: {"description": "`seat_taken` — `details.taken` names the seats"}},
 )
 async def place_holds(
-    showtime_id: str,
+    show_id: str,
     body: HoldRequest,
     request: Request,
     response: Response,
@@ -86,10 +83,10 @@ async def place_holds(
     response.headers["Cache-Control"] = "no-store"
     holder = holder_of(request, response, auth, create=True)
     assert holder is not None
-    return await showtimes.place_holds(
+    return await shows.place_holds(
         db,
         redis,
-        showtime_id,
+        show_id,
         body.seat_ids,
         holder=holder,
         ttl_seconds=settings.hold_ttl_seconds,
@@ -98,16 +95,15 @@ async def place_holds(
     )
 
 
-@router.delete("/showtimes/{showtime_id}/holds", status_code=204)
+@router.delete("/shows/{show_id}/holds", status_code=204)
 async def drop_holds(
-    showtime_id: str,
+    show_id: str,
     body: HoldRequest,
     request: Request,
     response: Response,
-    db: Db,
     auth: OptAuth,
     redis: Annotated[Redis, Depends(require_redis)],
 ) -> None:
     holder = holder_of(request, response, auth, create=False)
     if holder is not None:
-        await showtimes.drop_holds(db, redis, showtime_id, body.seat_ids, holder=holder)
+        await shows.drop_holds(redis, show_id, body.seat_ids, holder=holder)

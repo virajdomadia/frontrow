@@ -1,4 +1,5 @@
-"""The three template generators (04 §2): knobs → seat positions + the `Layout` JSON.
+"""The two screen templates (04 §2): knobs → seat positions + the `Layout` JSON. (The arena
+was dropped with the movies-only re-plan.)
 
 Geometry is in layout units (= CSS px at 1×): a seat is 26 wide on a 34 pitch, an aisle adds
 44, and every template is normalised so its bounding box starts at MARGIN. Seats are generated
@@ -11,7 +12,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
-from app.schemas.layouts import ArenaKnobs, GridKnobs, Knobs, StallsBalconyKnobs
+from app.schemas.layouts import GridKnobs, Knobs, StallsBalconyKnobs
 
 SEAT = 26
 PITCH = 34
@@ -66,8 +67,6 @@ def generate(knobs: Knobs) -> Generated:
         gen = _grid(knobs)
     elif isinstance(knobs, StallsBalconyKnobs):
         gen = _stalls_balcony(knobs)
-    elif isinstance(knobs, ArenaKnobs):
-        gen = _arena(knobs)
     else:  # pragma: no cover — the discriminated union already rejects this
         raise ValueError(f"unknown template {knobs!r}")
     _normalise(gen)
@@ -188,114 +187,6 @@ def _stalls_balcony(k: StallsBalconyKnobs) -> Generated:
         {"key": "balcony", "label": "Balcony"},
     ]
     return Generated(template="stalls_balcony", stage=stage, tiers=tiers, sections=sections)
-
-
-# --- arena ----------------------------------------------------------------------------------------
-
-STAGE_GAP_DEG = 70  # the arc at the top the stage occupies; wedges fill the rest
-WEDGE_GAP_RAD = math.radians(3)
-
-
-def _arena(k: ArenaKnobs) -> Generated:
-    """Wedges around a floor block; the stage sits in a gap at the top (−90°). Rows widen
-    outward (`seats_per_row` is the cap). Tier by distance: the wedges beside the stage are gold,
-    the sides silver, the far end bronze."""
-    sections: list[GenSection] = []
-
-    # Floor: straight rows in front of the stage, clipped to the floor circle so nothing
-    # touches the wedges; rows near the middle are the widest.
-    if k.floor_rows and k.floor_seats:
-        rows = []
-        limit = k.floor_radius - PITCH
-        top = -limit + PITCH * 1.5
-        for i in range(k.floor_rows):
-            y = top + i * PITCH
-            if y > limit:
-                break
-            half_chord = math.sqrt(max(limit * limit - y * y, 0.0))
-            n_seats = min(k.floor_seats, int(2 * half_chord / PITCH) + 1)
-            if n_seats < 2:
-                continue
-            x0 = -(n_seats - 1) * PITCH / 2
-            seats = [GenSeat(n=n + 1, x=x0 + n * PITCH, y=y) for n in range(n_seats)]
-            rows.append(GenRow(label=ROW_LABELS[len(rows)], seats=seats))
-        sections.append(
-            GenSection(key="floor", label="Floor", tier="floor", shape="rows", rows=rows)
-        )
-
-    # Wedges: sweep clockwise from just right of the stage gap to just left of it.
-    usable = math.radians(360 - STAGE_GAP_DEG)
-    span = usable / k.sections
-    start_angle = math.radians(-90 + STAGE_GAP_DEG / 2)
-    inner = k.floor_radius + AISLE
-    outer = inner + (k.rows_per_section - 1) * PITCH
-    for s in range(k.sections):
-        a0 = start_angle + s * span + WEDGE_GAP_RAD / 2
-        a1 = a0 + span - WEDGE_GAP_RAD
-        mid = (a0 + a1) / 2
-        rows = []
-        for r in range(k.rows_per_section):
-            radius = inner + r * PITCH
-            fit = int((a1 - a0) * radius / PITCH) + 1
-            n_seats = min(k.seats_per_row, fit)
-            step = PITCH / radius
-            first = mid - step * (n_seats - 1) / 2
-            seats = [
-                GenSeat(
-                    n=n + 1,
-                    x=radius * math.cos(first + n * step),
-                    y=radius * math.sin(first + n * step),
-                )
-                for n in range(n_seats)
-            ]
-            rows.append(GenRow(label=ROW_LABELS[r], seats=seats))
-        # Distance from the stage (at the top): 0 = beside it, 1 = straight across.
-        facing = (1 - math.sin(-mid)) / 2
-        tier = "gold" if facing < 0.3 else "silver" if facing < 0.85 else "bronze"
-        polygon = _wedge_polygon(a0, a1, inner - SEAT, outer + SEAT)
-        sections.append(
-            GenSection(
-                key=f"s{s + 1}",
-                label=f"Section {s + 1}",
-                tier=tier,
-                shape="wedge",
-                rows=rows,
-                polygon=polygon,
-            )
-        )
-
-    stage_w = k.floor_radius * 1.1
-    stage = {
-        "label": k.stage_label,
-        "x": -stage_w / 2,
-        "y": -k.floor_radius - AISLE - STAGE_H,
-        "w": stage_w,
-    }
-    used = {s.tier for s in sections if any(r.seats for r in s.rows)}
-    tiers = [
-        t
-        for t in (
-            {"key": "floor", "label": "Floor"},
-            {"key": "gold", "label": "Gold"},
-            {"key": "silver", "label": "Silver"},
-            {"key": "bronze", "label": "Bronze"},
-        )
-        if t["key"] in used  # no floor seats (floor_rows=0) → no Floor price to set
-    ]
-    return Generated(template="arena", stage=stage, tiers=tiers, sections=sections)
-
-
-def _wedge_polygon(a0: float, a1: float, r_in: float, r_out: float) -> list[tuple[float, float]]:
-    steps = 6
-    outer = [
-        (r_out * math.cos(a0 + (a1 - a0) * i / steps), r_out * math.sin(a0 + (a1 - a0) * i / steps))
-        for i in range(steps + 1)
-    ]
-    inner = [
-        (r_in * math.cos(a1 - (a1 - a0) * i / steps), r_in * math.sin(a1 - (a1 - a0) * i / steps))
-        for i in range(steps + 1)
-    ]
-    return outer + inner
 
 
 # --- normalise ------------------------------------------------------------------------------------

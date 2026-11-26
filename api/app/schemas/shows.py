@@ -1,5 +1,5 @@
-"""Seat-map contract (06 §C/§D): `ShowtimeDetail` for the S4 header + stub, `SeatState` for the
-map. Field names match 06 §D exactly — v4's app and v2's stream diff key on them."""
+"""Seat-map contract (06 §C/§D): `ShowDetail` for the booking header + stub, `SeatState` for the
+map. Field names match 06 §D exactly — v4's app and v2's live updates key on them."""
 
 from datetime import datetime
 from typing import Literal
@@ -8,33 +8,46 @@ from uuid import UUID
 from pydantic import Field
 
 from app.schemas import ApiModel
-from app.schemas.events import EventType, Fill, TierPrice, VenueRef
+from app.schemas.catalog import Cert, Fill, TierPrice
 
 
-class ShowtimeEvent(ApiModel):
+class ShowFilm(ApiModel):
     id: UUID
     slug: str
     title: str
-    type: EventType
-    genre: str
-    rating: str | None
-    duration_min: int
+    cert: Cert
+    runtime_min: int
     poster_url: str
+    genres: list[str]
 
 
-class ShowtimeVenue(VenueRef):
-    template: Literal["grid", "stalls_balcony", "arena"]
+class ShowCinema(ApiModel):
+    id: UUID
+    name: str
+    area: str
+    address: str
 
 
-class ShowtimeDetail(ApiModel):
+class ShowScreen(ApiModel):
+    id: UUID
+    name: str
+    template: Literal["grid", "stalls_balcony"]
+    seat_count: int
+
+
+class ShowDetail(ApiModel):
     id: UUID
     starts_at: datetime
+    ends_at: datetime
+    language: str
+    format: str
     status: Literal["scheduled", "cancelled"]
-    event: ShowtimeEvent
-    venue: ShowtimeVenue
-    tiers: list[TierPrice] = Field(description="Every tier of the venue with this show's price.")
-    layout_url: str = Field(description="`/venues/{id}/layout` — immutable, cache it forever.")
-    fee_paise: int = Field(description="Convenience fee per ticket (03 R5: flat ₹30).")
+    film: ShowFilm
+    cinema: ShowCinema
+    screen: ShowScreen
+    tiers: list[TierPrice] = Field(description="The screen's tiers with this show's prices.")
+    layout_url: str = Field(description="`/screens/{id}/layout` — immutable, cache it forever.")
+    fee_paise: int = Field(description="Convenience fee per ticket (R6: flat ₹30).")
     fill: Fill
     seats_left: int
 

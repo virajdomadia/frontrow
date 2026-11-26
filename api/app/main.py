@@ -12,7 +12,7 @@ from app.db import dispose_engine
 from app.errors import install_error_handlers
 from app.middleware import BlankQueryParamsMiddleware, NoSniffMiddleware, RequestIdMiddleware
 from app.redis import close_redis
-from app.routers import auth, events, health, orders, organiser, showtimes
+from app.routers import auth, catalog, health, orders, owner, shows, staff
 
 # Swagger UI from jsdelivr at an exact version, not FastAPI's floating `@5`: the docs page runs
 # whatever that tag points at, so a release can't change (or break) it under us.
@@ -49,10 +49,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
-    app.include_router(events.router)
-    app.include_router(showtimes.router)
+    app.include_router(catalog.router)
+    app.include_router(shows.router)
     app.include_router(orders.router)
-    app.include_router(organiser.router)
+    app.include_router(owner.router)
+    app.include_router(owner.door)
+    app.include_router(staff.router)
 
     @app.get("/docs", include_in_schema=False)
     async def docs() -> HTMLResponse:

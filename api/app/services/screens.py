@@ -1,5 +1,5 @@
-"""Venue generation, shared by the seed and the organiser console (F7): knobs → layout JSON +
-one `seats` row per seat, with the stored ids stitched back into the layout."""
+"""Screen generation, shared by the seed and the owner console (B8): knobs → layout JSON + one
+`seats` row per seat, with the stored ids stitched back into the layout."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Seat, Venue
+from app.models import Screen, Seat
 from app.models.enums import LayoutTemplate
 from app.services.layouts import generate, layout_json, seat_rows
 
@@ -21,28 +21,27 @@ def preview(knobs: Any) -> dict[str, Any]:
     return layout_json(gen, ids)
 
 
-async def create_venue(
+async def create_screen(
     db: AsyncSession,
-    organiser_id: uuid.UUID,
+    cinema_id: uuid.UUID,
     *,
     name: str,
-    address: str,
-    photo_url: str | None,
+    formats: list[str],
     knobs: Any,
-) -> Venue:
+) -> Screen:
     """Generate the layout, insert the seat rows, store the layout JSON with their ids."""
     gen = generate(knobs)
-    venue = Venue(
-        organiser_id=organiser_id,
+    screen = Screen(
+        cinema_id=cinema_id,
         name=name,
-        address=address,
-        photo_url=photo_url,
         template=LayoutTemplate(knobs.template),
         knobs=knobs.model_dump(),
         layout={},
+        tiers=gen.tiers,
+        formats=formats,
         seat_count=gen.seat_count,
     )
-    db.add(venue)
+    db.add(screen)
     await db.flush()
     rows = []
     ids: dict[tuple[str, str, int], str] = {}
@@ -52,7 +51,7 @@ async def create_venue(
         rows.append(
             {
                 "id": seat_id,
-                "venue_id": venue.id,
+                "screen_id": screen.id,
                 "section_key": key[0],
                 "row_label": key[1],
                 "number": key[2],
@@ -62,6 +61,6 @@ async def create_venue(
             }
         )
     await db.execute(insert(Seat), rows)
-    venue.layout = layout_json(gen, ids)
+    screen.layout = layout_json(gen, ids)
     await db.flush()
-    return venue
+    return screen
