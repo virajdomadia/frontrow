@@ -17,10 +17,18 @@ type Props = {
   /** Last pick/limit message — announced, and shown when it's a warning. */
   notice: string;
   onRemove: (id: string) => void;
+  /** The hold countdown, "mm:ss" (10:00 until the first hold). */
+  clock: string;
+  /** A hold is running. */
+  holding: boolean;
+  /** Hold requests still in flight. */
+  busy: boolean;
+  proceeding: boolean;
+  onProceed: () => void;
 };
 
 const HOLD_COPY = "Seats hold for 10 minutes once you pick them";
-const PAY_SOON = "Holds and checkout open in the next release.";
+const HELD_COPY = "Held for you — pay before the clock runs out";
 
 /**
  * The cream ticket stub (direction B). Desktop: a paper card beside the map that fills as you
@@ -28,7 +36,12 @@ const PAY_SOON = "Holds and checkout open in the next release.";
  */
 export function Stub(p: Props) {
   const n = p.picks.length;
-  const warn = p.notice.startsWith("Up to") || / is (sold|held|not on sale)/.test(p.notice);
+  const warn =
+    p.notice.startsWith("Up to") ||
+    / is (sold|held|not on sale)/.test(p.notice) ||
+    /taken|ended|up —|Couldn't|unavailable|closed|Too many/.test(p.notice);
+  const cta = p.proceeding ? "Starting checkout…" : n ? `Proceed to pay ${rupees(p.total)}` : "Pick seats to continue";
+  const hint = p.holding ? HELD_COPY : HOLD_COPY;
   return (
     <>
       <p aria-live="polite" className="sr-only">
@@ -67,8 +80,13 @@ export function Stub(p: Props) {
             </div>
 
             <div className="flex items-baseline justify-between gap-3 rounded-lg bg-paper-2 px-3.5 py-3">
-              <b className="font-mono text-[30px] leading-none font-semibold text-red-dark tabular-nums">10:00</b>
-              <span className="text-right text-xs tracking-[.08em] text-ink-2 uppercase">{HOLD_COPY}</span>
+              <b
+                className={cn("font-mono text-[30px] leading-none font-semibold tabular-nums", p.holding ? "text-red-dark" : "text-ink-3")}
+                aria-label={p.holding ? `${p.clock} left on your hold` : undefined}
+              >
+                {p.clock}
+              </b>
+              <span className="text-right text-xs tracking-[.08em] text-ink-2 uppercase">{hint}</span>
             </div>
 
             {warn && <p className="text-sm font-medium text-red-dark">{p.notice}</p>}
@@ -94,11 +112,11 @@ export function Stub(p: Props) {
           </div>
 
           <div className="mt-auto grid gap-2 px-6 pb-6">
-            <Button disabled className="w-full" aria-describedby="pay-soon">
-              {n ? `Proceed to pay ${rupees(p.total)}` : "Pick seats to continue"}
+            <Button disabled={!n || p.proceeding} onClick={p.onProceed} className="w-full" aria-describedby="pay-note">
+              {cta}
             </Button>
-            <p id="pay-soon" className="text-center text-xs text-ink-3">
-              {PAY_SOON}
+            <p id="pay-note" className="text-center text-xs text-ink-3">
+              {p.busy ? "Holding your seats…" : "Test-mode payments · no real money moves"}
             </p>
           </div>
         </div>
@@ -117,20 +135,23 @@ export function Stub(p: Props) {
           ) : (
             <p className="text-sm text-ink-2">Tap seats to pick · up to 10</p>
           )}
-          <b className="shrink-0 font-mono text-[22px] font-semibold text-red-dark tabular-nums" title={HOLD_COPY}>
-            10:00
+          <b
+            className={cn("shrink-0 font-mono text-[22px] font-semibold tabular-nums", p.holding ? "text-red-dark" : "text-ink-3")}
+            title={hint}
+          >
+            {p.clock}
           </b>
         </div>
         {warn && <p className="mt-1.5 text-[13px] font-medium text-red-dark">{p.notice}</p>}
         <div className="mt-3 flex items-center justify-between gap-3">
           <div>
             <div className="text-xs text-ink-2">
-              {n ? `${n} ${n === 1 ? "seat" : "seats"} · incl. ${rupees(p.fee)} fee` : PAY_SOON}
+              {n ? `${n} ${n === 1 ? "seat" : "seats"} · incl. ${rupees(p.fee)} fee` : HOLD_COPY}
             </div>
             <b className="font-cond text-[30px] leading-none font-extrabold tabular-nums">{rupees(p.total)}</b>
           </div>
-          <Button disabled aria-describedby="pay-soon">
-            Pay
+          <Button disabled={!n || p.proceeding} onClick={p.onProceed}>
+            {p.proceeding ? "…" : "Pay"}
           </Button>
         </div>
       </div>

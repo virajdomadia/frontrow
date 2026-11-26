@@ -271,11 +271,16 @@ def _arena(k: ArenaKnobs) -> Generated:
         "y": -k.floor_radius - AISLE - STAGE_H,
         "w": stage_w,
     }
+    used = {s.tier for s in sections if any(r.seats for r in s.rows)}
     tiers = [
-        {"key": "floor", "label": "Floor"},
-        {"key": "gold", "label": "Gold"},
-        {"key": "silver", "label": "Silver"},
-        {"key": "bronze", "label": "Bronze"},
+        t
+        for t in (
+            {"key": "floor", "label": "Floor"},
+            {"key": "gold", "label": "Gold"},
+            {"key": "silver", "label": "Silver"},
+            {"key": "bronze", "label": "Bronze"},
+        )
+        if t["key"] in used  # no floor seats (floor_rows=0) → no Floor price to set
     ]
     return Generated(template="arena", stage=stage, tiers=tiers, sections=sections)
 

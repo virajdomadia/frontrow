@@ -83,3 +83,8 @@ def test_knobs_are_validated() -> None:
         KNOBS.validate_python({"template": "arena", "sections": 40})
     with pytest.raises(ValidationError):
         KNOBS.validate_python({"template": "dome"})
+
+
+def test_arena_without_a_floor_has_no_floor_tier() -> None:
+    gen = generate(ArenaKnobs(floor_rows=0))
+    assert [t["key"] for t in gen.tiers] == ["gold", "silver", "bronze"]

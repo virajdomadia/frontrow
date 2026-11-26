@@ -2,14 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ArrowLeft } from "lucide-react";
 import { BookingView } from "@/components/booking/BookingView";
-import { Logo } from "@/components/site/Logo";
+import { FlowHeader } from "@/components/booking/FlowHeader";
 import { buttonVariants } from "@/components/ui/button";
 import { api, ApiRequestError } from "@/lib/api";
 import { when } from "@/lib/format";
 import type { ShowtimeDetail } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 // The detail is catalog-fresh (60 s) and the layout immutable; the seat state is read per request
 // with the viewer's cookie, so this page always renders dynamically. A showtime that has started
@@ -85,7 +83,11 @@ export default async function BookPage({ params }: Props) {
 
   return (
     <>
-      <BookHeader slug={ready?.showtime.event.slug ?? closed?.slug ?? ""} title={ready?.showtime.event.title ?? closed?.title ?? ""} />
+      <FlowHeader
+        step={0}
+        back={`/events/${ready?.showtime.event.slug ?? closed?.slug ?? ""}`}
+        backLabel={`Back to ${ready?.showtime.event.title ?? closed?.title ?? "the show"}`}
+      />
       <main>
         {ready ? (
           <BookingView showtime={ready.showtime} layout={ready.layout} snapshot={ready.snapshot} />
@@ -107,39 +109,5 @@ export default async function BookPage({ params }: Props) {
         )}
       </main>
     </>
-  );
-}
-
-const STEPS = ["Seats", "Pay", "Ticket"];
-
-function BookHeader({ slug, title }: { slug: string; title: string }) {
-  return (
-    <header className="border-b border-border">
-      <nav aria-label="Booking" className="mx-auto flex w-[min(1440px,100%)] items-center justify-between gap-4 px-4 py-4 lg:px-10">
-        <div className="flex items-center gap-2 sm:gap-5">
-          <Link
-            href={`/events/${slug}`}
-            aria-label={`Back to ${title}`}
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "px-2")}
-          >
-            <ArrowLeft />
-          </Link>
-          <Logo />
-        </div>
-        <ol className="flex list-none gap-4 p-0 font-cond text-[15px] font-semibold tracking-[.06em] text-faint uppercase sm:gap-6 sm:text-[17px]">
-          {STEPS.map((s, i) => (
-            <li
-              key={s}
-              aria-current={i === 0 ? "step" : undefined}
-              className={cn("items-center aria-[current=step]:text-screen", i === 0 ? "flex" : "hidden sm:flex")}
-            >
-              {i === 0 && <span aria-hidden="true" className="mr-2 inline-block size-2 rounded-full bg-red" />}
-              <span className="hidden sm:inline">{i + 1}&nbsp;</span>
-              {s}
-            </li>
-          ))}
-        </ol>
-      </nav>
-    </header>
   );
 }

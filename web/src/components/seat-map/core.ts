@@ -364,6 +364,8 @@ export type SeatSnapshot = {
   sold: string[];
   held: { seat_id: string; expires_at: string }[];
   mine: string[];
+  /** When the caller's own holds lapse (one shared clock). */
+  mine_expires_at?: string | null;
 };
 
 /** The v2 stream's `diff`. */

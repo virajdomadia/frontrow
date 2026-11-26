@@ -439,7 +439,7 @@ async def bookings(db: AsyncSession, organiser: User, showtime_id: str) -> Booki
                 select(OrderSeat, Seat)
                 .join(Seat, Seat.id == OrderSeat.seat_id)
                 .where(OrderSeat.order_id.in_(order_ids))
-                .order_by(Seat.y, Seat.x)
+                .order_by(Seat.section_key, Seat.row_label, Seat.number)
             )
         ).tuples():
             seats[os_.order_id].append((seat, os_))

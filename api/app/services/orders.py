@@ -214,7 +214,7 @@ async def _seats_out(db: AsyncSession, order: Order, venue: Venue) -> list[Order
             select(OrderSeat, Seat)
             .join(Seat, Seat.id == OrderSeat.seat_id)
             .where(OrderSeat.order_id == order.id)
-            .order_by(Seat.y, Seat.x)
+            .order_by(Seat.section_key, Seat.row_label, Seat.number)
         )
     ).all()
     return [

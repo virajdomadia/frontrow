@@ -49,7 +49,4 @@ export function messageOf(e: unknown, fallback = "Something went wrong. Try agai
   return fallback;
 }
 
-/** `?next=` targets: same-site paths only (never `//evil.com` or a full URL). */
-export function safeNext(next: string | null | undefined, fallback = "/events"): string {
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : fallback;
-}
+export { safeNext } from "./next-path";
