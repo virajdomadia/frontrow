@@ -6,9 +6,11 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Response
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
+from app.redis import optional_redis
 from app.schemas.events import EventDetail, EventList, Home
 from app.services import events
 
@@ -16,6 +18,7 @@ router = APIRouter(tags=["catalog"])
 
 CACHE = "public, s-maxage=60, stale-while-revalidate=300"
 RELATIVE_DATES = ("today", "tomorrow", "weekend")
+OptRedis = Annotated[Redis | None, Depends(optional_redis)]
 
 
 def _cached(response: Response) -> None:
@@ -41,6 +44,7 @@ def next_ist_midnight(now: datetime) -> datetime:
 async def list_events(
     response: Response,
     db: Annotated[AsyncSession, Depends(get_session)],
+    redis: OptRedis,
     date: Annotated[
         str | None,
         Query(
@@ -59,18 +63,23 @@ async def list_events(
     else:
         _cached(response)
     params = events.ListParams(date=date, type=type, genre=genre, venue=venue, sort=sort)
-    return await events.list_events(db, params, now=now)
+    return await events.list_events(db, params, now=now, redis=redis)
 
 
 @router.get("/events/{slug}", response_model=EventDetail)
 async def get_event(
-    slug: str, response: Response, db: Annotated[AsyncSession, Depends(get_session)]
+    slug: str,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    redis: OptRedis,
 ) -> EventDetail:
     _cached(response)
-    return await events.get_event(db, slug, now=datetime.now(UTC))
+    return await events.get_event(db, slug, now=datetime.now(UTC), redis=redis)
 
 
 @router.get("/home", response_model=Home)
-async def home(response: Response, db: Annotated[AsyncSession, Depends(get_session)]) -> Home:
+async def home(
+    response: Response, db: Annotated[AsyncSession, Depends(get_session)], redis: OptRedis
+) -> Home:
     _cached(response)
-    return await events.home(db, now=datetime.now(UTC))
+    return await events.home(db, now=datetime.now(UTC), redis=redis)

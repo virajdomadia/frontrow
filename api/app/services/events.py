@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+from redis.asyncio import Redis
 from sqlalchemy import Integer, Uuid, column, func, select, table
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,9 +31,10 @@ from app.schemas.events import (
     TierPrice,
     VenueRef,
 )
+from app.services import holds
 
 IST = ZoneInfo("Asia/Kolkata")
-FILLING_AT = 0.75  # share sold at which the badge says "filling fast" (04 §3; F3 adds holds)
+FILLING_AT = 0.7  # share held + sold at which the badge says "filling fast" (R2)
 HOME_COUNT = 6
 
 # The `showtime_fill` view from 0001_v1 (06 §A) — sold seats per showtime.
@@ -63,12 +65,22 @@ class ShowtimeRow:
     sold: int
     price_min: int
     price_max: int
+    held: int = 0
 
     @property
     def fill(self) -> str:
-        if self.sold >= self.seat_count:
-            return "sold_out"
-        return "filling" if self.sold >= self.seat_count * FILLING_AT else "available"
+        return fill_of(self.seat_count, self.sold, self.held)
+
+    @property
+    def seats_left(self) -> int:
+        return max(self.seat_count - self.sold - self.held, 0)
+
+
+def fill_of(seat_count: int, sold: int, held: int = 0) -> str:
+    """Sold out is sales only (holds lapse); "filling fast" counts live holds too (F3)."""
+    if sold >= seat_count:
+        return "sold_out"
+    return "filling" if sold + held >= seat_count * FILLING_AT else "available"
 
 
 # --- date windows ---------------------------------------------------------------------------------
@@ -119,6 +131,7 @@ async def load_showtimes(
     start: datetime | None = None,
     end: datetime | None = None,
     event_ids: list[uuid.UUID] | None = None,
+    redis: Redis | None = None,
 ) -> list[ShowtimeRow]:
     prices = (
         select(
@@ -154,6 +167,7 @@ async def load_showtimes(
     if event_ids is not None:
         q = q.where(Showtime.event_id.in_(event_ids))
     rows = (await db.execute(q)).all()
+    held = await holds.held_counts(redis, [r.id for r in rows])
     return [
         ShowtimeRow(
             id=r.id,
@@ -170,6 +184,7 @@ async def load_showtimes(
             sold=r.sold,
             price_min=r.price_min,
             price_max=r.price_max,
+            held=held.get(r.id, 0),
         )
         for r in rows
     ]
@@ -202,11 +217,13 @@ def card(event: Event, showtimes: list[ShowtimeRow]) -> EventCard:
 # --- reads ----------------------------------------------------------------------------------------
 
 
-async def list_events(db: AsyncSession, params: ListParams, *, now: datetime) -> EventList:
+async def list_events(
+    db: AsyncSession, params: ListParams, *, now: datetime, redis: Redis | None = None
+) -> EventList:
     start, end = date_window(params.date, now)
     events = list(await db.scalars(select(Event).where(Event.status == EventStatus.LIVE)))
     by_event: dict[uuid.UUID, list[ShowtimeRow]] = defaultdict(list)
-    for s in await load_showtimes(db, now=now, start=start, end=end):
+    for s in await load_showtimes(db, now=now, start=start, end=end, redis=redis):
         by_event[s.event_id].append(s)
 
     # Facets count over the date window only, so a chip never leads to an empty page.
@@ -255,13 +272,15 @@ def _sort_key(sort: str):  # type: ignore[no-untyped-def]
     return lambda c: (c.next_showtime.starts_at if c.next_showtime else far, c.title)
 
 
-async def get_event(db: AsyncSession, slug: str, *, now: datetime) -> EventDetail:
+async def get_event(
+    db: AsyncSession, slug: str, *, now: datetime, redis: Redis | None = None
+) -> EventDetail:
     event = await db.scalar(
         select(Event).where(Event.slug == slug, Event.status == EventStatus.LIVE)
     )
     if event is None:
         raise ApiError("not_found", "No such event")
-    shows = await load_showtimes(db, now=now, event_ids=[event.id])
+    shows = await load_showtimes(db, now=now, event_ids=[event.id], redis=redis)
     tiers = (
         await db.execute(
             select(PriceTier)
@@ -289,14 +308,14 @@ async def get_event(db: AsyncSession, slug: str, *, now: datetime) -> EventDetai
                 price_min_paise=s.price_min,
                 price_max_paise=s.price_max,
                 fill=s.fill,  # type: ignore[arg-type]
-                seats_left=s.seat_count - s.sold,
+                seats_left=s.seats_left,
             )
             for s in shows
         ],
     )
 
 
-async def home(db: AsyncSession, *, now: datetime) -> Home:
+async def home(db: AsyncSession, *, now: datetime, redis: Redis | None = None) -> Home:
     """The landing strip: the six events with the soonest upcoming showtime."""
-    listing = await list_events(db, ListParams(), now=now)
+    listing = await list_events(db, ListParams(), now=now, redis=redis)
     return Home(now_showing=listing.events[:HOME_COUNT])

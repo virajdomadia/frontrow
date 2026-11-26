@@ -50,3 +50,19 @@ class SeatState(ApiModel):
     sold: list[str]
     held: list[HeldSeat] = Field(description="Held by someone else (not the caller).")
     mine: list[str] = Field(description="Held by the caller's session.")
+    mine_expires_at: datetime | None = Field(
+        default=None, description="When the caller's holds lapse (one shared 10-minute clock)."
+    )
+
+
+class HoldRequest(ApiModel):
+    seat_ids: list[str] = Field(
+        min_length=1,
+        max_length=50,
+        description="The whole current selection (POST) or the seats to let go (DELETE).",
+    )
+
+
+class HoldGranted(ApiModel):
+    expires_at: datetime = Field(description="When these holds lapse — the countdown's zero.")
+    held: list[str]

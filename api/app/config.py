@@ -20,8 +20,11 @@ class Settings(BaseSettings):
     database_url: SecretStr | None = None
     test_database_url: SecretStr | None = None
 
-    # --- Holds (Upstash Redis, TCP URL) — F2 ---
+    # --- Holds (Upstash Redis, TCP URL) — F2. TEST_REDIS_URL is dev/CI only. ---
     redis_url: SecretStr | None = None
+    test_redis_url: SecretStr | None = None
+    hold_ttl_seconds: int = 600  # 10 minutes (R4); tests shorten it
+    holds_per_minute: int = 30  # rate limit per holder (06 §B)
 
     # --- Payments (Razorpay test mode) — F5 ---
     razorpay_key_id: str | None = None
@@ -34,6 +37,11 @@ class Settings(BaseSettings):
 
     # --- Cross-service ---
     web_url: str = "http://localhost:3000"
+
+    @property
+    def cookie_secure(self) -> bool:
+        """Secure cookies whenever the site is served over https (production, previews)."""
+        return self.web_url.startswith("https://")
 
 
 @lru_cache
