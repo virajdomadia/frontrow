@@ -1,0 +1,32 @@
+# Keeps the production demo fresh. The seed's showtimes are relative to "now" (today .. +13 days),
+# so without a re-run they all slip into the past and the site shows no events. Runs daily just after
+# midnight IST; it is idempotent (users/venues/events upserted, demo showtimes replaced).
+# Runs on GitHub's runner (free for a public repo) — no Vercel compute. Needs repo secret DATABASE_URL
+# (the same Neon URL as the frontrow-api project; app.db.asyncpg_url converts it).
+name: seed
+on:
+  schedule:
+    - cron: '35 18 * * *' # 00:05 IST
+  workflow_dispatch:
+
+concurrency: { group: seed-production, cancel-in-progress: false }
+permissions: { contents: read }
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: api
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6 # python version from api/.python-version
+        with:
+          enable-cache: true
+          cache-dependency-glob: api/uv.lock
+      - run: uv sync --locked
+      - run: uv run alembic upgrade head
+      - run: uv run python -m app.seed

@@ -4,7 +4,7 @@
  *
  * - `indexLayout`  Layout JSON → placed seats, rows, sections, a spatial hash
  * - `hitTest`      layout point → seat id (taps); `sectionAt` → section key (arena overview)
- * - `neighbour`    arrow-key movement between seats
+ * - `neighbour`    arrow-key movement between seats; `sectionStep` / `sectionStart` jump sections
  * - `SeatState`    the live state (sold / held / mine) with snapshot + diff merge (06 §D)
  * - `tierPalette`  tier key → colour token, by price
  *
@@ -230,21 +230,34 @@ export function sectionAt(index: SeatIndex, x: number, y: number): string | null
 export type Direction = "left" | "right" | "up" | "down" | "home" | "end";
 
 /**
- * The seat an arrow key moves to. Left/right walk the row; up/down go to the nearest seat of the
- * row in front / behind — across into the next rows-section (stalls → balcony), but a wedge
- * keeps to itself. At an edge the seat stays where it is.
+ * The seat an arrow key moves to. Left/right walk the row — and off the end of a wedge's row
+ * into the same row of the wedge beside it, so the arena's ring is one continuous walk. Up/down
+ * go to the nearest seat of the row in front / behind — across into the next rows-section
+ * (stalls → balcony). At an edge the seat stays where it is. `sectionStep` reaches the rest
+ * (the arena floor ↔ wedges).
  */
 export function neighbour(index: SeatIndex, id: string, dir: Direction): string {
   const seat = index.byId.get(id);
   if (!seat) return id;
   const row = index.rows[seat.rowIndex];
   const at = row.seats.indexOf(id);
-  if (dir === "left") return row.seats[Math.max(0, at - 1)];
-  if (dir === "right") return row.seats[Math.min(row.seats.length - 1, at + 1)];
+  const section = index.sections.find((s) => s.key === seat.section)!;
+  if (dir === "left" || dir === "right") {
+    const step = dir === "left" ? -1 : 1;
+    const to = at + step;
+    if (to >= 0 && to < row.seats.length) return row.seats[to];
+    if (section.shape !== "wedge") return id;
+    // Wedges are generated in seat-number order round the ring: n+1 runs on into the next one.
+    const wedges = index.sections.filter((s) => s.shape === "wedge");
+    const next = wedges[wedges.indexOf(section) + step];
+    const ri = next?.rows[Math.min(section.rows.indexOf(seat.rowIndex), next.rows.length - 1)];
+    if (ri === undefined) return id;
+    const seats = index.rows[ri].seats;
+    return step > 0 ? seats[0] : seats[seats.length - 1];
+  }
   if (dir === "home") return row.seats[0];
   if (dir === "end") return row.seats[row.seats.length - 1];
 
-  const section = index.sections.find((s) => s.key === seat.section)!;
   const step = dir === "up" ? -1 : 1;
   let target: PlacedRow | undefined;
   const pos = section.rows.indexOf(seat.rowIndex) + step;
@@ -256,17 +269,70 @@ export function neighbour(index: SeatIndex, id: string, dir: Direction): string 
     if (r !== undefined) target = index.rows[r];
   }
   if (!target) return id;
-  let best = target.seats[0];
+  return nearestIn(index, target.seats, seat);
+}
+
+function nearestIn(index: SeatIndex, ids: string[], p: Point): string {
+  let best = ids[0];
   let bestD = Infinity;
-  for (const other of target.seats) {
+  for (const other of ids) {
     const o = index.byId.get(other)!;
-    const d = (o.x - seat.x) ** 2 + (o.y - seat.y) ** 2;
+    const d = (o.x - p.x) ** 2 + (o.y - p.y) ** 2;
     if (d < bestD) {
       bestD = d;
       best = other;
     }
   }
   return best;
+}
+
+/**
+ * Where keyboard focus lands in a section: the free seat nearest the middle of its front row
+ * (else the first free seat anywhere in it, else that middle seat).
+ */
+export function sectionStart(index: SeatIndex, key: string, isFree: (id: string) => boolean): string | null {
+  const section = index.sections.find((s) => s.key === key);
+  if (!section?.rows.length) return null;
+  for (const ri of section.rows) {
+    const seats = index.rows[ri].seats;
+    const free = seats.filter(isFree);
+    if (free.length) return free[Math.floor((free.length - 1) / 2)];
+  }
+  const front = index.rows[section.rows[0]].seats;
+  return front[Math.floor((front.length - 1) / 2)] ?? null;
+}
+
+/** Page Down / Page Up: the start seat of the next / previous section, wrapping round. */
+export function sectionStep(
+  index: SeatIndex,
+  id: string,
+  step: 1 | -1,
+  isFree: (id: string) => boolean,
+): string {
+  const seat = index.byId.get(id);
+  const n = index.sections.length;
+  if (!seat || n < 2) return id;
+  const at = index.sections.findIndex((s) => s.key === seat.section);
+  for (let k = 1; k < n; k++) {
+    const next = sectionStart(index, index.sections[(((at + step * k) % n) + n) % n].key, isFree);
+    if (next) return next;
+  }
+  return id;
+}
+
+/** "Section 3, Gold ₹2,500"; "Floor ₹3,500" where the tier already names the section. */
+export function sectionText(label: string, tierText: string | undefined): string {
+  if (!tierText) return `${label}, not on sale`;
+  return tierText.startsWith(label) ? tierText : `${label}, ${tierText}`;
+}
+
+/**
+ * A seat's accessible name: "Section 3, B4, Gold ₹2,500, available". The section is left out
+ * where the tier text already names it: "Floor, A6, Floor ₹3,500, …" → "A6, Floor ₹3,500, …".
+ */
+export function seatLabel(sectionLabel: string | null, seatName: string, tierText: string, status: string): string {
+  const prefix = sectionLabel && !tierText.startsWith(sectionLabel) ? `${sectionLabel}, ` : "";
+  return `${prefix}${seatName}, ${tierText}, ${status}`;
 }
 
 /** The seat to start keyboard focus on: the free seat nearest the middle of the front rows. */

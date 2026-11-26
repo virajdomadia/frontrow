@@ -12,7 +12,11 @@ const chip =
   "inline-flex items-center gap-1.5 rounded-btn border border-screen/20 px-3 py-[7px] text-sm font-medium whitespace-nowrap text-muted-foreground no-underline transition-colors hover:border-screen/50 hover:text-screen";
 const chipOn = "border-screen bg-screen font-semibold text-plum hover:border-screen hover:text-plum";
 
-/** The S2 filter bar. Every control writes the URL; the page re-renders on the server. */
+/**
+ * The S2 filter bar. Every control writes the URL; the page re-renders on the server. It is a
+ * GET form on `/events` underneath, so it works before (or without) JavaScript: the selects
+ * submit through the Apply button, shown only when scripts are off.
+ */
 export function Filters({
   current,
   genres,
@@ -30,8 +34,25 @@ export function Filters({
   const go = (patch: Filters) => start(() => router.push(eventsHref(current, patch), { scroll: false }));
   const isDay = current.date && /^\d{4}-/.test(current.date);
 
+  // With JS the controls navigate on change; Enter in the date field still submits the form.
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const patch: Filters = {};
+    for (const k of ["date", "type", "genre", "venue", "sort"] as const) {
+      const v = data.getAll(k).find((x) => typeof x === "string" && x) as string | undefined;
+      patch[k] = v || undefined;
+    }
+    go(patch);
+  };
+
   return (
-    <div
+    <form
+      action="/events"
+      method="get"
+      role="search"
+      aria-label="Filter shows"
+      onSubmit={onSubmit}
       className={cn("mt-5 flex flex-wrap items-center gap-2 transition-opacity", pending && "opacity-60")}
       aria-busy={pending}
     >
@@ -61,10 +82,14 @@ export function Filters({
             type="date"
             min={today}
             value={isDay ? current.date : ""}
+            name="date"
             onChange={(e) => go({ date: e.target.value || undefined })}
             className="w-[8.2rem] bg-transparent text-inherit [color-scheme:dark]"
           />
         </label>
+        {/* Keeps a preset (today / weekend) when the form is submitted without JS; a picked
+            date comes first in the query, so it wins. */}
+        {current.date && !isDay && <input type="hidden" name="date" value={current.date} />}
       </div>
 
       <span aria-hidden="true" className="mx-1.5 hidden h-6 w-px bg-screen/15 sm:block" />
@@ -95,7 +120,12 @@ export function Filters({
           onChange={go}
         />
       </div>
-    </div>
+      <noscript>
+        <button type="submit" className={cn(chip, chipOn, "cursor-pointer")}>
+          Apply
+        </button>
+      </noscript>
+    </form>
   );
 }
 
@@ -116,7 +146,8 @@ function Select({
 }) {
   const on = Boolean(value) && name !== "sort";
   // A value from the URL that today's facets don't list (e.g. a genre with no shows that day)
-  // stays selectable, so the control never claims "Any" while a filter is applied.
+  // stays selectable, so the control never claims "Any" while a filter is applied. Unreadable
+  // values never get here: the page drops them (lib/filters.ts `readFilters`).
   const all = value && !options.some((o) => o.value === value) ? [...options, { value, label: value, count: 0 }] : options;
   return (
     <label className={cn(chip, "relative pr-7", on && chipOn)}>

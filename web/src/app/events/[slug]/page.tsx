@@ -10,7 +10,25 @@ import { dayKey, dayLabel, dayParts, duration, rupees, when } from "@/lib/format
 import { SITE_URL } from "@/lib/site";
 import type { EventDetail } from "@/lib/types";
 
+// ISR (QA 2026-11-19): without `generateStaticParams` a dynamic segment renders on every request
+// (`private, no-store`) whatever `revalidate` says. An empty list prerenders nothing at build —
+// no api call in CI — and caches each event page on its first visit for a minute, the same as
+// the api's own `s-maxage=60` on the data (seat counts included; the seat map reads live).
 export const revalidate = 60;
+export const dynamicParams = true;
+
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  return [];
+}
+
+/**
+ * The backdrop is decoration under a blur, so it takes the optimizer's smallest width (256, in
+ * next.config's allow-list) as one fixed URL — no srcset climbing to 828 on a 3× phone — and
+ * leaves the priority fetch to the poster beside it (QA 2026-11-19: it was the LCP image).
+ */
+function backdropSrc(poster: string) {
+  return `/_next/image?url=${encodeURIComponent(poster)}&w=256&q=75`;
+}
 
 const getEvent = cache(async (slug: string): Promise<EventDetail | null> => {
   try {
@@ -56,7 +74,12 @@ export default async function EventPage({ params }: Props) {
       <div className="relative isolate">
         {/* Backdrop: the poster, darkened into the plum ground. */}
         <div aria-hidden="true" className="absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden">
-          <Image src={event.poster_url} alt="" fill priority sizes="100vw" className="scale-110 object-cover opacity-70 blur-[2px]" />
+          <img
+            src={backdropSrc(event.poster_url)}
+            alt=""
+            decoding="async"
+            className="absolute inset-0 size-full scale-110 object-cover opacity-70 blur-[6px]"
+          />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(42,11,30,.35),rgba(42,11,30,.7)_55%,var(--plum))]" />
         </div>
         <SiteHeader active={event.type === "movie" ? "movie" : "concert"} overlay />
@@ -64,7 +87,15 @@ export default async function EventPage({ params }: Props) {
         <main className="mx-auto w-[min(1240px,100%-32px)]">
           <section className="grid gap-6 pt-20 sm:grid-cols-[200px_1fr] sm:items-end sm:gap-8 sm:pt-28 lg:grid-cols-[260px_1fr] lg:pt-36">
             <div className="relative aspect-[2/3] w-40 overflow-hidden rounded-lg shadow-[0_24px_60px_rgba(0,0,0,.6)] sm:w-full">
-              <Image src={event.poster_url} alt={`${event.title} poster`} fill priority sizes="(min-width: 1024px) 260px, 200px" className="object-cover" />
+              <Image
+                src={event.poster_url}
+                alt={`${event.title} poster`}
+                fill
+                priority
+                fetchPriority="high"
+                sizes="(min-width: 1024px) 260px, (min-width: 640px) 200px, 160px"
+                className="object-cover"
+              />
             </div>
             <div>
               <TypeBadge type={event.type} />

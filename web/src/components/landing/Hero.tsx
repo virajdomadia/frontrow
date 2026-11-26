@@ -11,7 +11,9 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="hall" aria-label="Live seat map example">
+      {/* A picture of the seat map, not a control: hidden from assistive tech and inert, so its
+          seats and the mock Pay button are never announced or focused (QA 2026-11-19). */}
+      <div className="hall" aria-hidden="true" inert>
         <div className="hold-pill">Held for you <b>09:41</b></div>
         <div className="screen"></div>
         <div className="screen-label">Screen</div>
@@ -25,7 +27,7 @@ export function Hero() {
           <div className="row"><span className="lbl">G</span><i className="seat"></i><i className="seat"></i><i className="seat"></i><i className="seat aisle"></i><i className="seat"></i><i className="seat"></i><i className="seat"></i><i className="seat"></i><i className="seat"></i><i className="seat"></i><i className="seat aisle"></i><i className="seat"></i><i className="seat"></i><i className="seat"></i></div>
         </div>
         <div className="legend"><span><i></i> Available</span><span><i className="a"></i> Held by someone</span><span><i className="m"></i> Yours</span><span><i className="s"></i> Sold</span></div>
-        <div className="checkout"><span className="sum"><b>D6, D7</b> 2 × ₹350 · Recliner</span><a className="btn btn-red" href="#">Pay ₹700</a></div>
+        <div className="checkout"><span className="sum"><b>D6, D7</b> 2 × ₹550 · Recliner</span><span className="btn btn-red">Pay ₹1,160</span></div>
       </div>
     </section>
   );

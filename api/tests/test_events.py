@@ -98,6 +98,15 @@ async def test_routes_over_http(db_engine: AsyncEngine, db_client: AsyncClient) 
     titles = [e["title"] for e in res.json()["events"]]
     assert titles == sorted(titles) and len(titles) == 5
 
+    # A relative date means another day after IST midnight: no shared cache may serve it
+    # (fresh or stale) across that boundary.
+    res = await db_client.get("/events", params={"date": "today"})
+    cc = dict(p.split("=") for p in res.headers["cache-control"].split(", ") if "=" in p)
+    to_midnight = (
+        svc.day_start(datetime.now(svc.IST).date() + timedelta(days=1)) - datetime.now(UTC)
+    ).total_seconds()
+    assert int(cc["s-maxage"]) + int(cc["stale-while-revalidate"]) <= to_midnight + 1
+
     res = await db_client.get("/events", params={"date": "someday"})
     assert res.status_code == 422 and res.json()["error"]["code"] == "validation"
 

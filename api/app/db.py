@@ -7,6 +7,7 @@ back, so a test app with no URL stays offline even when the developer's `.env.lo
 """
 
 from collections.abc import AsyncIterator
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import Request
 from sqlalchemy.ext.asyncio import (
@@ -25,6 +26,20 @@ class DatabaseNotConfigured(RuntimeError):
     pass
 
 
+def asyncpg_url(url: str) -> str:
+    """Accept the URL exactly as Neon's dashboard hands it out
+    (`postgresql://…?sslmode=require&channel_binding=require`) as well as a ready asyncpg URL.
+    asyncpg takes `ssl=`, not libpq's `sslmode=`, and has no `channel_binding` option."""
+    parts = urlsplit(url)
+    scheme = "postgresql+asyncpg" if parts.scheme in ("postgres", "postgresql") else parts.scheme
+    query = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        if key == "channel_binding":
+            continue
+        query.append(("ssl" if key == "sslmode" else key, value))
+    return urlunsplit((scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+
+
 def make_engine(url: str) -> AsyncEngine:
     """Neon's pooled endpoint closes idle connections, so `pool_pre_ping` re-validates before
     use; the pool stays small for a serverless function."""
@@ -34,7 +49,7 @@ def make_engine(url: str) -> AsyncEngine:
 def get_engine(settings: Settings) -> AsyncEngine:
     if settings.database_url is None:
         raise DatabaseNotConfigured("DATABASE_URL is not set")
-    url = settings.database_url.get_secret_value()
+    url = asyncpg_url(settings.database_url.get_secret_value())
     engine = _engines.get(url)
     if engine is None:
         engine = _engines[url] = make_engine(url)

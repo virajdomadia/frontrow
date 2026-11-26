@@ -2,7 +2,7 @@
 
 **Pick your seat, live.** A movie ticketing marketplace for Bengaluru with a live seat map: a seat is held for 10 minutes the moment you tap it and greys out for everyone else. Cinemas run their shows on it; Frontrow staff run the marketplace.
 
-> Status: **re-planned 2026-11-15/16 — movies only, three roles.** Built so far: brand, API + database, shows pages, seat map (PRs #2–#13). Next: row B1 (films, cinemas, screens; the new paper + oxblood look; a catalogue that never empties). One of six portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). **Live:** https://frontrow-viraj.vercel.app — moving to `frontrow.virajdomadia.com`.
+> Status: **re-planned 2026-11-15/16 — movies only, three roles.** Built so far: brand, API + database, shows pages, seat map (PRs #2–#13). Next: row B1 (films, cinemas, screens; the new paper + oxblood look; a catalogue that never empties). One of four portfolio projects by [Viraj Domadia](https://virajdomadia.vercel.app). **Live:** https://frontrow-viraj.vercel.app — moving to `frontrow.virajdomadia.com`.
 
 ## What it proves
 Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard on confirm · idempotent Razorpay webhooks incl. paid-after-expiry refunds · counter and online sales on one live map · a three-sided marketplace (customers, theatre owners, staff) with per-business access · live updates on serverless inside free tiers · a showcase-grade SVG seat map
@@ -13,7 +13,7 @@ Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard 
 | **v1 Box office** | Customer: BookMyShow's flow with an email code (home, movie, language/format, showtimes, how many seats, seat map + holds, Razorpay, M-ticket). Theatre owner: register, cinemas, screens, pick films, bulk shows, bookings, door scanning. Staff: film catalogue, requests, approvals | 26 left (+7 built) |
 | **v2 Live hall** | Live seats, "Try it live" on the landing page, today board with live sales, blocked seats, counter sales, cancel a show; staff support, suspend, marketplace view | 13.75 |
 | **v3 Full house** | Reviews after scan-in, waitlist, sales reports, payouts, seat heatmap, review moderation | 10 |
-| **v4 In your pocket** | One Expo app, tabs per role: customer booking + offline wallet + push; owner scanner, today board, counter; staff approvals + support | 18.5 |
+| **v4 In your pocket** | One Expo app, tabs per role: customer booking + offline wallet + push; owner scanner (multi-scanner door check-in (server-authorised online; provisional offline scans synced, duplicates flagged)), today board, counter; staff approvals + support | 20.5 |
 
 ## Stack
 `web/` Next.js 15 (App Router) · TypeScript · Tailwind 4 — `api/` FastAPI (Python 3.12) · SQLAlchemy + Alembic · Neon Postgres · Upstash Redis · Razorpay · Gmail SMTP — Vercel for both — `mobile/` (v4) Expo · React Native · TypeScript
@@ -48,3 +48,6 @@ cd web && pnpm install && cp .env.example .env.local && pnpm dev
 pnpm gen:api   # in web/: regenerate api/openapi.json + src/lib/api-types.ts after changing the contract
 ```
 Demo logins: one-click buttons on the landing page (customer, theatre owner, staff) once B2 ships; until then the S2 seed users exist. Ports 3000/8000 are used by another project on this machine, so the examples use 8002.
+
+### Deploy
+GitHub Actions only: `.github/workflows/vercel.yml` builds both apps on GitHub's runner after CI passes on `main` and uploads the output to Vercel. Vercel's Git deployments are off (`git.deploymentEnabled: false` in `api/vercel.json` and `web/vercel.json`), so pushing never starts a Vercel build.

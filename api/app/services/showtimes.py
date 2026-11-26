@@ -3,6 +3,10 @@
 Sold seats come from `tickets` (Postgres is the truth for a sale). Holds live in Redis from F2
 on; until then `live_holds()` is the one seam that returns nothing, so the route, the contract
 and the web map are already shaped for them.
+
+A showtime that has started or was cancelled is closed: both reads answer 410
+`showtime_closed` (the same rule as the web's book-page guard), with enough in `details` for
+the web to say so and link back to the event.
 """
 
 from __future__ import annotations
@@ -17,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ApiError
 from app.models import Event, PriceTier, Showtime, Ticket, Venue
-from app.models.enums import EventStatus
+from app.models.enums import EventStatus, ShowtimeStatus
 from app.schemas.events import TierPrice
 from app.schemas.showtimes import (
     HeldSeat,
@@ -52,7 +56,25 @@ def _bad_id(raw: str) -> uuid.UUID:
         raise ApiError("not_found", "No such showtime") from e
 
 
-async def get_showtime(db: AsyncSession, showtime_id: str) -> ShowtimeDetail:
+def _check_open(showtime: Showtime, event: Event, venue: Venue, now: datetime) -> None:
+    cancelled = showtime.status == ShowtimeStatus.CANCELLED
+    if not cancelled and showtime.starts_at > now:
+        return
+    raise ApiError(
+        "showtime_closed",
+        "This showtime was cancelled" if cancelled else "This show has already started",
+        status=410,
+        details={
+            "reason": "cancelled" if cancelled else "started",
+            "starts_at": showtime.starts_at.isoformat(),
+            "event_slug": event.slug,
+            "event_title": event.title,
+            "venue_name": venue.name,
+        },
+    )
+
+
+async def _load(db: AsyncSession, showtime_id: str, now: datetime) -> tuple[Showtime, Event, Venue]:
     row = (
         await db.execute(
             select(Showtime, Event, Venue)
@@ -64,6 +86,12 @@ async def get_showtime(db: AsyncSession, showtime_id: str) -> ShowtimeDetail:
     if row is None:
         raise ApiError("not_found", "No such showtime")
     showtime, event, venue = row._tuple()
+    _check_open(showtime, event, venue, now)
+    return showtime, event, venue
+
+
+async def get_showtime(db: AsyncSession, showtime_id: str, *, now: datetime) -> ShowtimeDetail:
+    showtime, event, venue = await _load(db, showtime_id, now)
 
     prices = {
         t.tier_key: t
@@ -137,9 +165,8 @@ async def get_layout(db: AsyncSession, venue_id: str) -> dict[str, Any]:
 async def seat_state(
     db: AsyncSession, showtime_id: str, *, sid: str | None, now: datetime
 ) -> SeatState:
-    st_id = _bad_id(showtime_id)
-    if await db.scalar(select(Showtime.id).where(Showtime.id == st_id)) is None:
-        raise ApiError("not_found", "No such showtime")
+    showtime, _, _ = await _load(db, showtime_id, now)
+    st_id = showtime.id
     sold = [
         str(s) for s in await db.scalars(select(Ticket.seat_id).where(Ticket.showtime_id == st_id))
     ]

@@ -60,7 +60,7 @@ Money is integer paise. Shows are generated lazily from `show_schedules` so the 
 
 **v2:** `blocked_seats (show_id, seat_id, reason, primary key (show_id, seat_id))`; `orders.channel = 'counter'`; `businesses.status = 'suspended'`.
 **v3:** `reviews (id, film_id, user_id, ticket_id unique, rating int 1–5, body, removed_reason null, created_at)`; `waitlist (id, show_id, user_id, seats int, status, offered_until, created_at)`; `payouts (id, business_id, week_start date, sales_paise, fee_paise, owed_paise, paid_at null)`.
-**v4:** `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`.
+**v4:** `device_tokens (id, user_id, expo_token unique, platform, created_at, last_seen_at)`. Door scanning (Viraj, 2026-11-19): `checkins (id, ticket_id, show_id, scanner_id, client_scan_id, scanned_by user_id, scanned_at null, received_at, state confirmed|duplicate_flagged, reason null)` unique (scanner_id, client_scan_id) so a re-sent batch is a no-op; index (show_id, state). `tickets.checked_in_at` stays the single source of "admitted". `scanned_at` is the device clock (audit only, null for online scans); `received_at` is server time. `pending_sync` exists only on the device.
 
 ## B. Redis keys
 | Key | Type | TTL | Written by |
@@ -116,6 +116,7 @@ Error envelope: `{ "error": { "code", "message", "details" } }`. 🔒 signed in 
 | POST | `/checkin` | `{ token, show_id }` → `valid \| used \| wrong_show \| invalid` |
 | v2 | `GET /owner/today` · `POST/DELETE /owner/shows/{id}/blocks` · `POST /owner/shows/{id}/counter-orders` · `POST /owner/shows/{id}/cancel` | |
 | v3 | `GET /owner/reports` · `GET /owner/payouts` · `GET /owner/screens/{id}/heatmap` | |
+| v4 | `GET /owner/shows/{id}/scan-list` · `POST /checkins/sync` · `GET /owner/shows/{id}/checkins` | scan list `{ show_id, version, issued_at, expires_at, tickets: {ticket_id, seat_label, token_hash}[], sig }` (Ed25519; `version` rises on every sale or refund); sync `{ scanner_id, scans: {client_scan_id, token, scanned_at}[] }` → `{ results: {client_scan_id, state: confirmed \| duplicate_flagged \| invalid, checked_in_at}[] }` in array order; `POST /checkin` gains optional `{ scanner_id, client_scan_id }` |
 
 ### Frontrow staff 🛠
 | Method | Path | Notes |

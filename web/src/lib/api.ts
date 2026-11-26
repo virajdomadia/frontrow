@@ -56,6 +56,12 @@ export interface ApiInit {
   searchParams?: Record<string, string | string[] | undefined>;
   /** Forward the viewer's `Cookie` header (session) and never cache — signed-in data only. */
   auth?: boolean;
+  /**
+   * An extra part for the data-cache key, for a response whose meaning changes while its URL
+   * doesn't (`?date=weekend` after IST midnight). Sent as a header — Next keys cached fetches
+   * on headers too — that the api ignores.
+   */
+  cacheKey?: string;
 }
 
 /** `/events/{slug}` + `{ slug: 'x' }` → `/events/x`. Throws rather than sending a literal `{slug}`. */
@@ -74,6 +80,7 @@ export async function api<P extends GetPath>(path: P, init: ApiInit = {}): Promi
     for (const one of Array.isArray(v) ? v : [v]) if (one) url.searchParams.append(k, one);
 
   const headers = new Headers();
+  if (init.cacheKey) headers.set("x-cache-key", init.cacheKey);
   let cache: RequestCache | undefined;
   if (init.auth) {
     // The raw header, not `cookies().toString()`: that re-encodes values and the api never

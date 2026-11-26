@@ -4,7 +4,7 @@ export function Organisers() {
       <div className="ticket-in">
         <div className="ticket" aria-label="Example ticket">
           <div className="tk-main">
-            <div className="film">Kantara 2</div>
+            <div className="film">Neon Alley</div>
             <div className="meta"><span>Seats<b>D6, D7</b></span><span>Show<b>Fri 7:30 PM</b></span><span>Screen<b>1 · Recliner</b></span></div>
           </div>
           <div className="tk-stub"><div className="qr" aria-hidden="true">

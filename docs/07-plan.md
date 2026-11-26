@@ -1,6 +1,6 @@
 # Frontrow — Development Plan
 
-**Lifecycle step:** 7 of 17 · **Re-planned:** 2026-11-15/16 (movies only, three roles) · **Total:** ~68.25 h over 32 rows · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
+**Lifecycle step:** 7 of 17 · **Re-planned:** 2026-11-15/16 (movies only, three roles) · **Total:** ~70.25 h over 33 rows (v4 +2 h for multi-scanner offline check-in, Viraj, 2026-11-19) · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
 **Tracker:** https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA — the same rows with live status, updated per milestone.
 
 **How to read it:** each version is split by role. Row numbers give the build order inside a version (B1 → B11, L1 → L8, A1 → A6, M1 → M7). Every row is one branch and one PR, squash-merged, starts in a new chat, and ships something visible.
@@ -112,7 +112,7 @@ Review moderation (payout settling sits in A4).
 
 ---
 
-## v4 — In your pocket · one app, three roles (≈ 18.5 h)
+## v4 — In your pocket · one app, three roles (≈ 20.5 h)
 
 One Expo app (Android build + Expo Go). Sign in and it shows your role. Customers get the whole booking flow plus an offline wallet and push. Theatre owners and staff get the jobs done on their feet (scanner, today board, counter; approvals, support); setup, scheduling, reports and catalogue work stay on the website.
 
@@ -133,12 +133,13 @@ Booking flow, reviews, waitlist, offline wallet.
 | M2 | **Customer: browse, book, pay** | Home, search, movie, language/format, showtimes, certificate notice, how many seats, seat map over the shared seat-map core with pinch/pan, holds, Razorpay RN, ticket, review after the show, join a waitlist. | — | 5.5 h | Test payment in the app produces a ticket that scans. |
 | M3 | **Offline wallet** | Tickets saved on the device, open in airplane mode, brightness up, add to calendar. | — | 2 h | Airplane mode: ticket opens and scans. |
 
-### Theatre owner (≈ 4 h)
-Door scanner, today board with live sales, blocked seats, counter.
+### Theatre owner (≈ 6 h)
+Door scanner (many phones, honest offline), today board with live sales, blocked seats, counter.
 
 | # | Part | web/ (or mobile/) | api/ | Est. | Done when |
 |---|---|---|---|---|---|
 | M5 | **Owner: scanner, today, counter** | Door scanner with camera, haptics and running count; today board with live sales; block seats; counter sale on the phone. Setup, scheduling, reports and payouts stay on the website. | — (v1/v2 routes) | 4 h | 20 scans a minute; duplicate refused. |
+| M5b | **Offline scans + sync** (Viraj, 2026-11-19) | Pre-doors scan-list download to SQLite; offline provisional accept + queue (ticket, scanner, `scanned_at`); same-phone rescan blocked; counter: confirmed · pending sync; flagged list | `checkins` table; `GET /owner/shows/{id}/scan-list` (Ed25519-signed), `POST /checkins/sync` (batch, idempotent per `client_scan_id`), reconcile by server commit order | 2 h | Two offline scans of one ticket, synced in either order → 1 `confirmed` + 1 `duplicate_flagged`, counted once (test); pending never shown as confirmed |
 
 ### Frontrow staff (≈ 2 h)
 Approvals queue, booking lookup and resend.
@@ -156,8 +157,8 @@ Approvals queue, booking lookup and resend.
 | v1 Box office | 26.0 | The full loop for all three roles |
 | v2 Live hall | 13.75 | Live seats; a cinema runs its day on Frontrow |
 | v3 Full house | 10.0 | Reviews, waitlist, the money side |
-| v4 In your pocket | 18.5 | One app, three roles |
-| **Total** | **68.25** | |
+| v4 In your pocket | 20.5 | One app, three roles; honest offline door scanning |
+| **Total** | **70.25** | |
 
 ## Dropped on 2026-11-16 (carried from the old plan, not in the role flows)
 Cinema pages and favourites · reminder email · coming soon + notify me · pick for me · view from your seat · ticket transfer · dynamic pricing · a separate live sales dashboard (folded into the today board). The old add-on bucket is retired with the old plan.

@@ -5,35 +5,53 @@ import { Filters } from "@/components/events/Filters";
 import { SiteFooter, SiteHeader, type NavKey } from "@/components/site/SiteHeader";
 import { buttonVariants } from "@/components/ui/button";
 import { api, ApiRequestError } from "@/lib/api";
-import { eventsHref, readFilters, type Filters as F } from "@/lib/filters";
+import { apiFilters, eventsHref, FILTER_KEYS, readFilters, type FilterKey, type Filters as F } from "@/lib/filters";
 import { dayKey } from "@/lib/format";
 import type { EventList } from "@/lib/types";
-
-export const metadata: Metadata = {
-  title: "Shows in Bengaluru",
-  description: "Films and live concerts across Bengaluru. Filter by day, type, genre and venue, then pick your seat on a live map.",
-  alternates: { canonical: "/events" },
-};
 
 const HEADINGS: Record<string, string> = { movie: "Movies in Bengaluru", concert: "Concerts in Bengaluru" };
 const WHEN: Record<string, string> = { today: "today", tomorrow: "tomorrow", weekend: "this weekend" };
 
-export default async function EventsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const current = readFilters(await searchParams);
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+// The page reads `searchParams`, so it renders per request (that is what the filters are); the
+// api call under it is a cached fetch (60 s), so a filter combination is still served warm.
+
+/** The title follows the h1: "Concerts in Bengaluru · Frontrow". */
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { filters } = readFilters(await searchParams);
+  return {
+    title: HEADINGS[filters.type ?? ""] ?? "Shows in Bengaluru",
+    description: "Films and live concerts across Bengaluru. Filter by day, type, genre and venue, then pick your seat on a live map.",
+    alternates: { canonical: filters.type ? `/events?type=${filters.type}` : "/events" },
+  };
+}
+
+export default async function EventsPage({ searchParams }: Props) {
+  const read = readFilters(await searchParams);
+  let current = read.filters;
+  let rejected = read.rejected;
   const now = new Date();
 
   let list: EventList | null = null;
   let invalid = false;
   try {
-    list = await api("/events", { searchParams: current, revalidate: 60, tags: ["events"] });
+    const sent = apiFilters(current, now);
+    list = await api("/events", {
+      searchParams: sent.filters,
+      revalidate: 60,
+      tags: ["events"],
+      cacheKey: current.date === "weekend" ? sent.day : undefined,
+    });
   } catch (e) {
-    // A hand-edited query (?date=someday) is a 422 — show the empty state, not an error page.
-    if (e instanceof ApiRequestError && e.status === 422) invalid = true;
-    else throw e;
+    // A value that passed the format check but not the api (?date=2026-02-31) is a 422 — show
+    // the empty state, not an error page, and keep the bad key out of every link and option.
+    if (!(e instanceof ApiRequestError && e.status === 422)) throw e;
+    invalid = true;
+    const fields = Object.keys((e.body.details?.fields ?? {}) as Record<string, unknown>);
+    const bad = FILTER_KEYS.filter((k) => fields.includes(k) && current[k]);
+    current = Object.fromEntries(Object.entries(current).filter(([k]) => !bad.includes(k as FilterKey)));
+    rejected = [...rejected, ...bad];
   }
 
   const active: NavKey | undefined =
@@ -48,6 +66,11 @@ export default async function EventsPage({
           {HEADINGS[current.type ?? ""] ?? "Shows in Bengaluru"}
         </h1>
         <Filters current={current} genres={list?.genres ?? []} venues={list?.venues ?? []} today={dayKey(now)} />
+        {rejected.length > 0 && !invalid && (
+          <p role="status" className="mt-3 text-[13px] text-amber">
+            Ignored a filter we couldn&apos;t read ({rejected.join(", ")}).
+          </p>
+        )}
 
         {list && list.total > 0 ? (
           <>
