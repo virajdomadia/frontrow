@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DemoButtons } from "@/components/auth/DemoButtons";
 
 export function Hero() {
   return (
@@ -8,6 +9,10 @@ export function Hero() {
         <div>
           <p className="lede">Choose seats on a live map. The moment you tap one, it's held for you and greys out for everyone else — <strong>no double bookings, no "sorry, that's gone" at checkout.</strong></p>
           <div className="hero-actions"><Link className="btn btn-red" href="/events">Book seats</Link><a className="btn btn-line" href="#how">See how holds work</a></div>
+          <div className="mt-6 max-w-[460px]">
+            <p className="mb-2 text-xs font-semibold tracking-[.14em] text-muted-foreground uppercase">Try it in one click</p>
+            <DemoButtons />
+          </div>
         </div>
       </div>
 

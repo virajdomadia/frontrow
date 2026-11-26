@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AccountLinks } from "./AccountLinks";
 import { Logo } from "./Logo";
 
 export type NavKey = "all" | "movie" | "concert";
@@ -34,10 +35,17 @@ export function SiteHeader({ active, overlay = false }: { active?: NavKey; overl
               For organisers
             </Link>
           </li>
+          <li aria-hidden="true" className="w-px self-stretch bg-border" />
+          <li>
+            <AccountLinks />
+          </li>
         </ul>
-        <Link href="/events" className={cn(buttonVariants({ size: "sm" }), "sm:hidden")}>
-          Shows
-        </Link>
+        <div className="flex items-center gap-4 text-[15px] font-medium sm:hidden">
+          <AccountLinks />
+          <Link href="/events" className={buttonVariants({ size: "sm" })}>
+            Shows
+          </Link>
+        </div>
       </nav>
     </header>
   );
