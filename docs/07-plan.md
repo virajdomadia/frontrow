@@ -1,129 +1,164 @@
 # Frontrow — Development Plan
 
-**Lifecycle step:** 7 of 17 · **Written:** 2026-09-15 · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
-**Tracker:** row status lives at https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA (updated per milestone).
-**Budget:** v1 ≈ 18 h · v2 ≈ 10 h · v3 ≈ 10 h · v4 ≈ 16 h (total ≈ 54 h; v4 +2 h for multi-scanner offline check-in, Viraj, 2026-11-19). v1 carries two small app-readiness items (bearer tokens in F4, DOM-free seat-map core in F1) so v4 is a second renderer, not a rewrite. **Cadence:** evenings/weekends; each row = one branch + one PR, squash-merged, and **every PR shows something in the browser**. Milestones end deployed.
+**Lifecycle step:** 7 of 17 · **Re-planned:** 2026-11-15/16 (movies only, three roles) · **Total:** ~70.25 h over 33 rows (v4 +2 h for multi-scanner offline check-in, Viraj, 2026-11-19) · **Inputs:** [03-requirements.md](03-requirements.md), [04-technical-design.md](04-technical-design.md), [06-data-and-api.md](06-data-and-api.md).
+**Tracker:** https://claude.ai/artifact/SYCP9jsFMK9fgkoyCyq8DA — the same rows with live status, updated per milestone.
 
-**Lean rules in force** (2026-09-15): setup is the minimum to deploy both apps with plain CI; no observability, contract gates, e2e workflows or tracker updates per PR; review findings fixed on the same branch; tests only from 04 §11. Hours saved go to the seat map, motion and content. **Accounts and keys are created just-in-time** — in the row that first needs them, never in a setup batch (Viraj, 2026-09-15): Neon in S2, Upstash in F2, Razorpay in F5, Resend + Blob in L5, Expo/EAS in M1/M8, Vercel Cron in M6.
-
-How the lifecycle maps: step 8 = milestone 1.0; steps 9–11 and 14–15 cycle inside every row; step 12 is one checklist row at the end of v1; step 13 is the CI file in 1.0; step 16 is skipped unless something breaks; step 17 is a short doc after v3.
-
-Column key — **Who:** 🟢 customer · 🔴 organiser · ⚪ platform. Endpoints from 06 §C; screens from 03-user-flows.
+**How to read it:** each version is split by role. Row numbers give the build order inside a version (B1 → B11, L1 → L8, A1 → A6, M1 → M7). Every row is one branch and one PR, squash-merged, starts in a new chat, and ships something visible.
+**Already built (reused):** S1 brand + tokens (PR #2, #4) · S2 API, database, seed (#11) · S3 shows pages (#12) · F1 seat map (#13). B1 reworks them from events into films, cinemas and screens.
+**Lean rules:** plain CI only (web typecheck + build, api ruff + pytest); tests only where a demo bug would embarrass; accounts and keys in the row that first needs them (Upstash + Gmail in B2, Razorpay in B6, Expo/EAS in M1); free tiers only; no browser storage.
 
 ---
 
-## v1 — Box office (≈ 18 h)
+## v1 — Box office (≈ 26.0 h)
 
-### Milestone 1.0 — Skeleton + catalog live (≈ 4.5 h) — step 8
-Goal: both apps deployed, DB seeded, direction chosen, a visitor can browse real shows.
+Movies only, in Bengaluru. The full loop for all three roles: a customer books on a phone and is scanned in at the door; a theatre owner sets up screens and schedules shows; staff run the film catalogue and approvals. Rows are grouped by role; numbers give the build order. About 7 h already built (brand, API + database, shows pages, seat map) is reused inside B1 and B3–B5.
 
-| # | Part | Who | web/ | api/ | Est. | Done when |
-|---|---|---|---|---|---|---|
-| S1 | **Direction + tokens** | 🟢 | Variant page per [04-ui-mockups.md](04-ui-mockups.md) (S4 + S3, 3–4 variants, live motion candidates, CC photos) → Viraj picks → tokens + fonts in `globals.css`, themed browser surfaces | — | 1.5 h | Chosen direction recorded in 04-ui-mockups; landing restyled only if tokens changed |
-| S2 | **API skeleton + DB + seed** | ⚪ | `next.config.ts` rewrite `/api/*`; `lib/api.ts` typed fetch; `pnpm gen:api` | `pyproject` (uv), `main.py`, settings, error envelope, `/health`; SQLAlchemy models + Alembic `0001_v1` (06 §A); `services/layouts.py` three template generators; `seed/` — 3 venues, 8 events, ~20 showtimes relative to now, scattered sold seats, `CREDITS.md`; **accounts needed here and no others:** Vercel project `frontrow-api` (FastAPI preset, sin1) + Neon project (Singapore) (`DATABASE_URL`); `ci.yml` (web typecheck+build · api ruff+pytest) | 1.5 h | `api.frontrow…/docs` opens in prod; seed idempotent; CI green |
-| S3 | **Events list + event page** | 🟢 | S2 `/events` with URL filters + empty state; S3 `/events/[slug]` with showtimes by day → venue, fill badge, JSON-LD; landing "Now showing" strip from `/home`; demo-login buttons (wired in F5) | `GET /events`, `/events/{slug}`, `/home`; `showtime_fill` view; `s-maxage=60` | 1.5 h | Live at production with seeded content; Lighthouse mobile ≥ 90 on both |
+### All roles · foundation (≈ 6.0 h)
+Films, cinemas and screens replace events; the new look; a catalogue that never empties; three sign-in doors on email codes with demo buttons.
 
-### Milestone 1.1 — Seat map + holds (≈ 6 h) 🟢 — the project's core
-| # | Part | Who | web/ | api/ | Est. | Done when |
-|---|---|---|---|---|---|---|
-| F1 | **Seat map renders all three templates** | 🟢 | `components/seat-map/core.ts` — pure TS, no DOM: layout → positions, hit-test (point → seat id), `SeatState` + diff merge (v4's React Native map reuses it unchanged); `<SeatMap>` renders it as SVG from `Layout`; tier legend + prices; sold/held/mine classes; arena overview → wedge zoom (`viewbox.ts`), pan/zoom, pinch; keyboard roving + SR list; sticky footer with total; **the chosen motion signature (load moment)** | `GET /showtimes/{id}`, `/venues/{id}/layout`, `GET /showtimes/{id}/seats` (sold from Postgres, held from Redis hash) | 2.5 h | All three seeded venues render at 390 px and 1440 px; states from the API show correctly; reduced-motion honoured |
-| F2 | **Hold engine** | ⚪ | `useSeatState` polling 5 s; tap → `POST /holds` with full selection; 409 toast + drop seat; deselect → `DELETE`; countdown (rAF clock, tab title, **hold-moment motion**) | **Upstash Redis created here** (`REDIS_URL`); `services/holds.py` Lua acquire/release + `holds:{st}` hash + version; `fr_sid` cookie; rate limit; **tests:** concurrent race, all-or-none, expiry | 2.5 h | Two tabs (5 s poll) can't both hold F7; tests green in CI |
-| F3 | **Fill + polish** | 🟢 | Filling-fast badge uses held+sold; empty/sold-out states on S4; skeleton loading; error states (Redis down → "try again") | `HLEN` merge into fill | 1 h | Sold-out showtime disabled on S3 and explained on S4 |
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| B1 | **Films, cinemas, screens + fresh seed + new look** | Restyle to the chosen look: paper pages, oxblood header with the torn-stub edge (globals.css tokens; Box office style otherwise unchanged). Rewrite the landing page for movies (no concert copy). Home and movie pages read films; cinema and screen names on showtimes. Arena template dropped. Reuses what is built: S1 brand, S2 API + database, S3 shows pages. | Rework events → shared films catalogue (title, poster, synopsis, cast, runtime, certificate, genres, languages, formats, trailer link, release date, status); businesses → cinemas → screens (layout from grid / stalls+balcony, tiers, formats); shows = film + language + format + screen + time + tier prices. Seed: 3 cinema businesses, 8 fictional films with CC photos, repeating schedules materialised lazily so the next 14 days always exist (no cron). | 3.5 h | Prod is paper + oxblood, the landing talks about movies, and home lists films today and still does a month later without a reseed. |
+| B2 | **Sign-in: email code, three doors** | Customer /sign-in (email → 6-digit code → name if new; also mid-booking), business door /business (register + sign-in), hidden staff door /staff. Landing demo buttons: customer, theatre owner, staff. Account page. | Upstash Redis created here (codes, rate limits; later holds). Code hashed in Redis, 10-min TTL, 5 tries, per-email + per-IP limits; staff door answers the same for any email. Gmail SMTP from a Frontrow Gmail (ported from Tripsmith). One email = one person; business membership and staff flag on top; 30-day cookie session; bearer tokens for v4. Tests: access rules, code expiry/tries, rate limit. | 2.5 h | Each demo signs in with one click; a real email gets a code; access tests green. |
 
-### Milestone 1.2 — Pay + tickets (≈ 4.75 h) 🟢
-| # | Part | Who | web/ | api/ | Est. | Done when |
-|---|---|---|---|---|---|---|
-| F4 | **Auth** | ⚪ | S9 sign-in/up with role picker; inline sign-in on checkout; demo buttons on landing | `/auth/*`, sessions (`kind` web\|mobile), argon2, `fr_sid` adoption; `/auth/demo`; **`POST/DELETE /auth/token`** bearer flow so v4 needs no auth work | 1.25 h | Demo customer signs in from landing in one click; organiser routes 403 for customers |
-| F5 | **Checkout + Razorpay** | 🟢 | S5 checkout (seats, tiers, fee, total, countdown); Razorpay modal; `verify` fast path; "confirming…" poll; S8 refunded state | **Razorpay test account + webhook created here** (`RAZORPAY_*`); `POST /orders` (server totals), `GET /orders/{id}`, `POST /orders/{id}/verify`, `POST /webhooks/razorpay` (HMAC, dedupe, confirm tx, paid-after-expiry refund, `payment.failed`); lazy expiry; **tests:** signature+replay, confirm unique, paid-after-expiry ×2, total | 2.5 h | Test-mode payment produces tickets; replaying the webhook does nothing; both refund branches tested |
-| F6 | **Tickets** | 🟢 | S6 ticket page with QR per seat + calendar link (**confirm-moment motion if chosen**); S7 my tickets upcoming/past | `GET /tickets/{order_id}`, `GET /my/tickets`, token signing | 1 h | QR decodes to a token the API verifies; other user's URL → 404 |
+### Customer (≈ 10.25 h)
+BookMyShow's flow: home, movie, language/format, showtimes, how many seats, seat map with holds, summary, Razorpay, M-ticket.
 
-### Milestone 1.3 — Organiser console + close v1 (≈ 3 h) 🔴
-| # | Part | Who | web/ | api/ | Est. | Done when |
-|---|---|---|---|---|---|---|
-| F7 | **Venues + events + showtimes** | 🔴 | S10 template picker with knobs and live layout preview (reuses `<SeatMap>`); S11 event form + list; S12 showtime form with tier prices, cancel guard | `/organiser/venues|events|showtimes` CRUD, ownership checks, slug, `has_sales` guard | 2 h | New organiser: sign-up → bookable showtime in < 3 min |
-| F8 | **Bookings + v1 close** | 🔴 | S13 bookings list + CSV; README "how the hold engine works" with diagram; `docs/12-security-performance.md` one-page checklist + Lighthouse numbers | `/organiser/showtimes/{id}/bookings`; security list from 05 §7 walked | 1 h | v1 tagged; portfolio case-study entry drafted |
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| B3 | **Home, search, movie page** | Home: Now showing + search box. Movie page: poster, banner, synopsis, cast and crew, certificate, runtime, trailer link, Book tickets. | GET /home, /films?q=, /films/{slug}; cached s-maxage=60. | 1.5 h | Search finds a film by title; movie page renders at 390 and 1440 px. |
+| B4 | **Language/format + showtimes** | Language and format picker (e.g. Hindi · 2D) when a film has more than one; showtimes page with a date strip, cinemas list, times coloured by availability, sold out greyed. | GET /films/{slug}/shows?date=&lang=&format= grouped by cinema; fill from sold + held. | 1.5 h | Times show the right colour for available / filling fast / sold out. |
+| B5 | **How many seats + seat map + 10-minute holds** | Certificate notice before seats when needed (e.g. 'A: 18+ only, ID may be checked'). Then 'How many seats?' (1–10) before the map; tapping a seat picks that many together; seats held 10 minutes, grey for others (5 s poll); countdown in page and tab title; 'F7 was just taken'; 'seats released, pick again'. | Lua all-or-none holds in Redis + version counter; sold set cached in Redis, version-gated poll so Neon stays asleep; fr_sid cookie adopted on sign-in. Tests: 20-way race → one winner; all-or-none; expiry frees seats. Reuses the F1 seat map (core.ts, SVG renderer); its arena code goes. | 3.25 h | Two tabs can never hold the same seat; hold tests green in CI. |
+| B6 | **Summary + Razorpay** | Summary with ticket price and convenience fee shown separately, demo test-card note, Pay; Razorpay test mode; confirming state; failed payment keeps seats held; paid-too-late refund page. | Razorpay test account + webhook created here. Orders with server totals; verify fast path; webhook HMAC + dedupe; confirm transaction with UNIQUE(show, seat); paid after expiry: free → sell, sold → refund. Tests: signature, replay, both refund branches, totals. | 2.5 h | Test payment produces tickets; webhook replay does nothing. |
+| B7 | **M-ticket + email + my tickets** | Ticket page: QR per seat, booking ID, receipt, add to calendar, tear-off motion. My tickets upcoming / past. Confirmation email with the ticket link. | Signed ticket token per seat; owner-only ticket pages (others → 404); email via the B2 sender. | 1.5 h | QR decodes to a token the API verifies; email arrives. |
 
-**v1 total ≈ 18.25 h**
+### Theatre owner (≈ 7.0 h)
+Register, cinemas, screens, pick films, bulk shows, bookings, scan at the door.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| B8 | **Owner: register, cinemas, screens** | Business registration (account → business details) with Pending verification; add cinemas (address, facilities); add screens from a layout template with live preview, tiers and formats. | Businesses, cinemas, screens CRUD scoped to the owner (other business → 404). | 3 h | A new owner sets up a cinema with two screens in under 3 minutes. |
+| B9 | **Owner: films, bulk shows, bookings** | Pick a film from the catalogue, or request a missing one (staff handle it in B11); bulk-schedule: language + format + screen + days + times + tier prices; overlap warning; publish; bookings list per show + CSV. | Bulk show creation with overlap check (runtime + cleaning gap); public only when the business is verified. | 2.5 h | Scheduled shows appear on the film's page under that cinema after approval. |
+| B10 | **Scan at the door** | Check-in page for ushers: phone camera (BarcodeDetector) or paste; Valid / Already checked in HH:MM / Wrong show / Not a ticket. Customer's ticket shows Checked in. | POST /checkin single-use update; show + cinema match. | 1.5 h | Second scan says 'already checked in'. |
+
+### Frontrow staff (≈ 2.75 h)
+Film catalogue, film requests, cinema approvals. v1 tagged.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| B11 | **Staff: film catalogue, film requests, approvals** | Hidden staff area: add / edit films with all details and status (coming soon / now showing / ended); film requests from owners (add the film, or decline with a reason); approvals queue for new businesses with Approve / Reject + reason. Demo staff view-only. v1 close: README section on how holds work. | Staff-only routes; approval flips public listing on. | 2.75 h | A new owner's shows go public after approval; v1 tagged. |
 
 ---
 
-## v2 — Live hall (≈ 10 h)
+## v2 — Live hall (≈ 13.75 h)
 
-### Milestone 2.0 — Live map (≈ 4.5 h) 🟢
-| # | Part | web/ | api/ | Est. | Done when |
-|---|---|---|---|---|---|
-| L1 | **SSE stream** | `useSeatState` opens `EventSource`, applies diffs, `Last-Event-ID`, falls back to polling; **ripple-take motion** on others' holds | `services/stream.py` generator (version poll 1 s + wake at next expiry, ping 20 s, close at 280 s); `vercel.json` maxDuration 300 | 3 h | Two tabs: hold/release/sale visible ≤ 1 s; Playwright test (1.5 s tolerance) |
-| L2 | **Demo mode on landing** | "Try it live" section: two embedded mini seat maps of the same showtime side by side, driven by the real stream | — | 1.5 h | The wow works without opening two tabs |
+Seats change live for everyone and the landing page shows it side by side; a cinema runs its whole day on Frontrow (today board with live sales, blocked seats, counter sales, cancel a show); staff get cinema suspension, support and the marketplace view. Live updates push only on change to stay inside the free tiers.
 
-### Milestone 2.1 — Organiser live + check-in + email (≈ 5.5 h) 🔴
-| # | Part | web/ | api/ | Est. | Done when |
+### Customer (≈ 4.5 h)
+Seats change live for everyone; the landing page shows it side by side.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
 |---|---|---|---|---|---|
-| L3 | **Dashboard** | S14 revenue, sold, fill per showtime, mini maps, last 20 orders, live via stream | `/organiser/dashboard`, organiser stream variant | 2 h | Purchase in another tab updates numbers |
-| L4 | **Check-in** | S15 camera (`BarcodeDetector`) or paste; valid/used/invalid states | `POST /checkin` with single-use update | 1.5 h | Second scan → "already checked in HH:MM" |
-| L5 | **Email + uploads** | Poster upload fields | **Resend key + Vercel Blob store created here**; Resend ticket email (React Email, QR), forgot-password; Blob upload route | 2 h | Ticket email arrives with working link |
+| L1 | **Live seat updates** | Seat map updates live without refresh; falls back to polling; ripple when someone else takes a seat. | Server push only on change (no 1/s polling) so Upstash, Vercel and Neon stay inside free limits; design settled at the start of the row. | 3 h | Two tabs: a hold shows in the other in under a second. |
+| L2 | **'Try it live' on the landing page** | Two mini seat maps of one show side by side, driven by the real updates. | — | 1.5 h | The wow works without opening two tabs. |
+
+### Theatre owner (≈ 6.0 h)
+Today board with live sales and blocked seats, counter sales, cancel a show.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| L3 | **Today board + live sales + block seats** | Every show today with fill and a live seat map, plus today's revenue, tickets sold and recent orders updating live; block seats (broken, staff, guests). | Blocked seats stored per show; counted as unavailable. | 2.5 h | A purchase in another tab updates the board; blocked seats can't be booked online. |
+| L4 | **Counter sales** | Cashier taps seats on the same live map and marks them paid in cash; prints nothing, shows a QR to scan. | Counter orders without Razorpay; same UNIQUE guard. | 2 h | Online and counter can never sell the same seat. |
+| L5 | **Cancel a show** | Owner cancels a show with a reason; every buyer is refunded and emailed; the show disappears. | Razorpay refunds per order; idempotent. | 1.5 h | All test orders refunded once, emails sent. |
+
+### Frontrow staff (≈ 3.25 h)
+Cinema list + suspend, customer support, marketplace view.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| L6 | **Staff: cinema list + suspend** | Every business and its cinemas with status; suspend a cinema (hides its shows, existing tickets unaffected). | — | 0.75 h | A suspended cinema's shows disappear; its ticket holders still get in. |
+| L7 | **Staff: customer support** | Find a booking by ID or email; see seats, payment, scan status; resend ticket email; refund. | Staff support routes, audited. | 1.5 h | A booking can be found and refunded in under a minute. |
+| L8 | **Staff: marketplace view** | Tickets sold, total sales, Frontrow fee, busiest films and cinemas (today / week / month). | Aggregates; cached. | 1 h | Numbers match seeded + test orders. |
 
 ---
 
-## v3 — Full house (≈ 10 h)
+## v3 — Full house (≈ 10.0 h)
 
-### Milestone 3.0 — Waitlist + best available (≈ 5 h)
-| # | Part | web/ | api/ | Est. | Done when |
-|---|---|---|---|---|---|
-| A1 | **Waitlist** | S16 join form on sold-out S4; offer email → claim → checkout with the exclusive hold | `waitlist` table, offer on release/refund (hook in `holds.release` + refund path), 10-min exclusive hold, expiry → next; **test** lapse→offer→claim | 3 h | Test green; e2e: sold out → release → offer → pay |
-| A2 | **Best available** | "Pick for me" (count, tier) → preview highlight → hold | `GET /showtimes/{id}/best` — contiguous, centre-weighted, tier-filtered | 2 h | Returns contiguous when possible; explains when not |
+Reviews after scan-in, waitlist for sold-out shows, sales reports, payouts, seat heatmap and review moderation.
 
-### Milestone 3.1 — Pricing, transfer, heatmap, seat view (≈ 5 h)
-| # | Part | web/ | api/ | Est. | Done when |
+### Customer (≈ 5 h)
+Reviews after scan-in; waitlist for sold-out shows.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
 |---|---|---|---|---|---|
-| A3 | **Dynamic pricing** | Organiser toggle + thresholds on S12; S4 shows current price and "rises at 75 %" | `showtime_pricing_rules`, price computed at hold and frozen into `order_seats` | 1.5 h | Shown price = charged price, always |
-| A4 | **Ticket transfer** | S17 transfer action + claim page | `ticket_transfers`, `token_version` rotate | 1.5 h | Old QR rejected at check-in |
-| A5 | **Heatmap + seat view** | S18 colour scale on `<SeatMap>`; section hover shows "view from here" photo | `/organiser/venues/{id}/heatmap` aggregate; seat-view photos in seed | 2 h | Heatmap matches seeded sales |
+| A1 | **Reviews and ratings** | After being scanned in, rate and review the film; rating % on the movie page. | Review only with a checked-in ticket. | 2 h | A customer who wasn't scanned in can't review. |
+| A2 | **Waitlist** | Join a sold-out show's waitlist; when seats free up the next person gets a 10-minute exclusive hold by email. | Offer on release / refund; unclaimed → next. Test: lapse → offer → claim. | 3 h | Test green; offers never double-hold. |
+
+### Theatre owner (≈ 4.5 h)
+Sales reports, payouts, seat heatmap.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| A3 | **Sales reports** | By film, show and day, with CSV. | Report aggregates. | 1.5 h | Report totals match orders. |
+| A4 | **Payouts** | Owner: weekly statement (sales − Frontrow fee). Staff: what each cinema is owed, mark as paid. Ledger only. | Payout ledger. | 2 h | Statement equals sales minus fee, to the paisa. |
+| A5 | **Seat heatmap** | Which seats sell first across shows, on the seat map. | Aggregate per screen. | 1 h | Heatmap matches seeded sales. |
+
+### Frontrow staff (≈ 0.5 h)
+Review moderation (payout settling sits in A4).
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| A6 | **Staff: review moderation** | Remove abusive reviews with a reason. | — | 0.5 h | Removed review disappears from the movie page. |
 
 ---
 
-## v4 — In your pocket (≈ 16 h) — Expo app in `mobile/`
+## v4 — In your pocket · one app, three roles (≈ 20.5 h)
 
-### Milestone 4.0 — App browses and books (≈ 6.75 h)
-| # | Part | mobile/ | api/ | Est. | Done when |
+One Expo app (Android build + Expo Go). Sign in and it shows your role. Customers get the whole booking flow plus an offline wallet and push. Theatre owners and staff get the jobs done on their feet (scanner, today board, counter; approvals, support); setup, scheduling, reports and catalogue work stay on the website.
+
+### All roles (≈ 5 h)
+App shell with role tabs, push notifications, Android build.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
 |---|---|---|---|---|---|
-| M1 | **Shell + auth** | Expo Router tabs, brand tokens/splash/icon, sign-in/up/demo, SecureStore token, generated API types | — (token flow shipped in F4) | 1.5 h | Demo login works on a phone against the production API |
-| M2 | **Shows + event page** | Lists, filters, event page, showtimes — same endpoints | — | 1.5 h | Parity with S2/S3 |
-| M3 | **Seat map + holds** | `react-native-svg` renderer over the shared `seat-map/core.ts`, pinch/pan, tap → hold, countdown header, polling (SSE if v2 shipped) | — | 2.25 h | Hold in app greys the seat on web ≤ 1 s |
-| M4 | **Pay + tickets** | Razorpay RN SDK, order poll, ticket screen with QR | — | 1.5 h | Test-mode payment → ticket in app |
+| M1 | **App shell + sign-in + role tabs** | Expo Router; email-code sign-in; tabs by role (customer / owner / staff); brand look; generated API types. Expo + EAS accounts created here. | — (bearer tokens from B2) | 2 h | Each demo role signs in on a phone and sees its own tabs. |
+| M4 | **Push notifications** | '2 minutes left on your hold' scheduled on the phone itself; confirmations, waitlist offers and staff approval alerts from the server. | Device tokens; sends on events (no cron). | 2 h | Backgrounded hold → reminder at T-2:00. |
+| M7 | **Ship** | EAS Android build, Expo Go link, 'Get the app' on the landing page with QR. | — | 1 h | A reviewer installs the app in under a minute. |
 
-### Milestone 4.1 — The native reasons (≈ 9 h)
-| # | Part | mobile/ | api/ | Est. | Done when |
+### Customer (≈ 7.5 h)
+Booking flow, reviews, waitlist, offline wallet.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
 |---|---|---|---|---|---|
-| M5 | **Offline wallet** | SQLite cache of tickets + tokens, brightness boost, add-to-calendar | — | 2 h | Airplane mode: ticket opens and scans |
-| M6 | **Push** | expo-notifications registration, deep links | `device_tokens`, `push_jobs`, job at hold time, `POST /internal/push/due` + Vercel Cron | 2.5 h | Backgrounded hold → notification at T-2:00 → deep link lands on the map |
-| M7 | **Organiser scanner** | Scan tab: camera, haptics; online scans via v2 `POST /checkin` (server authorises each) | `checkins` row per scan (`confirmed` / `duplicate_flagged`) written by the same mark-used-once update | 1.5 h | 20 scans/min; two devices, one ticket, concurrent → one `confirmed` (test) |
-| M7b | **Offline scans + sync** (Viraj, 2026-11-19) | Pre-doors scan-list download to SQLite; offline provisional accept + queue (ticket, scanner, `scanned_at`); same-device rescan blocked; counter: confirmed · pending sync; flagged list | `GET /organiser/showtimes/{id}/scan-list`, `POST /checkins/sync` (batch, idempotent per `client_scan_id`), reconcile by server commit order | 2 h | Two offline scans of one ticket, synced in either order → 1 `confirmed` + 1 `duplicate_flagged`, counted once (test); pending never shown as confirmed |
-| M8 | **Ship** | EAS Android build, Expo Go link, landing "Get the app" block with QR, README GIF | — | 1 h | Reviewer installs from the landing page in < 1 min |
+| M2 | **Customer: browse, book, pay** | Home, search, movie, language/format, showtimes, certificate notice, how many seats, seat map over the shared seat-map core with pinch/pan, holds, Razorpay RN, ticket, review after the show, join a waitlist. | — | 5.5 h | Test payment in the app produces a ticket that scans. |
+| M3 | **Offline wallet** | Tickets saved on the device, open in airplane mode, brightness up, add to calendar. | — | 2 h | Airplane mode: ticket opens and scans. |
 
-**Then:** `docs/17-post-launch.md` (½ page) and the portfolio case study. Total ≈ 54 h.
+### Theatre owner (≈ 6 h)
+Door scanner (many phones, honest offline), today board with live sales, blocked seats, counter.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| M5 | **Owner: scanner, today, counter** | Door scanner with camera, haptics and running count; today board with live sales; block seats; counter sale on the phone. Setup, scheduling, reports and payouts stay on the website. | — (v1/v2 routes) | 4 h | 20 scans a minute; duplicate refused. |
+| M5b | **Offline scans + sync** (Viraj, 2026-11-19) | Pre-doors scan-list download to SQLite; offline provisional accept + queue (ticket, scanner, `scanned_at`); same-phone rescan blocked; counter: confirmed · pending sync; flagged list | `checkins` table; `GET /owner/shows/{id}/scan-list` (Ed25519-signed), `POST /checkins/sync` (batch, idempotent per `client_scan_id`), reconcile by server commit order | 2 h | Two offline scans of one ticket, synced in either order → 1 `confirmed` + 1 `duplicate_flagged`, counted once (test); pending never shown as confirmed |
+
+### Frontrow staff (≈ 2 h)
+Approvals queue, booking lookup and resend.
+
+| # | Part | web/ (or mobile/) | api/ | Est. | Done when |
+|---|---|---|---|---|---|
+| M6 | **Staff: approvals + support** | Approvals queue, booking lookup and resend on the phone. Catalogue editing, requests, suspend, refunds, marketplace, payouts and moderation stay on the website. | — | 2 h | Approve a cinema from the phone. |
 
 ---
 
-## Whole-product summary
-| Version | Milestones | Hours | Cumulative |
-|---|---|---|---|
-| v1 Box office | 1.0 – 1.3 | 18 | 18 |
-| v2 Live hall | 2.0 – 2.1 | 10 | 28 |
-| v3 Full house | 3.0 – 3.1 | 10 | 38 |
-| v4 In your pocket | 4.0 – 4.1 | 16 | 54 |
-| Add-ons (in priority order) | A embed widget (4) · B on-sale alerts + calendar (2) · C accessible seating (3) · D organiser refunds (4) · E offline check-in PWA (3) · F group booking, split pay (8) · G season pass (4) · H layout CSV import (4) | up to 32 | up to 86 |
+## Summary
 
-## Add-ons (only from time saved)
-**Nice-to-have, not priority** (Viraj, 2026-09-17): considered only after v4 is fully done (docs and case study included), in this order, from time saved — and skipping all of them is a fine outcome. None is a version; none changes the engine. All free to run.
+| Version | Hours | Proves |
+|---|---|---|
+| v1 Box office | 26.0 | The full loop for all three roles |
+| v2 Live hall | 13.75 | Live seats; a cinema runs its day on Frontrow |
+| v3 Full house | 10.0 | Reviews, waitlist, the money side |
+| v4 In your pocket | 20.5 | One app, three roles; honest offline door scanning |
+| **Total** | **70.25** | |
 
-| # | Add-on | What | Version it extends | ~h |
-|---|---|---|---|---|
-| A | **Embed widget** | A `<script>` tag a cinema pastes into its own site that renders the live seat map + Book flow for one showtime (iframe over `/embed/[showtimeId]`, same API, same SSE) — the map has reach beyond Frontrow | v2 | 4 |
-| B | **On-sale alerts + calendar** | "Notify me when tickets go on sale" for a draft event (Resend); `.ics` per ticket and an iCal feed per venue | v2 | 2 |
-| C | **Accessible seating** | Wheelchair + companion seat pairs in the layout templates, a filter on the map, and the full keyboard/screen-reader pass on the SVG (v3's stretch made real) | v3 | 3 |
-| D | **Organiser refunds** | Cancel a showtime → automatic Razorpay refunds for every paid order + email; partial refund per ticket from the bookings list (v1 out-of-scope, lifted) | v3 | 4 |
-| E | **Offline check-in PWA** | The v2 check-in page as an installable PWA that caches the showtime's valid tokens and syncs `checked_in_at` when back online — works in a basement hall with no signal; reuses v4's scan-list + `POST /checkins/sync` and its provisional / flagged states | v2 | 3 |
-| F | **Group booking, split pay** | One hold for the group, a share link, each friend pays their seat through Razorpay; the hold extends while ≥ 1 seat is paid; unpaid seats release at expiry | v3 | 8 |
-| G | **Season pass** | Organiser sells a pass (N shows, a price); pass holders redeem seats at checkout without paying; pass QR at check-in | v3 | 4 |
-| H | **Layout CSV import** | Organiser uploads a CSV of sections/rows/seats/tiers for a venue that fits no template; validated, rendered with the same map | v1 | 4 |
-
+## Dropped on 2026-11-16 (carried from the old plan, not in the role flows)
+Cinema pages and favourites · reminder email · coming soon + notify me · pick for me · view from your seat · ticket transfer · dynamic pricing · a separate live sales dashboard (folded into the today board). The old add-on bucket is retired with the old plan.

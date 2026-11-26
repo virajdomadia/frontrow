@@ -1,38 +1,38 @@
 # Frontrow — Architecture
 
-**Lifecycle step:** 5 of 17 · **Locked:** 2026-09-15
+**Lifecycle step:** 5 of 17 · **Locked:** 2026-09-15 · **Updated:** 2026-11-16 for the movies-only re-plan (films, cinemas, screens, shows; three roles; Gmail SMTP; no crons)
 
 ## 1. System diagram
 
 ```mermaid
 flowchart LR
   subgraph Browser
-    W[Next.js pages<br/>SeatMap · Checkout · Organiser]
+    W[Next.js pages<br/>Customer · Theatre owner · Staff]
     RZ[Razorpay Checkout modal]
   end
   subgraph Phone v4
-    M[Expo app<br/>Shows · Seat map · Wallet · Scan]
+    M[Expo app · role tabs<br/>Book · Wallet · Scan · Approvals]
     EP[Expo Push]
   end
   subgraph Vercel
     WEB[web · frontrow<br/>Next.js, static + SSR<br/>rewrites /api/* →]
     API[api · frontrow-api<br/>FastAPI, sin1<br/>REST + SSE + webhooks]
   end
-  PG[(Neon Postgres<br/>users · venues · seats · events<br/>showtimes · orders · tickets)]
-  RD[(Upstash Redis<br/>hold:* TTL · holds:{st} hash · st:{st}:v)]
+  PG[(Neon Postgres<br/>users · businesses · films · cinemas<br/>screens · seats · shows · orders · tickets)]
+  RD[(Upstash Redis<br/>otp:* · hold:* TTL · holds:{show} · sold:{show} · st:{show}:v)]
   RP[Razorpay]
-  RS[Resend · v2]
-  BL[Vercel Blob · v2]
+  RS[Gmail SMTP<br/>codes · tickets]
+  BL[Vercel Blob · optional]
 
   W -->|same-origin /api/*| WEB --> API
-  W -.->|SSE /showtimes/{id}/stream · v2| API
+  W -.->|live seat updates · v2| API
   M -->|Bearer token · same REST| API
   API -->|push tickets| EP -->|notification| M
   RZ -->|payment| RP -->|webhook payment.captured| API
   API --> PG
   API --> RD
   API -->|refund · order.create| RP
-  API -->|ticket email| RS
+  API -->|codes · ticket email| RS
   API -->|posters| BL
 ```
 
@@ -40,7 +40,7 @@ flowchart LR
 | Component | Owns | Never does |
 |---|---|---|
 | **web/** | Rendering, seat-map interaction, countdown clock, Razorpay modal, URL state | Touch the DB or Redis; compute prices; trust client totals |
-| **api/** | Auth, holds, orders, tickets, organiser CRUD, webhooks, SSE, seed | Render HTML; hold WebSockets |
+| **api/** | Email-code auth, holds, orders, tickets, owner + staff routes, webhooks, live updates, seed | Render HTML; hold WebSockets |
 | **Redis** | Holds (TTL) and version counters — *fast, disposable* | Be the source of truth for anything sold |
 | **Postgres** | Everything durable; the `UNIQUE (showtime_id, seat_id)` guard | Hold-expiry timing |
 | **Razorpay** | Card/UPI capture, refunds | Decide whether a seat is sellable (the webhook handler does) |
@@ -92,7 +92,7 @@ mobile/app.json · eas.json
 - Neon: one project, `main` branch = production, a `dev` branch for local. Upstash: one Redis, region Mumbai. Razorpay webhook URL → `https://frontrow.virajdomadia.com/api/webhooks/razorpay`.
 - Previews: Vercel previews per PR for `web/` (API previews are SSO-gated, so previews point at the production API — acceptable for a portfolio; seeded data is regenerated relative to "now").
 - CI (GitHub Actions): `web` = pnpm typecheck + build; `api` = ruff + pytest with `postgres:17` and `redis:7` services. v4 adds `mobile` = typecheck only; builds run on EAS by hand. That is all.
-- v4: EAS Build Android artifact linked from the landing page; Vercel Cron hits `POST /internal/push/due` every minute (`CRON_SECRET`) to send scheduled pushes.
+- v4: EAS Build Android artifact linked from the landing page. No cron: the hold reminder is scheduled on the phone; other pushes are sent when their event happens.
 
 ## 6. Request paths worth drawing
 **Hold:** browser → `POST /api/showtimes/7/holds` → rewrite → FastAPI → (Postgres: sold seats for showtime 7, cached 5 s) → Redis Lua → 200 `{expires_at}` / 409 `{taken}`.
@@ -100,4 +100,4 @@ mobile/app.json · eas.json
 **Live (v2):** browser `EventSource` → FastAPI generator → Redis `GET v` each second / `HGETALL` on change → SSE events.
 
 ## 7. Security notes (the short list)
-Cookie session HttpOnly + SameSite=Lax; argon2 passwords; Razorpay webhook HMAC + event-id dedupe; ticket token HMAC; server-side totals only; organiser routes check ownership; rate limit holds per session (30/min) to stop a script grabbing a hall; no PII in logs.
+Cookie session HttpOnly + SameSite=Lax; email codes hashed in Redis with tries and rate limits (no passwords); Razorpay webhook HMAC + event-id dedupe; ticket token HMAC; server-side totals only; owner routes check business membership (others' ids → 404); staff routes check `is_staff`; rate limit holds per session (30/min) to stop a script grabbing a hall; no PII in logs.

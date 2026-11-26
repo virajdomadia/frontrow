@@ -1,6 +1,6 @@
 # Frontrow — Technical Design
 
-**Lifecycle step:** 4 of 17 · **Locked:** 2026-09-15 · UI companion: [04-ui-mockups.md](04-ui-mockups.md). Schema and routes: [06-data-and-api.md](06-data-and-api.md).
+**Lifecycle step:** 4 of 17 · **Locked:** 2026-09-15 · **Updated for the movies-only re-plan:** 2026-11-16 (venues → cinemas and screens, events → shared films, email-code sign-in, Gmail SMTP, arena dropped, push-on-change realtime, no crons) · UI companion: [04-ui-mockups.md](04-ui-mockups.md). Schema and routes: [06-data-and-api.md](06-data-and-api.md).
 
 ## 1. Stack (shared stack, no deviations)
 | Layer | Choice | Notes |
@@ -10,14 +10,14 @@
 | Data | Neon Postgres | Source of truth for everything sold |
 | Holds / realtime | Upstash Redis (TCP client `redis-py` asyncio, not the REST client — Lua needs `EVALSHA`) | Holds, version counters |
 | Payments | Razorpay Checkout + webhooks, test mode | |
-| Email (v2) | Resend + React Email | |
-| Files (v2) | Vercel Blob | Posters |
+| Email (v1) | Gmail SMTP from a dedicated Frontrow Gmail (app password), sender ported from Tripsmith | Sign-in codes, ticket emails; ~500/day; no Resend |
+| Files | Vercel Blob, only if staff upload posters instead of linking them | Film posters |
 | Contract | `api/openapi.json` → `openapi-typescript` → `web/src/lib/api-types.ts` | Script `pnpm gen:api`; committed; **not** CI-gated |
 | CI | GitHub Actions: `web` (typecheck + build), `api` (ruff + pytest with Postgres + Redis services) | Nothing else |
 
 ## 2. Seat layouts
 
-A venue has a **template** and **knobs**; the API generates `seats` rows once at venue creation and stores a `layout` JSON the map renders from. Seats are rows (not a blob) because holds, tickets and the heatmap key on `seat_id`.
+A **screen** (inside a cinema) has a **template** and **knobs**; the API generates `seats` rows once at venue creation and stores a `layout` JSON the map renders from. Seats are rows (not a blob) because holds, tickets and the heatmap key on `seat_id`.
 
 ```jsonc
 // venues.layout
@@ -34,17 +34,16 @@ A venue has a **template** and **knobs**; the API generates `seats` rows once at
 |---|---|---|
 | `grid` | rows (8–20), seats per row (10–24), aisle after seat k, tier split by row bands | straight rows, y per row, gap at aisle |
 | `stalls_balcony` | stalls rows/seats, balcony rows/seats, curve radius | rows on arcs, two blocks |
-| `arena` | sections (6–12), rows per section, seats per row, floor radius | wedges around a circle; `shape: "wedge"` gives the section polygon for the overview |
 
-Tier per section; price per (showtime, tier). Seat ids are stable UUIDs; the map keys on them.
+Tier per section; price per (show, tier). The arena template was dropped on 2026-11-15 (movies only); F1's arena code is removed in B1. Seat ids are stable UUIDs; the map keys on them.
 
 ## 3. The seat map (web)
 - `seat-map/core.ts` is pure TypeScript with no DOM or React: layout → seat positions, hit-test (point → seat id), `SeatState` + `SeatDiff` merge, selection rules (max 10). Web and the v4 app both render it; only the renderer differs.
 - One `<SeatMap>` component over the core: props `layout`, `state` (sold/held/mine + expiries), `selection`, `onToggle`. Renders **SVG** — `<g>` per section, `<rect rx>` per seat (fast up to ~2k nodes; the arena caps at ~1,500). Seat state is a CSS class, so state changes never re-render geometry.
-- Arena: overview shows section polygons with a fill bar; clicking a section animates the `viewBox` to that wedge. Pan/zoom via pointer events + wheel; pinch on touch. Grid/auditorium fit to width with no zoom needed.
+- Grid and stalls + balcony fit to width; pan/zoom via pointer events + wheel and pinch on touch for dense screens. **How many seats** is chosen before the map; a tap selects that many adjacent seats in the row where possible.
 - Keyboard: roving `tabindex` across seats within the focused section; arrows move by row/seat; Enter toggles. A visually-hidden `<ul aria-live>` announces selection and conflicts.
 - Countdown: a single `requestAnimationFrame` clock driving CSS variables (`--t`) on held seats and the footer; tab title shows `mm:ss`.
-- State source: `useSeatState(showtimeId)` — v1 polls every 5 s; v2 opens the SSE stream and falls back to polling. Same payload shape both ways.
+- State source: `useSeatState(showId)` — v1 polls every 5 s sending its last `v` (the API answers `unchanged` from Redis alone, and the sold set is cached in Redis, so polling never wakes Neon); v2 receives pushes only on change and falls back to polling. Same payload shape both ways.
 - Motion signature and visual direction: decided in [04-ui-mockups.md](04-ui-mockups.md) from 3–4 variants. Candidates on the table: hall lights sweeping the map on load; the hold countdown as a burning ring around each held seat; the ticket tearing along a perforation on confirm.
 
 ## 4. The hold engine (api)
@@ -82,6 +81,8 @@ Seats already held by the *same* session are re-granted (idempotent re-tap) but 
 > Implementation detail for the snapshot: the Lua script also writes `HSET holds:{showtime} {seat_id} "{session}|{expires_at_epoch}"` and the release/confirm paths `HDEL`. Individual `hold:` keys still carry the TTL; a snapshot drops hash entries whose `expires_at` is past (lazy cleanup, and a `HDEL` for them when found).
 
 ## 5. Realtime (v2): SSE on Vercel
+
+> **Free-tier rule (2026-11-15):** the loop below checks Redis every second per open map (~3,600 commands per viewer-hour against Upstash's 500K/month) and holds a Vercel function open for minutes. Row L1 starts by redesigning it to push only on change (for example waking on a Redis publish, or long-polling on the version) before building. The contract (`snapshot` / `diff` events, `SeatState` shape) stays.
 ```
 GET /showtimes/{id}/stream        text/event-stream, maxDuration 300
   event: snapshot  data: { v, sold:[…], held:[{seat_id, expires_at}], server_time }
@@ -100,10 +101,10 @@ Why not WebSockets: Vercel functions can't hold them; a separately hosted always
 5. Orders `pending` for > 15 min are treated as `expired` on read (no cron).
 
 ## 7. Tickets & QR
-Token `= base64url(ticket_id:showtime_id:exp) . "." . hmac_sha256(secret, payload)[:16]`, exp = showtime end + 6 h. QR rendered client-side (`qrcode` package) from the token. Check-in (v2): `POST /checkin` with token → verify → `UPDATE tickets SET checked_in_at = now() WHERE id=… AND checked_in_at IS NULL` → 0 rows = already used.
+Token `= base64url(ticket_id:show_id:exp) . "." . hmac_sha256(secret, payload)[:16]`, exp = showtime end + 6 h. QR rendered client-side (`qrcode` package) from the token. Check-in (**v1, row B10**): `POST /checkin` with token → verify → `UPDATE tickets SET checked_in_at = now() WHERE id=… AND checked_in_at IS NULL` → 0 rows = already used.
 
 ## 8. Auth
-Own session auth (as Tripsmith): `users(email, password_hash argon2, role)`, `sessions(id, user_id, expires_at)`, cookie `fr_session` HttpOnly SameSite=Lax. Anonymous visitors get a `fr_sid` cookie (random id) used for holds; sign-in re-keys their Redis holds to the user's session (`RENAME`-free: the hold value stays the sid, and the session records `sid`). Organiser routes check `role = 'organiser'` and ownership of the venue/event.
+**Email code only (2026-11-15).** `POST /auth/code` stores a hashed 6-digit code in Redis (10-minute TTL, 5 tries, 1/min + 5/h per email, per-IP limit) and emails it over Gmail SMTP; `POST /auth/verify` signs in, creating the user on first use. Three doors: customer, business (registration adds a `businesses` row + membership, status pending), staff (seeded `is_staff` users only; the door answers the same for any email). Demo users are never emailed. `sessions(id, user_id, sid, kind, expires_at)`, cookie `fr_session` HttpOnly SameSite=Lax. Anonymous visitors get a `fr_sid` cookie (random id) used for holds; sign-in re-keys their Redis holds to the user's session (`RENAME`-free: the hold value stays the sid, and the session records `sid`). Owner routes check membership of the business that owns the cinema / screen / show (another business's id → 404); staff routes check `is_staff`.
 
 ## 9. Caching & rendering
 Events list and event pages: server-rendered, `Cache-Control: s-maxage=60` on the API GETs, tag revalidation on organiser edits. Seat map page: dynamic (`no-store`) — it is live data. Landing: static.
@@ -125,25 +126,29 @@ Events list and event pages: server-rendered, `Cache-Control: s-maxage=60` on th
 - `test_webhook_signature_and_replay`.
 - `test_paid_after_expiry` both branches.
 - `test_order_total`.
-- v2: one Playwright test — two pages, hold in one, assert grey in the other ≤ 1.5 s.
+- `test_access_rules`: customer → owner/staff routes refused; another business's ids → 404.
+- `test_otp`: expiry, 5 tries, rate limits.
+- `test_checkin`: valid once, second scan `used`, wrong show.
+- `test_show_overlap`: overlapping shows on one screen refused.
+- v2: two pages, hold in one, grey in the other ≤ 1.5 s.
 
 ## 12. v4 — mobile app (Expo)
 | Concern | Choice | Why |
 |---|---|---|
 | Framework | **Expo SDK (React Native, TypeScript), Expo Router** in `mobile/` next to `web/` and `api/` | One codebase for iOS + Android; React knowledge carries over; no Swift/Kotlin |
 | API client | Same `openapi.json` → generated types (`mobile/src/lib/api-types.ts`); `fetch` with `Authorization: Bearer` | Zero duplicated contract |
-| Auth | `POST /auth/token` (shipped in v1, F4) returns an opaque bearer token (row in `sessions` with `kind='mobile'`, 90-day expiry); stored in `expo-secure-store` | Cookies don't fit native; same sessions table |
+| Auth | `POST /auth/token` (shipped in v1, B2, same email-code flow) returns an opaque bearer token (row in `sessions` with `kind='mobile'`, 90-day expiry); stored in `expo-secure-store` | Cookies don't fit native; same sessions table |
 | Seat map | `react-native-svg` rendering the same `Layout` JSON; pinch/pan via `react-native-gesture-handler` + `reanimated`; seat state via polling (SSE via `react-native-sse` once v2 exists) | Same geometry as web, native gestures |
 | Payments | `react-native-razorpay` (Checkout SDK); order / verify / webhook unchanged | |
 | Wallet | `expo-sqlite` cache of the user's tickets + QR tokens; `expo-brightness` on the QR screen; `expo-calendar` | Offline is the reason a native app exists here |
-| Push | `expo-notifications` + Expo Push service; `device_tokens` + `push_jobs` tables; the API inserts a job at hold time (due = expires − 120 s); Vercel Cron calls `POST /internal/push/due` every minute to send due jobs | No always-on process needed |
-| Scanner | `expo-camera` barcode scanning → `POST /checkin`; `expo-haptics`; offline queue in `expo-sqlite` → `POST /checkins/sync` | Online path reuses the v2 endpoint; see below |
+| Push | `expo-notifications`. The hold reminder (T-2:00) is a **local notification scheduled on the phone** when the hold starts; booking confirmed, waitlist offer and "cinema awaiting approval" are sent by the API through Expo Push when they happen | No cron (Hobby crons run once a day) |
+| Scanner | `expo-camera` barcode scanning → `POST /checkin`; `expo-haptics`; offline queue in `expo-sqlite` → `POST /checkins/sync` | Online path reuses the v1 endpoint (B10); see below |
 | Build | EAS Build (free tier): Android APK linked from landing + README; iOS via Expo Go link | No store accounts needed for a portfolio |
 | Tests | One Jest test for the SVG hit-test (tap point → seat id); everything else is API-tested already | Lean |
 
-**Door scanning, many scanners (Viraj, 2026-11-19).** Online, every scan is the v2 `UPDATE tickets SET checked_in_at = now() WHERE id=… AND checked_in_at IS NULL` — 1 row → `confirmed`, 0 rows → already used; Postgres makes it atomic across any number of devices. Each scan also inserts a `checkins` row. Before doors the app fetches `/organiser/showtimes/{id}/scan-list` (ticket ids + SHA-256 of each current QR token), **signed with Ed25519**: the private key `SCAN_LIST_SIGNING_KEY` stays on the server, the public key is built into the app, so a phone can check the list but never forge one; the list carries `showtime_id`, `version`, `issued_at` and `expires_at` (showtime end + 2 h) and the app refuses a list whose signature fails, whose `showtime_id` isn't the one being scanned, that has expired, or whose `version` is older than one it already holds (replay of an old list). The HMAC `TICKET_SECRET` never leaves the server either, so offline "verify" = the scanned token's hash is in the list for this showtime. Offline: match → `pending_sync`, mark used in the local list (same-device rescan blocked), queue `{client_scan_id, token, scanned_at}`. On reconnect `POST /checkins/sync` runs each scan through the same update in received order: first server commit wins (`confirmed`), any later scan of that ticket is `duplicate_flagged`; `scanned_at` is audit-only because device clocks drift. Unique `(scanner_id, client_scan_id)` makes re-sent batches idempotent. Counter = server `confirmed` + this device's `pending_sync`, shown apart, never summed. **Limit:** two offline scanners can both admit one ticket; sync flags it, nothing prevents it — strict prevention needs online scanners. **Stale snapshot (also inherent to offline):** a ticket refunded or transferred after a scanner downloaded its list stays valid in that scanner's snapshot until the scanner reconnects and refreshes; the version check only rejects a list *older than one the device has already seen*, and the expiry (showtime end + 2 h) bounds the window but does not close it. Sync flags such scans (refunded / superseded token → `duplicate_flagged` with the reason); scanners refresh the list whenever online. Tests: `test_checkin_concurrent_devices` (one confirmed), `test_sync_offline_duplicate` (both orders → 1 confirmed + 1 flagged, admitted count 1), `test_sync_idempotent`.
+**Door scanning, many scanners (Viraj, 2026-11-19).** Online, every scan is the B10 (v1) `UPDATE tickets SET checked_in_at = now() WHERE id=… AND checked_in_at IS NULL` — 1 row → `confirmed`, 0 rows → already used; Postgres makes it atomic across any number of devices. Each scan also inserts a `checkins` row. Before doors the app fetches `/owner/shows/{id}/scan-list` (ticket ids + SHA-256 of each current QR token), **signed with Ed25519**: the private key `SCAN_LIST_SIGNING_KEY` stays on the server, the public key is built into the app, so a phone can check the list but never forge one; the list carries `show_id`, `version`, `issued_at` and `expires_at` (show end + 2 h) and the app refuses a list whose signature fails, whose `show_id` isn't the one being scanned, that has expired, or whose `version` is older than one it already holds (replay of an old list). The HMAC `TICKET_SECRET` never leaves the server either, so offline "verify" = the scanned token's hash is in the list for this show. Offline: match → `pending_sync`, mark used in the local list (same-device rescan blocked), queue `{client_scan_id, token, scanned_at}`. On reconnect `POST /checkins/sync` runs each scan through the same update in received order: first server commit wins (`confirmed`), any later scan of that ticket is `duplicate_flagged`; `scanned_at` is audit-only because device clocks drift. Unique `(scanner_id, client_scan_id)` makes re-sent batches idempotent. Counter = server `confirmed` + this device's `pending_sync`, shown apart, never summed. **Limit:** two offline scanners can both admit one ticket; sync flags it, nothing prevents it — strict prevention needs online scanners. **Stale snapshot (also inherent to offline):** a ticket refunded or transferred after a scanner downloaded its list stays valid in that scanner's snapshot until the scanner reconnects and refreshes; the version check only rejects a list *older than one the device has already seen*, and the expiry (show end + 2 h) bounds the window but does not close it. Sync flags such scans (refunded / superseded token → `duplicate_flagged` with the reason); scanners refresh the list whenever online. Tests: `test_checkin_concurrent_devices` (one confirmed), `test_sync_offline_duplicate` (both orders → 1 confirmed + 1 flagged, admitted count 1), `test_sync_idempotent`.
 
 Deep links: `frontrow://book/{showtimeId}`, `frontrow://tickets/{orderId}`; universal links on `frontrow.virajdomadia.com/app/*` later if hours remain.
 
 ## 13. Environment
-`api/`: `DATABASE_URL`, `REDIS_URL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SESSION_SECRET`, `TICKET_SECRET`, `SCAN_LIST_SIGNING_KEY` (v4, Ed25519 private key; public key in the app's config), `WEB_URL`, v2: `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`. `web/`: `API_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`. v4 `mobile/`: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_RAZORPAY_KEY_ID`; `api/`: `EXPO_ACCESS_TOKEN`, `CRON_SECRET`.
+`api/`: `DATABASE_URL`, `REDIS_URL`, `SESSION_SECRET`, `TICKET_SECRET`, `SCAN_LIST_SIGNING_KEY` (v4, Ed25519 private key; public key in the app's config), `WEB_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, optional `BLOB_READ_WRITE_TOKEN`. `web/`: `API_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`. v4 `mobile/`: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_RAZORPAY_KEY_ID`; `api/`: `EXPO_ACCESS_TOKEN`.
