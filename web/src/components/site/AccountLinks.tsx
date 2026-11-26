@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AUTH_EVENT, announceAuth } from "@/lib/auth-events";
 import { send } from "@/lib/client";
 import type { Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -27,9 +28,17 @@ export function AccountLinks({ compact = false }: { compact?: boolean }) {
     };
   }, [path]);
 
+  // A sign-in elsewhere on the page (demo buttons, the booking sign-in dialog) updates the header
+  // right away, even when the URL doesn't change.
+  useEffect(() => {
+    const onAuth = (e: Event) => setMe((e as CustomEvent<Me | null>).detail);
+    window.addEventListener(AUTH_EVENT, onAuth);
+    return () => window.removeEventListener(AUTH_EVENT, onAuth);
+  }, []);
+
   async function signOut() {
     await send("POST", "/auth/sign-out").catch(() => undefined);
-    setMe(null);
+    announceAuth(null);
     router.push("/");
     router.refresh();
   }

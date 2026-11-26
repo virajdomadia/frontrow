@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { announceAuth, samePage } from "@/lib/auth-events";
 import { messageOf, safeNext, send } from "@/lib/client";
 import type { Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ export function DemoButtons({
   className?: string;
 }) {
   const router = useRouter();
+  const path = usePathname();
   const [busy, setBusy] = useState<DemoRole | null>(null);
   const [error, setError] = useState("");
 
@@ -43,8 +45,13 @@ export function DemoButtons({
     setError("");
     try {
       const me = await send<Me>("POST", "/auth/demo", { as });
+      announceAuth(me);
       if (onDone) return onDone(me);
-      router.push(safeNext(next, COPY[as].home));
+      const target = safeNext(next, COPY[as].home);
+      // Already there (the demo customer on the home page): nothing navigates, so this button
+      // would stay on "Signing in…" — finish here instead.
+      if (samePage(path, target)) setBusy(null);
+      router.push(target);
       router.refresh();
     } catch (e) {
       setError(messageOf(e, "The demo accounts are resting. Try again in a moment."));
