@@ -13,7 +13,7 @@ Concurrency-safe seat holds (Redis Lua, all-or-none) · a Postgres unique guard 
 | **v1 Box office** | Customer: BookMyShow's flow with an email code (home, movie, language/format, showtimes, how many seats, seat map + holds, Razorpay, M-ticket). Theatre owner: register, cinemas, screens, pick films, bulk shows, bookings, door scanning. Staff: film catalogue, requests, approvals | 26 left (+7 built) |
 | **v2 Live hall** | Live seats, "Try it live" on the landing page, today board with live sales, blocked seats, counter sales, cancel a show; staff support, suspend, marketplace view | 13.75 |
 | **v3 Full house** | Reviews after scan-in, waitlist, sales reports, payouts, seat heatmap, review moderation | 10 |
-| **v4 In your pocket** | One Expo app, tabs per role: customer booking + offline wallet + push; owner scanner — multi-scanner door check-in (server-authorised online; provisional offline scans synced, duplicates flagged) —, today board, counter; staff approvals + support | 20.5 |
+| **v4 In your pocket** | One Expo app, tabs per role: customer booking + offline wallet + push; owner scanner with multi-scanner door check-in (server-authorised online; provisional offline scans synced, duplicates flagged), today board, counter; staff approvals + support | 20.5 |
 
 ## How the hold engine works
 Two people, one seat, the same second — exactly one gets it.
