@@ -105,7 +105,7 @@ class Auth:
 
 
 def _code_key(email: str) -> str:
-    return f"otp:{email}"
+    return f"fr:otp:{email}"
 
 
 def _code_hash(settings: Settings, email: str, code: str) -> str:
@@ -120,14 +120,14 @@ def _unavailable(e: Exception) -> ApiError:
 async def _limit(redis: Redis, email: str, ip: str | None) -> None:
     """1 a minute + 5 an hour per email, 30 an hour per network. Raises 429."""
     try:
-        if not await redis.set(f"rl:otp:m:{email}", 1, ex=60, nx=True):
+        if not await redis.set(f"fr:rl:otp:m:{email}", 1, ex=60, nx=True):
             raise ApiError(
                 "rate_limited",
                 "We just sent a code. Wait a minute before asking for another.",
                 status=429,
-                details={"retry_after": int(await redis.ttl(f"rl:otp:m:{email}") or 60)},
+                details={"retry_after": int(await redis.ttl(f"fr:rl:otp:m:{email}") or 60)},
             )
-        keys = [f"rl:otp:h:{email}"] + ([f"rl:otp:ip:{ip}"] if ip else [])
+        keys = [f"fr:rl:otp:h:{email}"] + ([f"fr:rl:otp:ip:{ip}"] if ip else [])
         async with redis.pipeline(transaction=True) as pipe:
             for k in keys:
                 pipe.incr(k)

@@ -4,6 +4,9 @@ Created lazily per app (like the DB engine) so the app imports and serves `/heal
 `REDIS_URL` at all. Routes that *write* holds need it and answer 503 `unavailable` without it;
 routes that only *read* hold counts degrade to "no holds" — Postgres stays the truth for sales
 (04 §10: Redis down → holds fail with "try again", sales still confirm).
+
+Every Frontrow key starts with `fr:` so one Upstash database can be shared with other apps
+(Tripsmith also uses `otp:{email}`) without clashes.
 """
 
 from __future__ import annotations

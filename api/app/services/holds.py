@@ -3,10 +3,10 @@
 Keys (the `{showtime}` braces are a Redis Cluster hash tag, so every key one script touches lives
 in the same slot):
 
-    hold:{st}:{seat}   string = holder id, PX ttl          — the truth for "is this seat held"
-    holds:{st}         hash seat → "holder|expires_ms"     — snapshot mirror, lazily cleaned
-    st:{st}:v          int, INCR on every hold / release / sale
-    rl:holds:{holder}  int, 60 s window                    — rate limit
+    fr:hold:{st}:{seat}   string = holder id, PX ttl       — the truth for "is this seat held"
+    fr:holds:{st}         hash seat → "holder|expires_ms"  — snapshot mirror, lazily cleaned
+    fr:st:{st}:v          int, INCR on every hold / release / sale
+    fr:rl:holds:{holder}  int, 60 s window                 — rate limit
 
 A holder is the anonymous `fr_sid` cookie (or a bearer session's sid), so a visitor can hold
 before signing in and keep the seats when they do.
@@ -35,15 +35,15 @@ MAX_SEATS = 10  # per booking (R3)
 
 
 def hold_key(showtime_id: uuid.UUID | str, seat_id: str) -> str:
-    return f"hold:{{{showtime_id}}}:{seat_id}"
+    return f"fr:hold:{{{showtime_id}}}:{seat_id}"
 
 
 def hash_key(showtime_id: uuid.UUID | str) -> str:
-    return f"holds:{{{showtime_id}}}"
+    return f"fr:holds:{{{showtime_id}}}"
 
 
 def version_key(showtime_id: uuid.UUID | str) -> str:
-    return f"st:{{{showtime_id}}}:v"
+    return f"fr:st:{{{showtime_id}}}:v"
 
 
 # KEYS = hash, version, hold keys…; ARGV = holder, ttl_ms, now_ms, seat ids…
@@ -147,7 +147,7 @@ def _unavailable(e: Exception) -> ApiError:
 
 
 async def rate_limit(redis: Redis, holder: str, per_minute: int) -> None:
-    key = f"rl:holds:{holder}"
+    key = f"fr:rl:holds:{holder}"
     try:
         async with redis.pipeline(transaction=True) as pipe:
             pipe.incr(key)

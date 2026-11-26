@@ -190,7 +190,7 @@ async def test_bearer_tokens(db_engine: AsyncEngine, db_app: FastAPI) -> None:
     # One code a minute per email: skip the wait by clearing the limiter key.
     redis = redis_for(db_app)
     assert redis is not None
-    await redis.delete("rl:otp:m:app@example.com")
+    await redis.delete("fr:rl:otp:m:app@example.com")
     async with tab(db_app) as phone:
         assert (
             await phone.post("/auth/code", json={"email": "app@example.com"})
