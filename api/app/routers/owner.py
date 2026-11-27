@@ -14,6 +14,7 @@ from app.errors import ApiError
 from app.redis import optional_redis, require_redis
 from app.routers.shows import event_stream
 from app.schemas.layouts import Layout
+from app.schemas.orders import TicketBundle
 from app.schemas.owner import (
     BlockIn,
     Bookings,
@@ -23,6 +24,7 @@ from app.schemas.owner import (
     CheckIn,
     CheckInResult,
     CinemaIn,
+    CounterSaleIn,
     FilmRequestIn,
     OwnerBusiness,
     OwnerCinema,
@@ -39,6 +41,7 @@ from app.schemas.owner import (
 from app.schemas.shows import SeatState
 from app.services import auth as auth_svc
 from app.services import boxoffice, holds
+from app.services import orders as order_svc
 from app.services import owner as svc
 from app.services import shows as seat_svc
 from app.services.auth import (
@@ -50,6 +53,7 @@ from app.services.auth import (
     require_owner,
     require_owner_writer,
 )
+from app.services.payments import gateway_for
 from app.services.screens import preview
 
 router = APIRouter(prefix="/owner", tags=["theatre owner"])
@@ -295,3 +299,37 @@ async def show_stream(
             return await seat_svc.taken_seats(s, show.id)
 
     return await event_stream(request, response, redis, show.id, holder, reload)
+
+
+# --- L4: counter sales ----------------------------------------------------------------------------
+
+
+@router.post(
+    "/shows/{show_id}/counter-orders",
+    response_model=TicketBundle,
+    status_code=201,
+    responses={
+        409: {"description": "`seat_taken`, `seat_held`, or `idempotency_conflict`"},
+    },
+)
+async def counter_sale(
+    show_id: str,
+    body: CounterSaleIn,
+    request: Request,
+    response: Response,
+    db: Db,
+    redis: OptRedis,
+    owner: Writer,
+) -> TicketBundle:
+    """Sell seats at the box office, paid in cash: tickets at once, one QR per seat for the
+    door. Same guards as an online sale; a retried key returns the first sale."""
+    now = _now(response)
+    holder = holder_of(request, response, owner.auth, create=False)
+    order = await boxoffice.counter_sale(
+        db, redis, owner.business, owner.auth.user, show_id, body.seat_ids,
+        body.idempotency_key, holder=holder, now=now,
+    )  # fmt: skip
+    return await order_svc.ticket_bundle(
+        db, request.app.state.settings, gateway_for(request.app), str(order.id),
+        user=owner.auth.user, now=now,
+    )  # fmt: skip

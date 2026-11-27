@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import Settings
 from app.errors import ApiError
 from app.models import Cinema, Film, Order, OrderSeat, Screen, Seat, Show, ShowPrice, Ticket, User
-from app.models.enums import OrderStatus
+from app.models.enums import OrderChannel, OrderStatus
 from app.schemas.orders import (
     Customer,
     MyTickets,
@@ -403,7 +403,11 @@ async def ticket_bundle(
 async def my_tickets(db: AsyncSession, user: User, *, now: datetime) -> MyTickets:
     orders = list(
         await db.scalars(
-            select(Order).where(Order.user_id == user.id, Order.status == OrderStatus.PAID)
+            select(Order).where(
+                Order.user_id == user.id,
+                Order.status == OrderStatus.PAID,
+                Order.channel == OrderChannel.ONLINE,  # counter sales are the cinema's (L4)
+            )
         )
     )
     scanned = (

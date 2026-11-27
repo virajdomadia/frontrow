@@ -42,6 +42,8 @@ class Order(UuidMixin, CreatedMixin, Base):
     refund_id: Mapped[str | None] = mapped_column(Text)
     refund_reason: Mapped[str | None] = mapped_column(Text)
     payment_method: Mapped[str | None] = mapped_column(Text)  # receipt line
+    # A counter sale's key from the till (L4): a retry or double tap is the same sale.
+    idempotency_key: Mapped[str | None] = mapped_column(Text, unique=True)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     seats: Mapped[list["OrderSeat"]] = relationship(

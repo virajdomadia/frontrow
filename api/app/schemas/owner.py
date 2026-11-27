@@ -181,6 +181,9 @@ class OwnerShow(ApiModel):
     checked_in: int
     revenue_paise: int = Field(description="Ticket sales for the cinema (excludes the fee).")
     blocked: int = Field(default=0, description="Seats the cinema took off sale (L3).")
+    prices: dict[str, int] = Field(
+        default_factory=dict, description="Tier key → paise, for the box office (L4)."
+    )
     public: bool = Field(description="Customers can see it (business verified, film showing).")
 
 
@@ -270,3 +273,11 @@ class OwnerToday(ApiModel):
     tickets: int
     revenue_paise: int
     recent: list[RecentOrder] = Field(description="Today's latest sales, newest first.")
+
+
+class CounterSaleIn(ApiModel):
+    """L4: a box-office sale paid in cash. `idempotency_key` is made by the till once per sale
+    and sent again on a retry."""
+
+    seat_ids: list[str] = Field(min_length=1, max_length=10)
+    idempotency_key: str = Field(pattern=r"^[A-Za-z0-9_-]{8,64}$")
