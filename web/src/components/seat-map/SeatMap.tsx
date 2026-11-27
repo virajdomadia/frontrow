@@ -78,6 +78,9 @@ type Props = {
   tierText: Record<string, string>;
   /** Seats someone else just took or let go (L1): each gets one ripple. A new object replays. */
   ripple?: { ids: string[] } | null;
+  /** A still camera: the whole hall, no pan / zoom / rail / hint, and the page scrolls over it
+   *  (the landing page's small demo maps). */
+  fixed?: boolean;
   className?: string;
 };
 
@@ -91,7 +94,7 @@ type Props = {
  * focusable button (Enter zooms in and puts focus on a seat there); Page Up / Page Down jump
  * between sections from any seat.
  */
-export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, className }: Props) {
+export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fixed, className }: Props) {
   const { layout } = index;
   const content = layoutBox(layout);
   const wrap = useRef<HTMLDivElement>(null);
@@ -124,8 +127,8 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
 
   const home = useCallback((): Box => {
     const v = view.current!;
-    const whole = clamp(fit(content, v, PITCH / 2), content, v);
-    if (isArena || v.w >= PHONE_PX) return whole;
+    const whole = clamp(fit(content, v, fixed ? 0 : PITCH / 2), content, v); // fixed: the layout margin is enough
+    if (fixed || isArena || v.w >= PHONE_PX) return whole;
     // Phone: seats start at a fair tap size (≥ 24 px), centred, screen end at the top; pan for
     // the rest. A hall narrow enough to fit at that size shows whole (review 2026-11-27: 11 px
     // seats in a whole-hall overview were too small to hit).
@@ -133,7 +136,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
     if (scale <= scaleOf(whole, v)) return whole;
     const b = boxAt({ x: content.w / 2, y: 0 }, scale, v);
     return clamp({ ...b, y: 0 }, content, v);
-  }, [content.w, content.h, isArena]);
+  }, [content.w, content.h, isArena, fixed]);
 
   const moveTo = useCallback(
     (target: Box) => {
@@ -225,9 +228,10 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
       const g = gesture.current;
       if (!g.moved && Math.hypot(cur.x - g.sx, cur.y - g.sy) > TAP_SLOP) g.moved = true;
       ps.set(e.pointerId, cur);
-      if (g.moved) apply(clamp(panBy(box.current, v, cur.x - prev.x, cur.y - prev.y), content, v));
+      if (g.moved && !fixed) apply(clamp(panBy(box.current, v, cur.x - prev.x, cur.y - prev.y), content, v));
       return;
     }
+    if (fixed) return;
     const [a, b] = [...ps.entries()].slice(0, 2);
     const other = a[0] === e.pointerId ? b[1] : a[1];
     ps.set(e.pointerId, cur);
@@ -253,7 +257,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
   // Wheel / trackpad pinch zooms at the cursor (non-passive, so the page doesn't scroll).
   useEffect(() => {
     const el = wrap.current;
-    if (!el) return;
+    if (!el || fixed) return; // a still map must not swallow the page's scroll
     const onWheel = (e: WheelEvent) => {
       const v = view.current;
       if (!v) return;
@@ -265,7 +269,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [apply]);
+  }, [apply, fixed]);
 
   // --- keyboard: one tab stop, arrows rove, Enter/Space toggles -----------------------------------
   const reveal = useCallback(
@@ -356,7 +360,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
         <div className="relative min-w-0 flex-1 overflow-hidden">
           <div
             ref={wrap}
-            className="sm-wrap absolute inset-0 touch-none select-none"
+            className={cn("sm-wrap absolute inset-0 select-none", fixed ? "touch-pan-y" : "touch-none")}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -455,7 +459,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
         </div>
 
         {/* The controls' own rail: they never sit on top of a seat. */}
-        <div className="flex w-12 shrink-0 flex-col items-center gap-1.5 border-l border-screen/10 py-2">
+        <div hidden={fixed} className="flex w-12 shrink-0 flex-col items-center gap-1.5 border-l border-screen/10 py-2">
           <MapButton label="Zoom in" onClick={() => zoomBy(1.4)}>
             <Plus />
           </MapButton>
@@ -471,7 +475,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, cl
       </div>
 
       {/* One hint, for the view on screen. */}
-      <p className="mt-1.5 flex flex-wrap gap-x-3 text-xs text-ink-3">
+      <p hidden={fixed} className="mt-1.5 flex flex-wrap gap-x-3 text-xs text-ink-3">
         {hereSection && (
           <span className="font-semibold text-muted-foreground">
             {sectionName(hereSection.key)} · row A nearest the {hereSection.shape === "wedge" ? "floor" : "stage"}

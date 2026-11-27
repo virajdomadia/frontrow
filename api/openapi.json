@@ -722,6 +722,57 @@
         "title": "Demo",
         "type": "object"
       },
+      "DemoHall": {
+        "properties": {
+          "layout": {
+            "additionalProperties": true,
+            "title": "Layout",
+            "type": "object"
+          },
+          "seats": {
+            "$ref": "#/components/schemas/SeatState",
+            "description": "As seen by `a` (you): `mine` = a's, `held` = b's."
+          },
+          "ttl_seconds": {
+            "title": "Ttl Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "layout",
+          "seats",
+          "ttl_seconds"
+        ],
+        "title": "DemoHall",
+        "type": "object"
+      },
+      "DemoHold": {
+        "properties": {
+          "as": {
+            "enum": [
+              "a",
+              "b"
+            ],
+            "title": "As",
+            "type": "string"
+          },
+          "seat_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as",
+          "seat_ids"
+        ],
+        "title": "DemoHold",
+        "type": "object"
+      },
       "FilmCard": {
         "properties": {
           "banner_url": {
@@ -4193,6 +4244,168 @@
         "summary": "Check In",
         "tags": [
           "theatre owner"
+        ]
+      }
+    },
+    "/demo/hall": {
+      "get": {
+        "operationId": "get_hall_demo_hall_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoHall"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Hall",
+        "tags": [
+          "try it live"
+        ]
+      }
+    },
+    "/demo/hall/holds": {
+      "delete": {
+        "operationId": "drop_demo_hall_holds_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoHold"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Drop",
+        "tags": [
+          "try it live"
+        ]
+      },
+      "post": {
+        "description": "Hold for `a` or `b`: the whole selection or nothing, like a real hold.",
+        "operationId": "place_demo_hall_holds_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoHold"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldGranted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Place",
+        "tags": [
+          "try it live"
+        ]
+      }
+    },
+    "/demo/hall/seats": {
+      "get": {
+        "description": "The polling fallback for the stream.",
+        "operationId": "get_seats_demo_hall_seats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Get Seats",
+        "tags": [
+          "try it live"
+        ]
+      }
+    },
+    "/demo/hall/stream": {
+      "get": {
+        "description": "The same live stream as a real seat map (`/shows/{id}/stream`), on the sandbox.",
+        "operationId": "stream_demo_hall_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Stream",
+        "tags": [
+          "try it live"
         ]
       }
     },

@@ -34,7 +34,7 @@ type Toast = { text: string; tone: "warn" | "info"; key: number };
 export function BookingView({ show, layout, snapshot: initial }: { show: ShowDetail; layout: Layout; snapshot: SeatSnapshot }) {
   const router = useRouter();
   const index = useMemo(() => indexLayout(layout), [layout]);
-  const { state, snapshot, offset, stale, polling, refresh, markHeld } = useSeatState(show.id, initial);
+  const { state, snapshot, offset, stale, polling, refresh, markHeld } = useSeatState(`/shows/${show.id}`, initial);
 
   const [selected, setSelected] = useState<string[]>(() => initial.mine);
   // Coming back to a hold you already have skips the question; otherwise ask first (R5).

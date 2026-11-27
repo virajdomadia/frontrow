@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DemoButtons } from "@/components/auth/DemoButtons";
+import { TryItLive } from "@/components/landing/TryItLive";
 import { FilmCard } from "@/components/movies/FilmCard";
 import { SearchBox } from "@/components/movies/SearchBox";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
@@ -107,29 +108,15 @@ export default async function Home() {
         )}
 
         <section aria-labelledby="how" className="mt-10 bg-plum-2 py-14">
-          <div className="mx-auto grid w-[min(1240px,100%-32px)] gap-10 lg:grid-cols-[.8fr_1.2fr]">
-            <div>
-              <h2 id="how" className="font-cond text-[clamp(34px,4.5vw,56px)] font-extrabold uppercase">
-                Two people, one seat
-              </h2>
-              <p className="mt-3 max-w-[44ch] text-muted-foreground">
-                The same second, the same seat: exactly one of you gets it. Holds run out on their own after ten minutes, and a
-                seat can never be sold twice.
-              </p>
-            </div>
-            <ol className="grid list-none gap-4 p-0 sm:grid-cols-3">
-              {[
-                ["1", "Pick a show", "Language, format, a time at a cinema near you. Times show how full they are."],
-                ["2", "Hold your seats", "Ten minutes, all your seats or none. The countdown is in the tab title too."],
-                ["3", "Walk in", "Pay with Razorpay (test mode) and get one QR per seat, scanned at the door."],
-              ].map(([n, t, d]) => (
-                <li key={n} className="fr-stub p-5">
-                  <span className="font-cond text-4xl font-extrabold text-red">{n}</span>
-                  <h3 className="mt-1 font-cond text-2xl font-bold uppercase">{t}</h3>
-                  <p className="mt-1.5 text-sm text-ink-2">{d}</p>
-                </li>
-              ))}
-            </ol>
+          <div className="mx-auto w-[min(1240px,100%-32px)]">
+            <h2 id="how" className="font-cond text-[clamp(34px,4.5vw,56px)] font-extrabold uppercase">
+              Try it live
+            </h2>
+            <p className="mt-3 mb-8 max-w-[60ch] text-muted-foreground">
+              Two people, one hall. Tap a seat on either map and watch it grey out on the other, pushed by the same engine that
+              holds real tickets. Two people can never hold the same seat.
+            </p>
+            <TryItLive />
           </div>
         </section>
 
