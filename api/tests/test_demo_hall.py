@@ -1,6 +1,7 @@
 """L2: the landing page's 'Try it live' hall. Two holders in a private Redis sandbox: the real
 engine (all or none, live stream), nothing in Postgres, nothing shared between visitors."""
 
+import asyncio
 import json
 
 import pytest
@@ -87,3 +88,19 @@ def test_hall_is_stable() -> None:
     layout, ids = demo_hall.hall()
     assert len(ids) == 8 * 10 and holds.MAX_SEATS == 10
     assert {s["id"] for sec in layout["sections"] for r in sec["rows"] for s in r["seats"]} == ids
+
+
+@pytest.mark.redis
+async def test_version_never_goes_back(app: FastAPI) -> None:
+    """An hour idle expires the counter; the next hold must still read as newer to an open map."""
+    redis = redis_for(app)
+    assert redis is not None
+    a1, a2 = seats(2)
+    async with tab(app) as c:
+        await c.post("/demo/hall/holds", json={"as": "a", "seat_ids": [a1]})
+        before = (await c.get("/demo/hall/seats")).json()["v"]
+        for key in [k async for k in redis.scan_iter("fr:st:{demo-*}:v")]:
+            await redis.delete(key)
+        await asyncio.sleep(0.01)  # in production the key expires after an idle hour
+        await c.post("/demo/hall/holds", json={"as": "a", "seat_ids": [a2]})
+        assert (await c.get("/demo/hall/seats")).json()["v"] > before

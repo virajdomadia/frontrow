@@ -211,6 +211,7 @@ function Panel({ side, title, index, palette, lookOf, onToggle, ripple, held, ex
         tierText={TIER_TEXT}
         ripple={ripple}
         fixed
+        label={`${title}: seat map`}
         className="h-[340px] rounded-card border border-border bg-plum-2 sm:h-[360px]"
       />
     </section>

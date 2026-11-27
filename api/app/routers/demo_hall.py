@@ -8,6 +8,7 @@ last 45 s so a visitor sees one lapse; every sandbox key expires within the hour
 """
 
 import hashlib
+import time
 import uuid
 from datetime import UTC, datetime
 from functools import cache
@@ -69,11 +70,13 @@ class DemoHold(ApiModel):
 
 
 def _sandbox(request: Request, response: Response) -> tuple[str, str]:
-    """(sandbox id, the visitor's sid) from the `fr_sid` cookie alone: no session lookup, so the
-    demo never touches Postgres. The id is a hash, so the cookie never shows in a key."""
+    """(sandbox id, its key for holders and limits) from the `fr_sid` cookie alone: no session
+    lookup, so the demo never touches Postgres. Both are a hash, so the client-supplied cookie
+    never reaches a key or a hold value raw."""
     sid = holder_of(request, response, None, create=True)
     assert sid is not None
-    return "demo-" + hashlib.sha256(sid.encode()).hexdigest()[:24], sid
+    box = "demo-" + hashlib.sha256(sid.encode()).hexdigest()[:24]
+    return box, box
 
 
 async def _limit(redis: Redis, request: Request, sid: str) -> None:
@@ -151,6 +154,10 @@ async def place(
     if any(i not in known for i in ids):
         raise ApiError("validation", "Unknown seat", details={"fields": {"seat_ids": "unknown"}})
     await _limit(redis, request, sid)
+    try:  # an hour idle expires the counter: restart it above anything a map has seen
+        await redis.set(holds.version_key(box), int(time.time() * 1000), nx=True)
+    except RedisError as e:
+        raise ApiError("unavailable", "The demo hall is unavailable right now.") from e
     granted = await holds.acquire(
         redis, box, f"{sid}:{body.as_}", ids, ttl_seconds=TTL_SECONDS, now=datetime.now(UTC)
     )

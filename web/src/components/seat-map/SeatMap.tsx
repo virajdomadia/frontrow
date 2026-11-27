@@ -81,6 +81,8 @@ type Props = {
   /** A still camera: the whole hall, no pan / zoom / rail / hint, and the page scrolls over it
    *  (the landing page's small demo maps). */
   fixed?: boolean;
+  /** Names the map for screen readers when a page has two ("Seat map" otherwise). */
+  label?: string;
   className?: string;
 };
 
@@ -94,7 +96,7 @@ type Props = {
  * focusable button (Enter zooms in and puts focus on a seat there); Page Up / Page Down jump
  * between sections from any seat.
  */
-export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fixed, className }: Props) {
+export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fixed, label = "Seat map", className }: Props) {
   const { layout } = index;
   const content = layoutBox(layout);
   const wrap = useRef<HTMLDivElement>(null);
@@ -118,7 +120,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fi
       box.current = next;
       svg.current?.setAttribute("viewBox", `${next.x} ${next.y} ${next.w} ${next.h}`);
       const px = seatPx(next, v);
-      setOverview(px < OVERVIEW_PX);
+      setOverview(!fixed && px < OVERVIEW_PX); // a still map never turns taps into zooms
       setZoomed(px > seatPx(fit(content, v), v) * 1.05);
       setHere(isArena && px >= OVERVIEW_PX ? sectionAt(index, next.x + next.w / 2, next.y + next.h / 2) : null);
     },
@@ -187,7 +189,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fi
     const v = view.current;
     if (!v) return;
     const p = toLayout(box.current, v, px, py);
-    if (seatPx(box.current, v) < OVERVIEW_PX) {
+    if (!fixed && seatPx(box.current, v) < OVERVIEW_PX) {
       const key = sectionAt(index, p.x, p.y);
       if (key) zoomToSection(key);
       return;
@@ -276,7 +278,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fi
     (id: string) => {
       const seat = index.byId.get(id);
       const v = view.current;
-      if (!seat || !v) return;
+      if (!seat || !v || fixed) return; // a still map shows every seat already
       if (seatPx(box.current, v) < OVERVIEW_PX) {
         zoomToSection(seat.section);
         return;
@@ -284,7 +286,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fi
       const next = clamp(ensureVisible(box.current, seat, PITCH * 1.5), content, v);
       if (next !== box.current) moveTo(next);
     },
-    [index, zoomToSection, moveTo],
+    [index, zoomToSection, moveTo, fixed],
   );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -302,8 +304,8 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fi
     } else if ((e.key === "Enter" || e.key === " ") && focusId) {
       e.preventDefault();
       onToggle(focusId);
-    } else if (e.key === "+" || e.key === "=") zoomBy(1.4);
-    else if (e.key === "-") zoomBy(1 / 1.4);
+    } else if (!fixed && (e.key === "+" || e.key === "=")) zoomBy(1.4);
+    else if (!fixed && e.key === "-") zoomBy(1 / 1.4);
     else if (e.key === "Escape" && zoomed) moveTo(home());
   };
 
@@ -375,8 +377,8 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, fi
               aria-roledescription="seat map"
               aria-label={
                 isArena
-                  ? "Seat map. Arrow keys move between seats, Page Up and Page Down jump between sections, Enter selects."
-                  : "Seat map. Arrow keys move between seats, Enter selects."
+                  ? `${label}. Arrow keys move between seats, Page Up and Page Down jump between sections, Enter selects.`
+                  : `${label}. Arrow keys move between seats, Enter selects.`
               }
               onKeyDown={onKeyDown}
               onFocus={onFocus}
