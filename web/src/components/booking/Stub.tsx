@@ -27,7 +27,7 @@ type Props = {
   onProceed: () => void;
 };
 
-const HOLD_COPY = "Seats hold for 10 minutes once you pick them";
+const HOLD_COPY = "Your 10-minute hold starts with your first seat";
 const HELD_COPY = "Held for you — pay before the clock runs out";
 
 /**
@@ -42,6 +42,7 @@ export function Stub(p: Props) {
     /taken|ended|up —|Couldn't|unavailable|closed|Too many/.test(p.notice);
   const cta = p.proceeding ? "Starting checkout…" : n ? `Proceed to pay ${rupees(p.total)}` : "Pick seats to continue";
   const hint = p.holding ? HELD_COPY : HOLD_COPY;
+  const clock = p.holding ? p.clock : "--:--"; // no hold yet: not a clock that reads expired
   return (
     <>
       <p aria-live="polite" className="sr-only">
@@ -53,7 +54,7 @@ export function Stub(p: Props) {
       <aside aria-label="Your booking" className="sm-stub hidden py-6 pr-6 lg:block">
         <div className="relative flex h-full flex-col rounded-card bg-paper text-ink border border-border shadow-[0_20px_50px_rgb(42_11_30_/_.16)]">
           <div className="relative border-b-2 border-dashed border-ink/25 px-6 pt-5.5 pb-4 before:absolute before:-bottom-[11px] before:-left-[11px] before:size-[22px] before:rounded-full before:bg-plum after:absolute after:-right-[11px] after:-bottom-[11px] after:size-[22px] after:rounded-full after:bg-plum">
-            <h2 className="pr-16 font-cond text-[34px] leading-[.95] font-extrabold uppercase">{p.title}</h2>
+            <h2 className="pr-24 font-cond text-[30px] leading-[.95] font-extrabold uppercase">{p.title}</h2>
             <p className="mt-1 text-sm font-medium text-ink-2">{p.venue}</p>
             <span className="absolute top-5.5 right-6 rotate-[-6deg] rounded-sm border-2 border-red-dark px-2.5 py-1.5 font-cond text-sm font-extrabold tracking-[.14em] text-red-dark uppercase">
               Admit
@@ -84,7 +85,7 @@ export function Stub(p: Props) {
                 className={cn("font-mono text-[30px] leading-none font-semibold tabular-nums", p.holding ? "text-red-dark" : "text-ink-3")}
                 aria-label={p.holding ? `${p.clock} left on your hold` : undefined}
               >
-                {p.clock}
+                {clock}
               </b>
               <span className="text-right text-xs tracking-[.08em] text-ink-2 uppercase">{hint}</span>
             </div>
@@ -139,7 +140,7 @@ export function Stub(p: Props) {
             className={cn("shrink-0 font-mono text-[22px] font-semibold tabular-nums", p.holding ? "text-red-dark" : "text-ink-3")}
             title={hint}
           >
-            {p.clock}
+            {clock}
           </b>
         </div>
         {warn && <p className="mt-1.5 text-[13px] font-medium text-red-dark">{p.notice}</p>}

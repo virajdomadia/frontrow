@@ -17,7 +17,7 @@ const HOME: Record<Door, string> = {
 };
 
 export const inputClass =
-  "w-full rounded-btn border border-ink/25 bg-white/80 px-3 py-2.5 text-[16px] text-ink placeholder:text-ink-3 focus-visible:border-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-amber aria-invalid:border-red-dark";
+  "w-full rounded-btn border border-ink/25 bg-white/80 px-3 py-2.5 text-[16px] text-ink placeholder:text-ink-3/65 focus-visible:border-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-amber aria-invalid:border-red-dark";
 export const labelClass = "grid gap-1.5 text-sm font-semibold text-ink-2";
 
 /**

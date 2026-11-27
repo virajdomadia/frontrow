@@ -33,7 +33,7 @@ export function AuthPage({ door, next, heading }: { door: Door; next?: string; h
   return (
     <>
       <SiteHeader active={door === "business" ? "business" : undefined} />
-      <main className="mx-auto grid w-[min(1180px,100%-32px)] content-start gap-10 py-10 lg:grid-cols-[1fr_440px] lg:gap-16 lg:py-16">
+      <main id="main" className="mx-auto grid w-[min(1180px,100%-32px)] content-start gap-10 py-10 lg:grid-cols-[1fr_440px] lg:gap-16 lg:py-16">
         <div className="grid content-start gap-5">
           <h1 className="font-cond text-[clamp(44px,7vw,88px)] leading-[.92] font-extrabold uppercase">{c.title}</h1>
           <p className="max-w-[44ch] text-lg text-muted-foreground">{c.lede}</p>

@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     session_secret: SecretStr | None = None
     ticket_secret: SecretStr | None = None
     code_ttl_seconds: int = 600  # sign-in code life (R1)
+    # Shared with the web tier, which forwards the visitor's address with it (auth.client_ip).
+    proxy_secret: SecretStr | None = None
 
     # --- Email: Gmail SMTP (B2). Unset → codes are logged locally, refused on a deployment ---
     smtp_host: str | None = None

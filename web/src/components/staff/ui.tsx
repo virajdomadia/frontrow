@@ -48,7 +48,7 @@ const TONES: Record<Tone, string> = {
 
 export function Pill({ tone, children }: { tone: Tone; children: React.ReactNode }) {
   return (
-    <span className={cn("inline-block rounded-sm px-[7px] py-[3px] text-[11px] font-semibold tracking-[.06em] uppercase", TONES[tone])}>
+    <span className={cn("inline-block rounded-sm px-[7px] py-[3px] text-xs font-semibold tracking-[.06em] uppercase", TONES[tone])}>
       {children}
     </span>
   );

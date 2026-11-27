@@ -19,7 +19,7 @@ export default async function MyTicketsPage() {
   return (
     <>
       <SiteHeader active="tickets" />
-      <main className="mx-auto grid w-[min(1240px,100%-32px)] gap-10 pt-10">
+      <main id="main" className="mx-auto grid w-[min(1240px,100%-32px)] gap-10 pt-10">
         <div className="grid gap-2">
           <p className="text-sm text-muted-foreground">Signed in as {me.email}</p>
           <h1 className="font-cond text-[clamp(44px,6vw,72px)] leading-[.92] font-extrabold uppercase">My tickets</h1>

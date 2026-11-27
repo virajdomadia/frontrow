@@ -85,7 +85,7 @@ export default async function BookPage({ params }: Props) {
   return (
     <>
       <FlowHeader step={0} back={slug ? `/movies/${slug}/shows` : "/movies"} backLabel={`Back to ${ready?.show.film.title ?? closed?.title ?? "the film"} showtimes`} />
-      <main>
+      <main id="main">
         {ready ? (
           <BookingView show={ready.show} layout={ready.layout} snapshot={ready.snapshot} />
         ) : (

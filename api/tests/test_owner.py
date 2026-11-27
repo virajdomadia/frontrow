@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from app.models import Business, Film, Screen, Show
 from app.seed import seed
 from app.services.schedules import IST
-from tests.helpers import code_sign_in, demo, open_show, signed_in, tab
+from tests.helpers import code_sign_in, open_show, orbit_owner, signed_in, tab
 
 pytestmark = [pytest.mark.db, pytest.mark.redis]
 
@@ -136,7 +136,7 @@ async def test_show_overlap(db_engine: AsyncEngine, db: AsyncSession, db_app: Fa
         "to_date": tomorrow(), "prices": {"classic": 15000, "prime": 21000},
     }  # fmt: skip
     async with tab(db_app) as owner:
-        await demo(owner, "owner")
+        await orbit_owner(db_app, owner, db)
         # Screen 2 shows How to Rob a Bank at 17:30 every day (seeded, open-ended).
         clash = await owner.post("/owner/shows/bulk", json={**base, "times": ["16:00"]})
         assert clash.status_code == 409, clash.text
@@ -177,7 +177,7 @@ async def test_ownership_is_private(
     other = await db.scalar(select(Screen).where(Screen.name == "Audi 1"))  # Nandi Screens
     assert other is not None
     async with tab(db_app) as owner:
-        await demo(owner, "owner")
+        await orbit_owner(db_app, owner, db)
         assert (await owner.get(f"/owner/screens/{other.id}")).status_code == 404
         assert (await owner.get(f"/owner/cinemas/{other.cinema_id}")).status_code == 404
         film = await db.scalar(select(Film).where(Film.slug == "how-to-rob-a-bank"))
@@ -195,10 +195,10 @@ async def test_ownership_is_private(
         assert all("Orbit" in s["cinema_name"] for s in mine["shows"])
 
 
-async def test_film_requests(db_engine: AsyncEngine, db_app: FastAPI) -> None:
+async def test_film_requests(db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI) -> None:
     await seed(db_engine, now=datetime.now(UTC))
     async with tab(db_app) as owner:
-        await demo(owner, "owner")
+        await orbit_owner(db_app, owner, db)
         exists = await owner.post("/owner/film-requests", json={"title": "ramayana: part 1"})
         assert exists.status_code == 409  # already in the catalogue
         made = await owner.post(
@@ -220,7 +220,7 @@ async def test_bookings_and_csv(db_engine: AsyncEngine, db: AsyncSession, db_app
         ).json()
         assert (await c.post(f"/orders/{order['id']}/demo-pay")).json()["status"] == "paid"
     async with tab(db_app) as owner:
-        await demo(owner, "owner")
+        await orbit_owner(db_app, owner, db)
         res = await owner.get(f"/owner/shows/{found.show.id}/bookings")
         assert res.status_code == 200, res.text
         data = res.json()
@@ -253,8 +253,8 @@ async def test_checkin(db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI
     a, b = tickets[0]["qr_token"], tickets[1]["qr_token"]
     show_id = str(found.show.id)
     async with tab(db_app) as usher, tab(db_app) as usher2:
-        await demo(usher, "owner")
-        await demo(usher2, "owner")
+        await orbit_owner(db_app, usher, db)
+        usher2.cookies = usher.cookies  # a second phone at the same door
         first = await usher.post("/checkin", json={"token": a, "show_id": show_id})
         assert first.json()["result"] == "valid" and first.json()["seat"] == tickets[0]["label"]
         assert first.json()["admitted"] >= 1

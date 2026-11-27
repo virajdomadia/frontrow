@@ -10,7 +10,8 @@ const variants = cva(
   {
     variants: {
       variant: {
-        default: "bg-red text-white hover:bg-[#d12f3c]",
+        // Disabled: ink on paper-3, not white on a 50 % pink that nobody can read.
+        default: "bg-red text-white hover:bg-red-dark disabled:bg-plum-3 disabled:text-ink-2 disabled:opacity-100",
         outline: "border-screen/35 text-screen hover:border-screen",
         ink: "bg-ink text-paper hover:bg-plum-3",
         paper: "border-ink/30 bg-paper text-ink hover:border-ink",
@@ -23,10 +24,6 @@ const variants = cva(
         lg: "px-6 py-3.5 text-2xl",
       },
     },
-    // Small text (16 px) on brand red is 4.17:1, under AA's 4.5:1; the larger sizes are bold
-    // large text (≥ 18.66 px), where 3:1 applies. So only `sm` takes the deeper red — 5.0:1
-    // (QA 2026-11-19, the mobile header's "Shows").
-    compoundVariants: [{ variant: "default", size: "sm", className: "bg-[#d12f3c] hover:bg-red-dark" }],
     defaultVariants: {
       variant: "default",
       size: "default",

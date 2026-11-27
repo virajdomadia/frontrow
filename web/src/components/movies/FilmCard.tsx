@@ -29,7 +29,7 @@ export function FilmCard({ film, priority = false }: { film: Film; priority?: bo
       <div className="grid gap-1">
         <h3 className="font-cond text-[22px] leading-[1] font-bold uppercase group-hover:text-red-dark">{film.title}</h3>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
-          <CertBadge cert={film.cert} className="h-[18px] min-w-[22px] text-[11px]" />
+          <CertBadge cert={film.cert} className="h-[18px] min-w-[22px] text-xs" />
           <span>{film.genres.join(" · ")}</span>
           <span aria-hidden="true">·</span>
           <span>{duration(film.runtime_min)}</span>

@@ -39,10 +39,22 @@ class RazorpayStub:
 
     def __init__(self) -> None:
         self.refunds: list[tuple[str, int]] = []
+        self.orders: list[tuple[str, int]] = []  # (id, amount), newest last
+        self.payment_status = "captured"
+        self.amount_delta = 0
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         if request.url.path == "/v1/orders":
-            return httpx.Response(200, json={"id": f"order_{uuid.uuid4().hex[:14]}"})
+            made = (f"order_{uuid.uuid4().hex[:14]}", json.loads(request.content)["amount"])
+            self.orders.append(made)
+            return httpx.Response(200, json={"id": made[0]})
+        if request.method == "GET" and request.url.path.startswith("/v1/payments/"):
+            order_id, amount = self.orders[-1]  # the payment is for the latest order
+            return httpx.Response(200, json={
+                "id": request.url.path.split("/")[3], "order_id": order_id,
+                "status": self.payment_status, "amount": amount - self.amount_delta,
+                "currency": "INR",
+            })  # fmt: skip
         if request.url.path.endswith("/refund"):
             payment = request.url.path.split("/")[3]
             self.refunds.append((payment, json.loads(request.content)["amount"]))
@@ -84,6 +96,7 @@ def webhook(order: dict, payment_id: str, event_id: str) -> tuple[bytes, dict[st
                         "id": payment_id,
                         "order_id": order["razorpay_order_id"],
                         "amount": order["total_paise"],
+                        "currency": "INR",
                     }
                 }
             },

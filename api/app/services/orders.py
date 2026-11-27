@@ -9,6 +9,8 @@ Confirm (`verify` fast path, webhook, demo pay — all the same function, all id
 the final guard — if the hold lapsed and someone else bought a seat meanwhile, the insert fails,
 the payment is refunded and the order is `refunded` with `refund_reason = seat_sold`. If the
 hold lapsed but the seats are still free, the sale simply goes through (paid after expiry).
+A refund the gateway didn't take leaves `refund_id` empty ("refund in progress") and is retried
+whenever the order is read or confirmed again (no cron).
 
 Pending orders older than 15 minutes read as `expired` (no cron).
 """
@@ -78,7 +80,9 @@ async def create(
     show, _, _, _ = await load(db, show_id, now)
     ids = await check_seats(db, show, seat_ids)
 
-    # Idempotent: Proceed pressed twice (or a refresh) returns the same pending order.
+    # Idempotent: Proceed pressed twice (or a refresh) returns the same pending order. The lock
+    # on the user makes a double-submit wait for the first to commit, then find its order.
+    await db.execute(select(User.id).where(User.id == user.id).with_for_update())
     for existing in await db.scalars(
         select(Order).where(
             Order.user_id == user.id,
@@ -215,6 +219,18 @@ async def seats_out(db: AsyncSession, order: Order, screen: Screen) -> list[Orde
     ]
 
 
+async def settle_refund(db: AsyncSession, gateway: Gateway, order: Order) -> None:
+    """Retry a refund the gateway didn't take the first time."""
+    if (
+        order.status == OrderStatus.REFUNDED
+        and order.refund_id is None
+        and order.razorpay_payment_id
+    ):
+        order.refund_id = await gateway.refund(order.razorpay_payment_id, order.total_paise)
+        if order.refund_id:
+            await db.commit()
+
+
 async def view(
     db: AsyncSession,
     order: Order,
@@ -223,6 +239,7 @@ async def view(
     user: User,
     redis: Redis | None,
 ) -> OrderOut:
+    await settle_refund(db, gateway, order)
     show, screen = await show_out(db, order.show_id)
     seats = await seats_out(db, order, screen)
     hold_expires_at = None
@@ -247,6 +264,7 @@ async def view(
         pay_by=order.created_at + PAY_WINDOW,
         hold_expires_at=hold_expires_at,
         refund_reason=order.refund_reason,
+        refund_pending=order.status == OrderStatus.REFUNDED and order.refund_id is None,
         gateway=gateway.mode,
         razorpay_order_id=order.razorpay_order_id,
         key_id=gateway.key_id,
@@ -275,6 +293,7 @@ async def confirm(
     if order is None:
         raise ApiError("not_found", "No such order")
     if order.status in (OrderStatus.PAID, OrderStatus.REFUNDED):
+        await settle_refund(db, gateway, order)
         await db.commit()  # release the row lock
         return order
 

@@ -78,6 +78,7 @@ class Order(ApiModel):
         description="While pending: when the seat holds lapse (the checkout countdown)."
     )
     refund_reason: str | None = Field(description="`seat_sold` when paid after the hold lapsed.")
+    refund_pending: bool = Field(description="Refunded, but the gateway hasn't taken it yet.")
     gateway: GatewayMode = Field(
         description="`razorpay` → open Razorpay Checkout with `key_id`; `demo` → no keys are "
         "configured, pay with `POST /orders/{id}/demo-pay` (test mode, no money moves)."

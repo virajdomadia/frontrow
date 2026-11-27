@@ -15,7 +15,7 @@ import hashlib
 import hmac
 import logging
 import secrets
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 import httpx
 from fastapi import FastAPI
@@ -37,6 +37,8 @@ class Gateway(Protocol):
     def signature_ok(self, order_id: str, payment_id: str, signature: str) -> bool: ...
 
     async def refund(self, payment_id: str, amount_paise: int) -> str | None: ...
+
+    async def payment(self, payment_id: str) -> dict[str, Any]: ...
 
 
 def hmac_hex(secret: str, message: bytes) -> str:
@@ -92,10 +94,26 @@ class RazorpayGateway:
             res.raise_for_status()
             return str(res.json()["id"])
         except (httpx.HTTPError, KeyError, ValueError) as e:
-            # The order is still marked refunded so the customer sees why; the refund is
-            # retried by hand from the Razorpay dashboard. Logged loudly.
+            # The order is still marked refunded so the customer sees why, as "refund in
+            # progress"; orders.settle_refund retries it on the next read. Logged loudly.
             log.error("razorpay refund failed for %s: %s", payment_id, e)
             return None
+
+    async def payment(self, payment_id: str) -> dict[str, Any]:
+        """The payment as Razorpay has it (status, amount, currency, order_id)."""
+        try:
+            async with self._client() as client:
+                res = await client.get(f"/payments/{payment_id}")
+            res.raise_for_status()
+            return dict(res.json())
+        except (httpx.HTTPError, ValueError) as e:
+            log.error("razorpay payment fetch failed for %s: %s", payment_id, e)
+            raise ApiError(
+                "payment_unavailable",
+                "We couldn't confirm the payment just now. Your tickets will appear once it "
+                "clears.",
+                status=503,
+            ) from e
 
 
 class DemoGateway:
@@ -110,6 +128,9 @@ class DemoGateway:
 
     async def refund(self, payment_id: str, amount_paise: int) -> str | None:
         return f"demo_refund_{secrets.token_hex(6)}"
+
+    async def payment(self, payment_id: str) -> dict[str, Any]:
+        return {}  # never reached: demo payments have no signature to verify
 
 
 def gateway_for(app: FastAPI) -> Gateway:

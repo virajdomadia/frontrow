@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 const STEPS = [
   { n: "1", title: "Register", body: "Sign in with your email and tell us your business name and phone. You can build everything straight away." },
-  { n: "2", title: "Cinemas & screens", body: "Add each cinema, then its screens from a template — a multiplex grid or stalls + balcony — with a live seat-map preview." },
+  { n: "2", title: "Cinemas & screens", body: "Add each cinema, then its screens from a template (a multiplex grid, or stalls and a balcony) with a live seat-map preview." },
   { n: "3", title: "Schedule shows", body: "Pick films from the shared catalogue, then a language, format, days, times and a price per tier. A month of shows in one go; overlaps are refused." },
   { n: "4", title: "Go live", body: "Frontrow staff verify you once. Your shows appear on every film's page, and the door page scans M-tickets on any phone." },
 ];
@@ -21,12 +21,12 @@ export default function BusinessPage() {
   return (
     <>
       <SiteHeader active="business" />
-      <main className="mx-auto w-[min(1240px,100%-32px)] pt-10 pb-6 lg:pt-16">
+      <main id="main" className="mx-auto w-[min(1240px,100%-32px)] pt-10 pb-6 lg:pt-16">
         <section className="grid items-end gap-8 lg:grid-cols-[1.2fr_.8fr]">
           <div className="grid gap-5">
             <p className="font-cond text-lg font-bold tracking-[.14em] text-red-dark uppercase">For cinemas in Bengaluru</p>
             <h1 className="font-cond text-[clamp(48px,8vw,104px)] leading-[.9] font-extrabold uppercase">
-              Fill your seats. <span className="text-red">Live.</span>
+              Sell every seat <span className="text-red">once.</span>
             </h1>
             <p className="max-w-[48ch] text-lg text-muted-foreground">
               Frontrow sells your shows on a live seat map: a seat a customer taps is held for ten minutes and greys out for
@@ -44,8 +44,8 @@ export default function BusinessPage() {
           <div className="fr-stub grid gap-3 p-5 sm:p-6">
             <h2 className="font-cond text-2xl font-extrabold uppercase">Look around first</h2>
             <p className="text-sm text-ink-2">
-              Sign in as the owner of Orbit Cinemas — two cinemas, three screens, a fortnight of shows and real bookings —
-              no email needed.
+              Sign in as the owner of Orbit Cinemas: two cinemas, three screens, a fortnight of shows and their bookings. No
+              email needed, and it&apos;s view-only, so look anywhere.
             </p>
             <DemoButtons only="owner" />
           </div>
@@ -68,8 +68,8 @@ export default function BusinessPage() {
 
         <section className="mt-16 grid gap-4 md:grid-cols-3">
           {[
-            ["One map, no double-sells", "Seats are held in Redis for ten minutes and sold under a database guard — a seat sells exactly once."],
-            ["Bookings and CSV", "Every paid booking per show — who, which seats, how much — with a CSV export for your accounts."],
+            ["One map, no double-sells", "A tapped seat is held for ten minutes, and each seat sells exactly once, even when two people tap it in the same second."],
+            ["Bookings and CSV", "Every paid booking per show (who, which seats, how much) with a CSV export for your accounts."],
             ["Scan at the door", "Ushers open the door page on any phone and scan M-ticket QR codes; a ticket gets in once."],
           ].map(([t, b]) => (
             <div key={t} className="border-t-2 border-ink pt-4">

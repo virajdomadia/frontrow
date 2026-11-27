@@ -66,7 +66,7 @@ export default async function TicketsPage({ params }: Props) {
   return (
     <>
       <FlowHeader step={2} back="/my-tickets" backLabel="My tickets" />
-      <main className="mx-auto grid w-[min(1100px,100%-32px)] gap-8 py-8 lg:py-12">
+      <main id="main" className="mx-auto grid w-[min(1100px,100%-32px)] gap-8 py-8 lg:py-12">
         <div className="tk-rise grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="grid gap-3">
             <p className="font-cond text-lg font-bold tracking-[.14em] text-red-dark uppercase">
@@ -162,8 +162,8 @@ export default async function TicketsPage({ params }: Props) {
                   {t.checked_in_at ? `Checked in ${showTime(t.checked_in_at)}` : "Admit one"}
                 </span>
                 {!t.checked_in_at && !past && (
-                  <details className="no-print w-full text-center text-[11px] text-ink-3">
-                    <summary className="cursor-pointer">Code (if the scanner can&apos;t read the QR)</summary>
+                  <details className="no-print w-full text-center text-xs text-ink-3">
+                    <summary className="cursor-pointer">Ticket code, for typing in at the door</summary>
                     <code className="mt-1 block font-mono break-all select-all">{t.qr_token}</code>
                   </details>
                 )}

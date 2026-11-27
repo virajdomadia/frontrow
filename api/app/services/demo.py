@@ -1,7 +1,10 @@
 """Keeps the one-click demo customer believable (R1): whenever they sign in, they have an
 upcoming booking — a pair of good seats at a show a few days out — next to the past one the seed
 gave them. Shows roll forward on their own (`schedules.materialise`), so this only books when
-the last upcoming booking has been played. Touches demo and seeded data only."""
+the last upcoming booking has been played. Touches demo and seeded data only.
+
+Anyone can book as the demo customer, so `reset` undoes what visitors bought through checkout
+(the seed never uses checkout) once it's past the pay window — those seats go back on sale."""
 
 from __future__ import annotations
 
@@ -9,12 +12,14 @@ import logging
 from datetime import datetime, timedelta
 
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Business, Cinema, Film, Order, Screen, Show, ShowPrice, User
 from app.models.enums import BusinessStatus, FilmStatus, OrderStatus, ShowStatus
 from app.services import holds
+from app.services.orders import PAY_WINDOW
 from app.services.schedules import IST, _Batch, materialise
 from app.services.shows import sold_seats
 
@@ -36,6 +41,18 @@ def centre_pair(screen: Screen, tier: str, taken: set[str], size: int = 2) -> li
             if not taken & set(run):
                 return run
     return None
+
+
+async def reset(db: AsyncSession, customer: User, *, now: datetime) -> None:
+    # Tickets and order seats go with the order (ON DELETE CASCADE).
+    await db.execute(
+        delete(Order).where(
+            Order.user_id == customer.id,
+            Order.razorpay_order_id.is_not(None),
+            Order.created_at < now - PAY_WINDOW,
+        )
+    )
+    await db.commit()
 
 
 async def ensure_bookings(
@@ -95,7 +112,11 @@ async def ensure_bookings(
             continue
         batch = _Batch(show.id)
         batch.order(pair, tier, prices[tier], customer.id, now - timedelta(minutes=5), "UPI")
-        await batch.insert(db)
+        try:
+            async with db.begin_nested():
+                await batch.insert(db)
+        except IntegrityError:
+            continue  # a sign-in at the same moment took this pair; try the next show
         await db.commit()
         await holds.clear_sold(redis, show.id, pair)
         return

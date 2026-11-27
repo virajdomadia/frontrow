@@ -1,9 +1,10 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { announceAuth, samePage } from "@/lib/auth-events";
+import { AUTH_EVENT, announceAuth, samePage } from "@/lib/auth-events";
 import { messageOf, safeNext, send } from "@/lib/client";
 import type { Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -39,8 +40,20 @@ export function DemoButtons({
   const path = usePathname();
   const [busy, setBusy] = useState<DemoRole | null>(null);
   const [error, setError] = useState("");
+  const [current, setCurrent] = useState<DemoRole | null>(null);
+
+  // Already signed in as a demo role (the header announces who): that button continues instead.
+  useEffect(() => {
+    const onAuth = (e: Event) => {
+      const me = (e as CustomEvent<Me | null>).detail;
+      setCurrent(!me?.is_demo ? null : me.is_staff ? "staff" : me.businesses.length ? "owner" : "customer");
+    };
+    window.addEventListener(AUTH_EVENT, onAuth);
+    return () => window.removeEventListener(AUTH_EVENT, onAuth);
+  }, []);
 
   async function go(as: DemoRole) {
+    if (as === current && !onDone) return router.push(safeNext(next, COPY[as].home));
     setBusy(as);
     setError("");
     try {
@@ -62,7 +75,7 @@ export function DemoButtons({
   const list: DemoRole[] = only ? [only] : roles;
   return (
     <div className={cn("grid gap-2", className)}>
-      <div className={cn("grid gap-2", list.length === 3 && "sm:grid-cols-3", list.length === 2 && "sm:grid-cols-2")}>
+      <div className={cn("grid gap-2", list.length === 3 && "grid-cols-3", list.length === 2 && "grid-cols-2")}>
         {list.map((r) => (
           <Button
             key={r}
@@ -73,8 +86,11 @@ export function DemoButtons({
             onClick={() => go(r)}
             className="h-auto flex-col items-start gap-0 py-2 text-left whitespace-normal normal-case"
           >
-            <span className="font-cond text-lg font-bold uppercase">{busy === r ? "Signing in…" : COPY[r].label}</span>
-            <span className={cn("font-sans text-xs font-medium tracking-normal", tone === "dark" ? "text-oxblood-ink/80" : "text-ink-2")}>
+            <span className="inline-flex items-center gap-1.5 font-cond text-lg font-bold uppercase">
+              {busy === r && <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}
+              {busy === r ? "Signing in…" : r === current ? `${COPY[r].label} · continue` : COPY[r].label}
+            </span>
+            <span className={cn("hidden font-sans text-xs font-medium tracking-normal sm:block", tone === "dark" ? "text-oxblood-ink/80" : "text-ink-2")}>
               {COPY[r].sub}
             </span>
           </Button>

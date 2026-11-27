@@ -40,7 +40,7 @@ export interface ApiInit {
   cacheKey?: string;
 }
 
-/** `/events/{slug}` + `{ slug: 'x' }` → `/events/x`. Throws rather than sending a literal `{slug}`. */
+/** `/films/{slug}` + `{ slug: 'x' }` → `/films/x`. Throws rather than sending a literal `{slug}`. */
 export function fillPath(path: string, params: Record<string, string> = {}) {
   return path.replace(/\{(\w+)\}/g, (_, name: string) => {
     const value = params[name];

@@ -15,8 +15,8 @@ export const revalidate = 60;
 const ROWS = 7;
 const COLS = 14;
 function look(r: number, c: number) {
-  if (r === 4 && (c === 6 || c === 7)) return "bg-red shadow-[0_0_0_3px_rgb(230_57_70_/_.25)]";
-  if ((r * 7 + c * 3) % 11 === 0 || (r === 1 && c > 9)) return "bg-sold";
+  if (r === 4 && (c === 6 || c === 7)) return "bg-red shadow-[0_0_0_3px_rgb(201_45_58_/_.25)]";
+  if ((r * 7 + c * 3) % 11 === 0 || (r === 1 && c > 9)) return "bg-plum-3 outline outline-1 -outline-offset-1 outline-ink/20";
   if ((r + c * 5) % 13 === 0) return "bg-held";
   return r < 4 ? "bg-classic/80" : r < 6 ? "bg-prime/85" : "bg-recliner/80";
 }
@@ -28,7 +28,7 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      <main>
+      <main id="main">
         <section className="mx-auto grid w-[min(1240px,100%-32px)] items-center gap-10 pt-8 pb-12 lg:grid-cols-[1.1fr_.9fr] lg:pt-14">
           <div className="grid gap-5">
             <p className="font-cond text-[15px] font-semibold tracking-[.14em] text-red-dark uppercase">Movie tickets · Bengaluru</p>
@@ -36,7 +36,7 @@ export default async function Home() {
               Pick your seat, <span className="text-red">live.</span>
             </h1>
             <p className="max-w-[46ch] text-lg text-muted-foreground">
-              Tap a seat and it&apos;s <strong className="font-semibold text-ink">held for you for ten minutes</strong> — greyed out for
+              Tap a seat and it&apos;s <strong className="font-semibold text-ink">held for you for ten minutes</strong>, greyed out for
               everyone else until you pay. Your M-ticket is scanned at the door.
             </p>
             <SearchBox className="max-w-[520px]" />
@@ -45,14 +45,14 @@ export default async function Home() {
               <DemoButtons />
             </div>
           </div>
-          <div aria-hidden="true" className="fr-stub hidden p-6 shadow-[0_24px_50px_rgb(42_11_30_/_.14)] lg:block">
+          <div aria-hidden="true" className="fr-stub p-4 shadow-[0_24px_50px_rgb(42_11_30_/_.14)] sm:p-6">
             <div className="mx-[12%] mb-1 h-1.5 rounded-full bg-gradient-to-r from-transparent via-ink/60 to-transparent" />
             <p className="mb-5 text-center font-cond text-xs tracking-[.3em] text-ink-3 uppercase">Screen</p>
-            <div className="grid gap-[7px]">
+            <div className="grid gap-[5px] sm:gap-[7px]">
               {Array.from({ length: ROWS }, (_, r) => (
-                <div key={r} className="flex justify-center gap-[6px]">
+                <div key={r} className="flex justify-center gap-[4px] sm:gap-[6px]">
                   {Array.from({ length: COLS }, (_, c) => (
-                    <span key={c} className={cn("h-[18px] w-[20px] rounded-[4px_4px_2px_2px]", look(r, c), c === 6 && "mr-3")} />
+                    <span key={c} className={cn("h-3 w-3.5 rounded-[3px_3px_2px_2px] sm:h-[18px] sm:w-[20px]", look(r, c), c === 6 && "mr-2 sm:mr-3")} />
                   ))}
                 </div>
               ))}
@@ -66,7 +66,7 @@ export default async function Home() {
             <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs text-ink-2">
               <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3.5 rounded-sm bg-classic/80" />Free</span>
               <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3.5 rounded-sm bg-held" />Someone&apos;s holding</span>
-              <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3.5 rounded-sm bg-sold" />Sold</span>
+              <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3.5 rounded-sm bg-plum-3 outline outline-1 -outline-offset-1 outline-ink/20" />Sold</span>
               <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3.5 rounded-sm bg-red" />Yours</span>
             </div>
           </div>
@@ -82,13 +82,14 @@ export default async function Home() {
             </Link>
           </div>
           {home.now_showing.length ? (
-            <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
+            // Four films fill four columns, not four fifths of five.
+            <div className={cn("grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3", home.now_showing.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-5")}>
               {home.now_showing.map((f, i) => (
                 <FilmCard key={f.id} film={f} priority={i < 5} />
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No shows on sale right now — check back in a minute.</p>
+            <p className="text-muted-foreground">No shows on sale right now. Check back in a minute.</p>
           )}
         </section>
 
@@ -112,8 +113,8 @@ export default async function Home() {
                 Two people, one seat
               </h2>
               <p className="mt-3 max-w-[44ch] text-muted-foreground">
-                The same second, the same seat: exactly one of you gets it. Holds live in Redis and expire on their own; sales are
-                guarded by Postgres, so a seat can never be sold twice.
+                The same second, the same seat: exactly one of you gets it. Holds run out on their own after ten minutes, and a
+                seat can never be sold twice.
               </p>
             </div>
             <ol className="grid list-none gap-4 p-0 sm:grid-cols-3">

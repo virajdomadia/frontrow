@@ -1,15 +1,17 @@
 """App factory. Vercel's FastAPI preset imports the module-level `app` from here."""
 
-from collections.abc import AsyncIterator
+import os
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from urllib.parse import urlsplit
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 
 from app.config import Settings, get_settings
 from app.db import dispose_engine
-from app.errors import install_error_handlers
+from app.errors import envelope, install_error_handlers
 from app.middleware import BlankQueryParamsMiddleware, NoSniffMiddleware, RequestIdMiddleware
 from app.redis import close_redis
 from app.routers import auth, catalog, health, orders, owner, shows, staff
@@ -33,6 +35,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app(settings: Settings | None = None) -> FastAPI:
     """`settings` lets tests build an app that ignores the local .env."""
     settings = settings or get_settings()
+    if os.environ.get("VERCEL"):
+        # The dev fallbacks are public in this repo: a deployment must never sign with them.
+        missing = [
+            name
+            for name in ("session_secret", "ticket_secret", "proxy_secret")
+            if getattr(settings, name) is None
+        ]
+        if missing:
+            raise RuntimeError(f"Set {', '.join(m.upper() for m in missing)} on this deployment")
     app = FastAPI(
         title="Frontrow API",
         version="0.1.0",
@@ -46,6 +57,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(NoSniffMiddleware)
     app.add_middleware(BlankQueryParamsMiddleware)
     install_error_handlers(app)
+
+    web = urlsplit(settings.web_url)
+    web_origin = f"{web.scheme}://{web.netloc}"
+
+    @app.middleware("http")
+    async def same_origin_writes(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        """CSRF: a browser names the page's origin on every write; only ours may write. Sibling
+        subdomains are same-site, so SameSite=Lax alone lets their forms through. Apps and
+        webhooks send no Origin."""
+        origin = request.headers.get("origin")
+        if request.method not in ("GET", "HEAD", "OPTIONS") and origin and origin != web_origin:
+            return envelope("forbidden", "Cross-site request refused", status=403)
+        return await call_next(request)
 
     app.include_router(health.router)
     app.include_router(auth.router)

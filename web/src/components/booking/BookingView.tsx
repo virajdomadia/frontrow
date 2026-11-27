@@ -279,6 +279,8 @@ export function BookingView({ show, layout, snapshot: initial }: { show: ShowDet
           </p>
         )}
 
+        {/* Above the map: on a phone the booking sheet covers whatever sits under it. */}
+        <Legend tiers={show.tiers} palette={palette} />
         <div className="relative mt-3 flex min-h-0 flex-col lg:flex-1">
           {toast && (
             <div
@@ -298,12 +300,11 @@ export function BookingView({ show, layout, snapshot: initial }: { show: ShowDet
             onToggle={toggle}
             palette={palette}
             tierText={tierText}
-            className="h-[440px] rounded-card border border-border bg-plum-2 lg:h-auto lg:min-h-0 lg:flex-1"
+            className="h-[min(520px,62dvh)] rounded-card border border-border bg-plum-2 lg:h-auto lg:min-h-0 lg:flex-1"
           />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-x-4">
-          <Legend tiers={show.tiers} palette={palette} />
-          <p className={cn("mt-3 text-xs", stale ? "text-amber" : "text-faint")} aria-live="polite">
+          <p className={cn("mt-3 text-xs", stale ? "text-amber" : "text-ink-3")} aria-live="polite">
             {stale ? "Reconnecting… seat colours may be a few seconds old" : "Live · refreshes every 5 s"}
           </p>
         </div>

@@ -15,7 +15,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Business, Cinema, Screen, Seat, Show, Ticket
+from app.models import Business, BusinessMember, Cinema, Screen, Seat, Show, Ticket, User
 from app.models.enums import BusinessStatus, FilmStatus
 from app.services.mail import Mail
 
@@ -69,6 +69,19 @@ async def code_sign_in(
     res = await c.post("/auth/verify", json=body)
     assert res.status_code == 200, res.text
     return res.json()
+
+
+async def orbit_owner(app: FastAPI, c: AsyncClient, db: AsyncSession) -> dict[str, Any]:
+    """A real (non-demo) member of Orbit Cinemas, signed in at the business door — the demo
+    owner is read-only."""
+    orbit = await db.scalar(select(Business).where(Business.slug == "orbit-cinemas"))
+    assert orbit is not None
+    user = User(email="kavitha@orbit.example", name="Kavitha")
+    db.add(user)
+    await db.flush()
+    db.add(BusinessMember(business_id=orbit.id, user_id=user.id, role="owner"))
+    await db.commit()
+    return await code_sign_in(app, c, user.email, door="business", name=None)
 
 
 @asynccontextmanager

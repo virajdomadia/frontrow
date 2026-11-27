@@ -21,7 +21,7 @@ from app.routers.catalog import cache_until
 from app.schemas.layouts import Layout
 from app.schemas.shows import HoldGranted, HoldRequest, SeatState, ShowDetail
 from app.services import shows
-from app.services.auth import Auth, holder_of, optional_auth
+from app.services.auth import Auth, client_ip, holder_of, optional_auth
 
 router = APIRouter(tags=["seat map"])
 
@@ -89,6 +89,7 @@ async def place_holds(
         show_id,
         body.seat_ids,
         holder=holder,
+        ip=client_ip(request, settings),
         ttl_seconds=settings.hold_ttl_seconds,
         per_minute=settings.holds_per_minute,
         now=datetime.now(UTC),

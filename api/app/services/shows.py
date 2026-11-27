@@ -5,15 +5,17 @@ Sold seats come from `tickets` (Postgres is the truth for a sale); holds come fr
 (`services/holds.py`). A hold request is checked against Postgres first — a sold seat is a 409
 too — then taken all-or-none by one Lua script.
 
-A show is public only when its business is verified. One that has started or was cancelled is
+A show is public only when its business is verified, its film is now showing and it is inside
+the catalogue's horizon — the same rule as the catalogue. One that has started or was cancelled is
 closed: every read and write answers 410 `show_closed`, with enough in `details` for the web to
 say so and link back to the film.
 """
 
 from __future__ import annotations
 
+import hashlib
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from redis.asyncio import Redis
@@ -22,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ApiError
 from app.models import Business, Cinema, Film, Screen, Seat, Show, ShowPrice, Ticket
-from app.models.enums import BusinessStatus, ShowStatus
+from app.models.enums import BusinessStatus, FilmStatus, ShowStatus
 from app.schemas.catalog import TierPrice
 from app.schemas.shows import (
     HoldGranted,
@@ -32,7 +34,7 @@ from app.schemas.shows import (
     ShowFilm,
     ShowScreen,
 )
-from app.services import holds
+from app.services import holds, schedules
 from app.services.catalog import fill_of
 from app.services.schedules import FEE_PAISE
 
@@ -76,7 +78,12 @@ async def load(db: AsyncSession, show_id: str | uuid.UUID, now: datetime) -> Loa
             .join(Screen, Screen.id == Show.screen_id)
             .join(Cinema, Cinema.id == Screen.cinema_id)
             .join(Business, Business.id == Cinema.business_id)
-            .where(Show.id == parse_id(show_id), Business.status == BusinessStatus.VERIFIED)
+            .where(
+                Show.id == parse_id(show_id),
+                Business.status == BusinessStatus.VERIFIED,
+                Film.status == FilmStatus.NOW_SHOWING,
+                Show.starts_at < now + timedelta(days=schedules.HORIZON_DAYS),
+            )
         )
     ).one_or_none()
     if row is None:
@@ -224,16 +231,21 @@ async def place_holds(
     seat_ids: list[str],
     *,
     holder: str,
+    ip: str | None,
     ttl_seconds: int,
     per_minute: int,
     now: datetime,
 ) -> HoldGranted:
-    """Hold the whole selection or nothing (R5). Sold seats → 409 like held ones."""
+    """Hold the whole selection or nothing (R5). Sold seats → 409 like held ones. Capped per
+    holder and per network (`holds.ACQUIRE`)."""
     show, _, _, _ = await load(db, show_id, now)
     if len(set(seat_ids)) > holds.MAX_SEATS:
         raise _too_many()
     ids = await check_seats(db, show, seat_ids)
     await holds.rate_limit(redis, holder, per_minute)
+    net = hashlib.sha256(ip.encode()).hexdigest()[:16] if ip else ""
+    if net:  # rotating the cookie doesn't reset this one
+        await holds.rate_limit(redis, f"ip:{net}", 2 * per_minute)
 
     sold = set(await sold_seats(db, show.id)) & set(ids)
     if sold:
@@ -243,11 +255,9 @@ async def place_holds(
             status=409,
             details={"taken": sorted(sold)},
         )
-    # The cap counts seats held from another tab of the same holder too.
-    live = await holds.snapshot(redis, show.id, holder, now=now)
-    if len(set(live.mine) | set(ids)) > holds.MAX_SEATS:
-        raise _too_many()
-    granted = await holds.acquire(redis, show.id, holder, ids, ttl_seconds=ttl_seconds, now=now)
+    granted = await holds.acquire(
+        redis, show.id, holder, ids, ttl_seconds=ttl_seconds, now=now, net=net
+    )
     return HoldGranted(expires_at=granted.expires_at, held=granted.held)
 
 

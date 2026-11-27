@@ -9,6 +9,7 @@ import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
 import { api, ApiRequestError } from "@/lib/api";
 import { duration, rupees } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -50,7 +51,7 @@ export default async function MoviePage({ params }: Props) {
   return (
     <>
       <SiteHeader active="movies" />
-      <main>
+      <main id="main">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -68,31 +69,39 @@ export default async function MoviePage({ params }: Props) {
         />
         <section className="fr-banner -mt-[9px] pt-[9px] text-paper">
           <Image src={film.banner_url ?? film.poster_url} alt="" fill priority sizes="100vw" className="blur-[2px]" />
-          <div className="mx-auto grid w-[min(1240px,100%-32px)] items-end gap-8 py-10 sm:grid-cols-[220px_1fr] lg:py-14">
-            <div className="relative hidden aspect-[2/3] overflow-hidden rounded-card shadow-[0_20px_50px_rgb(0_0_0_/_.45)] sm:block">
-              <Image src={film.poster_url} alt={`${film.title} poster`} fill sizes="220px" className="object-cover" priority />
+          <div className="mx-auto grid w-[min(1240px,100%-32px)] items-end gap-6 py-8 sm:grid-cols-[220px_1fr] sm:gap-8 lg:py-14">
+            <div className="relative aspect-[2/3] w-[130px] overflow-hidden rounded-card shadow-[0_20px_50px_rgb(0_0_0_/_.45)] sm:w-auto">
+              <Image src={film.poster_url} alt={`${film.title} poster`} fill sizes="(min-width: 640px) 220px, 130px" className="object-cover" priority />
             </div>
             <div className="grid gap-4">
               <h1 className="font-cond text-[clamp(48px,8vw,96px)] leading-[.9] font-extrabold text-white uppercase">{film.title}</h1>
               <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-paper/90">
                 <CertBadge cert={film.cert} className="text-paper" />
-                <span>{duration(film.runtime_min)}</span>
-                <span aria-hidden="true">·</span>
-                <span>{film.genres.join(", ")}</span>
-                <span aria-hidden="true">·</span>
-                <span>{soon ? `Releases ${releaseFmt.format(new Date(film.release_date))}` : `Released ${releaseFmt.format(new Date(film.release_date))}`}</span>
+                {/* One string, the dot glued to what follows: a wrap never leaves a "·" at a line end. */}
+                <span>
+                  {[
+                    duration(film.runtime_min),
+                    film.genres.join(", "),
+                    `${soon ? "Releases" : "Released"} ${releaseFmt.format(new Date(film.release_date))}`,
+                  ].join(" · ")}
+                </span>
               </p>
               <div className="flex flex-wrap gap-2">
-                {film.languages.map((l) => (
-                  <span key={l} className="rounded-chip bg-paper/15 px-2.5 py-1 text-sm font-medium">
-                    {l}
-                  </span>
-                ))}
                 {film.formats.map((f) => (
                   <span key={f} className="rounded-chip border border-paper/40 px-2.5 py-1 font-cond text-sm font-bold tracking-[.06em]">
                     {f}
                   </span>
                 ))}
+                {film.languages.map((l) => {
+                  // Only versions with shows can be booked; say so rather than promise one.
+                  const none = film.show_count > 0 && !film.versions.some((v) => v.language === l);
+                  return (
+                    <span key={l} className={cn("rounded-chip bg-paper/15 px-2.5 py-1 text-sm font-medium", none && "bg-transparent text-paper/75")}>
+                      {l}
+                      {none && " · no shows yet"}
+                    </span>
+                  );
+                })}
               </div>
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 {film.show_count > 0 ? (

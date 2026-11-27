@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { Cert, Fill } from "@/lib/types";
 
-const base = "inline-block rounded-sm px-[7px] py-[3px] text-[11px] font-semibold tracking-[.06em] uppercase";
+const base = "inline-block rounded-sm px-[7px] py-[3px] text-xs font-semibold tracking-[.06em] uppercase";
 
 export const FILL_LABEL: Record<Fill, string> = {
   available: "Available",

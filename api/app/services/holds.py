@@ -4,7 +4,7 @@ Keys (the `{showtime}` braces are a Redis Cluster hash tag, so every key one scr
 in the same slot):
 
     fr:hold:{st}:{seat}   string = holder id, PX ttl       — the truth for "is this seat held"
-    fr:holds:{st}         hash seat → "holder|expires_ms"  — snapshot mirror, lazily cleaned
+    fr:holds:{st}         hash seat → "holder|net|expires_ms" — snapshot mirror, lazily cleaned
     fr:st:{st}:v          int, INCR on every hold / release / sale
     fr:rl:holds:{holder}  int, 60 s window                 — rate limit
 
@@ -13,6 +13,10 @@ before signing in and keep the seats when they do.
 
 One holder's seats in one showtime share a single deadline: the countdown starts at the first
 successful hold (R4) and seats added later expire with it, not ten minutes after their own tap.
+
+Caps, checked inside the same script so concurrent requests can't add up past them: 10 seats per
+holder, and 20 per network (`net`, a hash of the client address) — two tabs of one person, but a
+fresh cookie per request no longer buys more seats.
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ from app.schemas.shows import HeldSeat
 log = logging.getLogger(__name__)
 
 MAX_SEATS = 10  # per booking (R3)
+NET_SEATS = 2 * MAX_SEATS  # per network per show: the two-tabs demo, not a whole hall
 
 
 def hold_key(showtime_id: uuid.UUID | str, seat_id: str) -> str:
@@ -46,11 +51,13 @@ def version_key(showtime_id: uuid.UUID | str) -> str:
     return f"fr:st:{{{showtime_id}}}:v"
 
 
-# KEYS = hash, version, hold keys…; ARGV = holder, ttl_ms, now_ms, seat ids…
+# KEYS = hash, version, hold keys…; ARGV = holder, ttl_ms, now_ms, net, max per holder,
+# max per net, seat ids…
 # Seats already held by the same holder are re-granted (idempotent re-tap) and keep their TTL;
 # fresh seats get the *remaining* TTL of the holder's existing seats, so all expire together.
+# Returns {1, expires} | {0, taken seats} | {2} over the holder cap | {3} over the network cap.
 ACQUIRE = """
-local holder, ttl, now = ARGV[1], tonumber(ARGV[2]), tonumber(ARGV[3])
+local holder, ttl, now, net = ARGV[1], tonumber(ARGV[2]), tonumber(ARGV[3]), ARGV[4]
 local taken, fresh = {}, {}
 local left = ttl
 for i = 3, #KEYS do
@@ -58,17 +65,35 @@ for i = 3, #KEYS do
   if v == false then
     fresh[#fresh + 1] = i
   elseif v ~= holder then
-    taken[#taken + 1] = ARGV[i + 1]
+    taken[#taken + 1] = ARGV[i + 4]
   else
     local p = redis.call('PTTL', KEYS[i])
     if p > 0 and p < left then left = p end
   end
 end
 if #taken > 0 then return {0, taken} end
+local mine, ours, nmine, nours = {}, {}, 0, 0
+local all = redis.call('HGETALL', KEYS[1])
+for j = 1, #all, 2 do
+  local h, n, e = string.match(all[j + 1], '^([^|]*)|(.*)|(%d+)$')
+  if not h then h, e = string.match(all[j + 1], '^([^|]*)|(%d+)$') end
+  if h and tonumber(e) > now then
+    if h == holder then mine[all[j]] = true end
+    if net ~= '' and n == net then ours[all[j]] = true end
+  end
+end
+for i = 3, #KEYS do
+  mine[ARGV[i + 4]] = true
+  if net ~= '' then ours[ARGV[i + 4]] = true end
+end
+for _ in pairs(mine) do nmine = nmine + 1 end
+for _ in pairs(ours) do nours = nours + 1 end
+if nmine > tonumber(ARGV[5]) then return {2, 0} end
+if nours > tonumber(ARGV[6]) then return {3, 0} end
 local expires = now + left
 for _, i in ipairs(fresh) do
   redis.call('SET', KEYS[i], holder, 'PX', left)
-  redis.call('HSET', KEYS[1], ARGV[i + 1], holder .. '|' .. expires)
+  redis.call('HSET', KEYS[1], ARGV[i + 4], holder .. '|' .. net .. '|' .. expires)
 end
 if #fresh > 0 then redis.call('INCR', KEYS[2]) end
 return {1, expires}
@@ -147,6 +172,7 @@ def _unavailable(e: Exception) -> ApiError:
 
 
 async def rate_limit(redis: Redis, holder: str, per_minute: int) -> None:
+    """`per_minute` calls per `holder` (any key: a holder, `ip:…`, `demo:…`), else 429."""
     key = f"fr:rl:holds:{holder}"
     try:
         async with redis.pipeline(transaction=True) as pipe:
@@ -158,7 +184,7 @@ async def rate_limit(redis: Redis, holder: str, per_minute: int) -> None:
     if int(count) > per_minute:
         raise ApiError(
             "rate_limited",
-            "Too many seat changes in a minute. Wait a moment and try again.",
+            "Too many tries in a minute. Wait a moment and try again.",
             status=429,
         )
 
@@ -171,18 +197,33 @@ async def acquire(
     *,
     ttl_seconds: int,
     now: datetime,
+    net: str = "",
 ) -> Granted:
     """All of `seat_ids` for `holder`, or none: 409 `seat_taken` naming the seats someone else
-    holds. Seats the holder already has are fine (re-tap)."""
+    holds. Seats the holder already has are fine (re-tap). 422 `too_many_seats` past 10 for
+    the holder; 429 `too_many_holds` past 20 for the network `net` ("" = not counted)."""
     keys = [hash_key(showtime_id), version_key(showtime_id)]
     keys += [hold_key(showtime_id, s) for s in seat_ids]
     try:
         result = await redis.eval(  # type: ignore[misc]
-            ACQUIRE, len(keys), *keys, holder, ttl_seconds * 1000, _ms(now), *seat_ids
-        )
+            ACQUIRE, len(keys), *keys, holder, ttl_seconds * 1000, _ms(now), net, MAX_SEATS,
+            NET_SEATS, *seat_ids,
+        )  # fmt: skip
     except RedisError as e:
         raise _unavailable(e) from e
     ok, payload = result[0], result[1]
+    if int(ok) == 2:
+        raise ApiError(
+            "too_many_seats", f"Up to {MAX_SEATS} seats per booking", status=422,
+            details={"max": MAX_SEATS},
+        )  # fmt: skip
+    if int(ok) == 3:
+        raise ApiError(
+            "too_many_holds",
+            "Too many seats are held from your network for this show. Finish or release a "
+            "booking first.",
+            status=429,
+        )
     if int(ok) == 0:
         taken = [str(s) for s in payload]
         raise ApiError(
@@ -268,7 +309,7 @@ async def snapshot(
     stale: list[str] = []
     mine_exp: int | None = None
     for seat, value in sorted(entries.items()):
-        who, _, exp = value.rpartition("|")
+        who, *_, exp = value.split("|")  # holder|net|expires (or holder|expires)
         try:
             exp_ms = int(exp)
         except ValueError:

@@ -124,10 +124,10 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
     const v = view.current!;
     const whole = clamp(fit(content, v, PITCH / 2), content, v);
     if (isArena || v.w >= PHONE_PX) return whole;
-    // Phone: the hall's full width — row letters at both edges, no seat cut off — with the
-    // screen end at the top; pan down for the rest. Seats this small are the overview: a tap
-    // zooms into that block (QA 2026-11-19).
-    const scale = v.w / (content.w + PITCH);
+    // Phone: seats start at a fair tap size (≥ 24 px), centred, screen end at the top; pan for
+    // the rest. A hall narrow enough to fit at that size shows whole (review 2026-11-27: 11 px
+    // seats in a whole-hall overview were too small to hit).
+    const scale = Math.max(v.w / (content.w + PITCH), MIN_TAP_PX / SEAT);
     if (scale <= scaleOf(whole, v)) return whole;
     const b = boxAt({ x: content.w / 2, y: 0 }, scale, v);
     return clamp({ ...b, y: 0 }, content, v);
@@ -339,7 +339,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
   return (
     <>
       <div className={cn("flex overflow-hidden", className)}>
-        <div className="relative min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1 overflow-hidden">
           <div
             ref={wrap}
             className="sm-wrap absolute inset-0 touch-none select-none"
@@ -363,6 +363,12 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
               onKeyDown={onKeyDown}
               onFocus={onFocus}
             >
+              <defs>
+                <pattern id="sm-sold" width="1" height="1" patternContentUnits="objectBoundingBox">
+                  <rect width="1" height="1" fill="var(--plum-3)" />
+                  <path d="M.3 .3L.7 .7M.7 .3L.3 .7" stroke="var(--ink-3)" strokeWidth=".09" strokeLinecap="round" />
+                </pattern>
+              </defs>
               {isArena ? (
                 <g aria-hidden="true">
                   <rect x={stage.x} y={stage.y - 12} width={stage.w} height={36} rx={6} className="sm-stage-block" />
@@ -451,7 +457,7 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
       </div>
 
       {/* One hint, for the view on screen. */}
-      <p className="mt-1.5 flex flex-wrap gap-x-3 text-[11px] text-faint">
+      <p className="mt-1.5 flex flex-wrap gap-x-3 text-xs text-ink-3">
         {hereSection && (
           <span className="font-semibold text-muted-foreground">
             {sectionName(hereSection.key)} · row A nearest the {hereSection.shape === "wedge" ? "floor" : "stage"}
@@ -535,7 +541,7 @@ const Row = memo(
             const seat = index.byId.get(row.seats[k])!;
             const look = LOOK[looks[k]];
             return (
-              <text key={k} x={seat.x} y={seat.y} aria-hidden="true" className={cn("sm-seat-tag", look !== "free" && "on-dark")}>
+              <text key={k} x={seat.x} y={seat.y} aria-hidden="true" className={cn("sm-seat-tag", look !== "free" && look !== "sold" && "on-dark")}>
                 {row.label}
               </text>
             );

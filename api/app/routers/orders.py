@@ -137,6 +137,16 @@ async def verify_payment(
         order.razorpay_order_id, body.razorpay_payment_id, body.razorpay_signature
     ):
         raise ApiError("bad_signature", "The payment signature didn't verify", status=400)
+    # A signature proves authorisation, not capture: check the payment itself.
+    payment = await pay.payment(body.razorpay_payment_id)
+    if not _matches(payment, order):
+        raise ApiError("payment_mismatch", "That payment isn't for this order", status=400)
+    if payment.get("status") != "captured":
+        raise ApiError(
+            "payment_pending",
+            "Your payment is still being confirmed. Your tickets will appear here once it is.",
+            status=409,
+        )
     order = await svc.confirm(
         db, redis, pay, order.id, payment_id=body.razorpay_payment_id, now=now,
         on_paid=email_tickets(request, db),
@@ -166,6 +176,15 @@ async def demo_pay(
         on_paid=email_tickets(request, db),
     )  # fmt: skip
     return await svc.view(db, order, pay, user=auth.user, redis=redis)
+
+
+def _matches(payment: dict[str, Any], order: Order) -> bool:
+    """The gateway's payment is for this order, in full, in rupees."""
+    return (
+        payment.get("order_id") == order.razorpay_order_id
+        and payment.get("amount") == order.total_paise
+        and payment.get("currency") == "INR"
+    )
 
 
 def _method(payment: dict[str, Any]) -> str:
@@ -205,6 +224,10 @@ async def razorpay_webhook(request: Request, db: Db, pay: Pay, redis: OptRedis) 
     order = None
     if rzp_order:
         order = await db.scalar(select(Order).where(Order.razorpay_order_id == rzp_order))
+    if kind == "payment.captured" and order is not None and not _matches(payment, order):
+        log.error("webhook %s: payment doesn't match order %s; not confirmed", event_id, order.id)
+        await db.commit()
+        return {"status": "ignored"}
     if kind == "payment.captured" and order is not None and payment.get("id"):
         # The event row commits in the same transaction as the confirm: if confirming fails,
         # neither sticks and Razorpay's retry gets a clean second go.

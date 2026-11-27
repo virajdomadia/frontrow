@@ -4,7 +4,7 @@ and `POST/DELETE /auth/token` bearer sessions for the v4 app (same code flow).""
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,7 @@ from app.schemas.auth import BusinessRef, CodeRequest, Demo, Me, Token, TokenReq
 from app.services import auth as svc
 from app.services import demo as demo_svc
 from app.services.auth import Auth, optional_auth, require_auth
+from app.services.holds import rate_limit
 from app.services.mail import mailer_for
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -63,7 +64,9 @@ async def _start_web_session(
 
 
 @router.post("/code", status_code=204)
-async def send_code(body: CodeRequest, request: Request, db: Db, redis: Rds) -> None:
+async def send_code(
+    body: CodeRequest, request: Request, background: BackgroundTasks, db: Db, redis: Rds
+) -> None:
     """Email a 6-digit code (10 minutes, 5 tries). Same answer at the staff door for any
     email. 429 when asked too often; 503 `email_unavailable` when this deployment has no SMTP."""
     await svc.request_code(
@@ -73,7 +76,8 @@ async def send_code(body: CodeRequest, request: Request, db: Db, redis: Rds) -> 
         _settings(request),
         email=body.email,
         door=body.door,
-        ip=svc.client_ip(request),
+        ip=svc.client_ip(request, _settings(request)),
+        background=background,
     )
 
 
@@ -108,11 +112,16 @@ async def demo(
     redis: Annotated[Redis | None, Depends(optional_redis)],
 ) -> Me:
     """One click, no email: the seeded demo customer, theatre owner (Orbit Cinemas) or staff
-    member (view-only). The demo customer always has an upcoming and a past booking."""
+        member (both view-only). The demo customer always has an upcoming and a past booking, and
+    what earlier visitors booked as them is undone."""
+    ip = svc.client_ip(request, _settings(request))
+    if redis is not None and ip:
+        await rate_limit(redis, f"demo:{ip}", 10)
     user = await db.scalar(select(User).where(User.email == svc.DEMO_EMAILS[body.as_]))
     if user is None:
         raise ApiError("not_found", "The demo accounts aren't seeded yet")
     if body.as_ == "customer":
+        await demo_svc.reset(db, user, now=datetime.now(UTC))
         await demo_svc.ensure_bookings(db, redis, user, now=datetime.now(UTC))
     return await _start_web_session(request, response, db, user)
 

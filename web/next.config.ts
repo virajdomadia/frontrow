@@ -11,7 +11,7 @@ const API_URL = (process.env.API_URL ?? "http://localhost:8000").replace(/\/$/, 
  * (`self.__next_f.push(…)`) and the event pages' JSON-LD are generated per page, and a nonce
  * means middleware on every request — every page dynamic, ISR gone. With no remote script
  * origin allowed at all, an injected `<script src>` still can't load anything; the JSON-LD is
- * escaped (`jsonLd()` in events/[slug]).
+ * escaped (`jsonLd()` in movies/[slug]).
  *
  * Everything is same-origin except Razorpay Checkout (F5): posters and venue photos are files in
  * public/ served through /_next/image, next/font self-hosts the fonts, and the browser reaches the
@@ -28,7 +28,7 @@ const csp = [
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "form-action 'self'", // the /events filter form (GET, same origin)
+  "form-action 'self'", // the movies search form (GET, same origin)
   `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com${isDev ? " 'unsafe-eval'" : ""}`, // eval: React Refresh in dev
   `frame-src ${RAZORPAY}`,
   "style-src 'self' 'unsafe-inline'", // Tailwind + Next inject <style> elements

@@ -127,7 +127,7 @@ export function Checkout({ initial }: { initial: Order }) {
       description: `${order.show.film.title} · ${order.seats.length} ${order.seats.length === 1 ? "seat" : "seats"}`,
       prefill: { name: order.customer.name, email: order.customer.email },
       notes: { order_id: order.id },
-      theme: { color: "#E63946" },
+      theme: { color: "#C92D3A" },
       modal: { ondismiss: () => setPhase((p) => (p === "paying" ? "idle" : p)) },
       handler: async (r: RazorpayResponse) => {
         setPhase("confirming");
@@ -191,7 +191,7 @@ export function Checkout({ initial }: { initial: Order }) {
           className="sm-stub rounded-card border border-border bg-paper text-ink shadow-[0_20px_50px_rgb(42_11_30_/_.16)]"
         >
           <div className="relative border-b-2 border-dashed border-ink/25 px-6 pt-5.5 pb-4 before:absolute before:-bottom-[11px] before:-left-[11px] before:size-[22px] before:rounded-full before:bg-plum after:absolute after:-right-[11px] after:-bottom-[11px] after:size-[22px] after:rounded-full after:bg-plum">
-            <h2 className="pr-16 font-cond text-[34px] leading-[.95] font-extrabold uppercase">{order.show.film.title}</h2>
+            <h2 className="pr-24 font-cond text-[30px] leading-[.95] font-extrabold uppercase">{order.show.film.title}</h2>
             <p className="mt-1 text-sm font-medium text-ink-2">
               {order.show.cinema.name} · {order.show.screen_name} · {order.show.language} {order.show.format}
             </p>
@@ -225,8 +225,13 @@ export function Checkout({ initial }: { initial: Order }) {
                 <b className={cn("font-mono text-[30px] leading-none font-semibold tabular-nums", holdLapsed ? "text-ink-3" : "text-red-dark")}>
                   {holdLapsed ? payClock.text : holdClock.text}
                 </b>
-                <span className="text-right text-xs tracking-[.08em] text-ink-2 uppercase">
+                <span className="grid justify-items-end gap-1 text-right text-xs tracking-[.08em] text-ink-2 uppercase">
                   {holdLapsed ? "Hold lapsed · checkout closes in" : "Seats held for you"}
+                  {!holdLapsed && (
+                    <Link href={`/book/${order.show.id}`} className="font-semibold tracking-normal text-ink normal-case underline underline-offset-4">
+                      Change seats
+                    </Link>
+                  )}
                 </span>
               </div>
             )}
@@ -245,7 +250,7 @@ export function Checkout({ initial }: { initial: Order }) {
                 <span className="tabular-nums">{rupees(order.fee_paise)}</span>
               </div>
               <div className="mt-0.5 flex items-baseline justify-between border-t border-ink/20 pt-2 text-[17px] font-semibold text-ink">
-                <span>{order.status === "refunded" ? "Refunded" : order.status === "paid" ? "Paid" : "Total"}</span>
+                <span>{order.status === "refunded" ? (order.refund_pending ? "Refund in progress" : "Refunded") : order.status === "paid" ? "Paid" : "Total"}</span>
                 <b className="font-cond text-[30px] leading-none font-extrabold tabular-nums">{rupees(order.total_paise)}</b>
               </div>
             </div>
@@ -255,7 +260,7 @@ export function Checkout({ initial }: { initial: Order }) {
             {pending && (
               <>
                 {order.gateway === "demo" && (
-                  <p className="rounded-btn border border-dashed border-ink/30 px-3 py-2 text-xs text-ink-2">
+                  <p className="rounded-btn border border-dashed border-ink/30 px-3 py-2 text-[13px] text-ink-2">
                     <b className="text-ink">Demo payment.</b> Test mode — no money moves. Pay confirms the order through the same
                     server path a Razorpay webhook takes. With Razorpay keys set, this opens Razorpay Checkout (test card 4111 1111
                     1111 1111, UPI success@razorpay).
@@ -275,7 +280,7 @@ export function Checkout({ initial }: { initial: Order }) {
                       ? "Opening payment…"
                       : `Pay ${rupees(order.total_paise)}${order.gateway === "demo" ? " · test" : ""}`}
                 </Button>
-                <p aria-live="polite" className="text-center text-xs text-ink-3">
+                <p aria-live="polite" className="text-center text-[13px] text-ink-2">
                   {phase === "confirming"
                     ? slow
                       ? "Your bank has confirmed; we're waiting for the final word. Keep this page open."
@@ -324,8 +329,10 @@ function Outcome({ order, holdLapsed }: { order: Order; holdLapsed: boolean }) {
       return (
         <p className={p}>
           Your hold ran out before the payment arrived, and in the meantime someone else bought{" "}
-          {order.seats.length === 1 ? "that seat" : "one of those seats"}. We never sell a seat twice, so we refunded your{" "}
-          {rupees(order.total_paise)} in full — it reaches your account in 5–7 working days.
+          {order.seats.length === 1 ? "that seat" : "one of those seats"}. We never sell a seat twice, so{" "}
+          {order.refund_pending
+            ? `your ${rupees(order.total_paise)} refund is in progress — we're retrying it with the bank and it reaches your account in 5–7 working days after that.`
+            : `we refunded your ${rupees(order.total_paise)} in full — it reaches your account in 5–7 working days.`}
         </p>
       );
     case "expired":
