@@ -36,6 +36,7 @@ from datetime import UTC, datetime
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
+from app.config import Settings
 from app.errors import ApiError
 from app.schemas.shows import HeldSeat
 
@@ -210,9 +211,32 @@ async def rate_limit(redis: Redis, holder: str, per_minute: int) -> None:
         )
 
 
+async def take_slot(redis: Redis, key: str, cap: int, settings: Settings) -> bool:
+    """One of `cap` concurrent slots (open live streams per network), else False. The key lives a
+    minute past a stream's life, so a slot a crashed function never gave back frees itself."""
+    try:
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.incr(key)
+            pipe.expire(key, settings.stream_seconds + 60)
+            count, _ = await pipe.execute()
+        if int(count) <= cap:
+            return True
+        await redis.decr(key)
+    except RedisError as e:
+        raise _unavailable(e) from e
+    return False
+
+
+async def give_slot(redis: Redis, key: str) -> None:
+    try:
+        await redis.decr(key)
+    except RedisError as e:
+        log.warning("could not give back a stream slot: %s", e)
+
+
 async def acquire(
     redis: Redis,
-    showtime_id: uuid.UUID,
+    showtime_id: uuid.UUID | str,
     holder: str,
     seat_ids: Sequence[str],
     *,
@@ -257,7 +281,7 @@ async def acquire(
 
 
 async def release(
-    redis: Redis, showtime_id: uuid.UUID, holder: str, seat_ids: Sequence[str]
+    redis: Redis, showtime_id: uuid.UUID | str, holder: str, seat_ids: Sequence[str]
 ) -> int:
     """Drop the holder's own holds on `seat_ids` (someone else's are untouched)."""
     if not seat_ids:
@@ -311,7 +335,7 @@ async def owned(
 
 
 async def snapshot(
-    redis: Redis | None, showtime_id: uuid.UUID, holder: str | None, *, now: datetime
+    redis: Redis | None, showtime_id: uuid.UUID | str, holder: str | None, *, now: datetime
 ) -> Holds:
     """`HGETALL holds:{st}` + `GET st:{st}:v`, expired mirror entries dropped (and pruned).
     Without Redis — or with it down — there are no holds to show, and v stays 0."""

@@ -24,8 +24,13 @@ export function useSeatState(showId: string, initial: SeatSnapshot) {
   const [stale, setStale] = useState(false);
   const [polling, setPolling] = useState(false);
   const inFlight = useRef<AbortController | null>(null);
+  const latest = useRef(initial.v);
 
   const take = useCallback((snap: SeatSnapshot, sentAt: number) => {
+    // Stream and poll can race (tab comes back): an older answer must not undo a newer one.
+    // Equal is fine: a lapse changes the holds without bumping the version.
+    if (snap.v < latest.current) return;
+    latest.current = snap.v;
     // Half the round trip is the best guess for when the server stamped `server_time`.
     setOffset(clockOffset(snap.server_time, (sentAt + Date.now()) / 2));
     setState((prev) => mergeSnapshot(prev, snap));
@@ -72,6 +77,7 @@ export function useSeatState(showId: string, initial: SeatSnapshot) {
         void refresh(); // the show was cancelled: let the page say so
       });
       source.onerror = () => {
+        setStale(true); // cleared by the next snapshot, from the reconnect or the poll
         // CLOSED: the API refused the stream (503, 410…); CONNECTING: it dropped and retries.
         if (source?.readyState === EventSource.CLOSED || ++fails >= STREAM_FAILS) {
           source?.close();

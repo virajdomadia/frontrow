@@ -97,10 +97,12 @@ export function BookingView({ show, layout, snapshot: initial }: { show: ShowDet
     for (const id of ids) (statusOf(state, id) === "free" ? h.freed : h.taken).push(id);
     if (h.timer) return;
     h.timer = window.setTimeout(() => {
-      const parts = [];
+      const parts: string[] = [];
       if (h.taken.length) parts.push(h.taken.length <= 3 ? `${takenNames(h.taken, nameOf)}.` : `${h.taken.length} seats were just taken.`);
       if (h.freed.length) parts.push(h.freed.length === 1 ? `${nameOf(h.freed[0])} is free again.` : `${h.freed.length} seats are free again.`);
-      setLiveNote(parts.join(" "));
+      // Cleared first, so the same sentence twice ("D4 is free again.") is still read out.
+      setLiveNote("");
+      window.setTimeout(() => setLiveNote(parts.join(" ")), 50);
       heard.current = { taken: [], freed: [], timer: 0 };
     }, 4000);
   }, [state, nameOf]);

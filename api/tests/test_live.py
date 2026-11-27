@@ -46,7 +46,7 @@ async def test_stream_pushes_every_change(app: FastAPI) -> None:
     async def reload() -> list[str]:
         return list(sold)
 
-    events = shows.live_seats(redis, ST, "b", [], reload, seconds=8)
+    events = shows.live_seats(redis, ST, "b", reload, seconds=8)
     name, first = await next_event(events)
     assert name == "snapshot" and first["held"] == [] and first["mine"] == []
 
@@ -93,16 +93,37 @@ async def test_stream_is_quiet_when_nothing_changes(
     assert redis is not None
     monkeypatch.setattr(shows, "PING_SECONDS", 0.1)
 
-    async def reload() -> list[str]:
-        raise AssertionError("no sale happened")
+    reads: list[int] = []
 
-    events = shows.live_seats(redis, ST, None, [], reload, seconds=1.5)
+    async def reload() -> list[str]:
+        reads.append(1)
+        return []
+
+    closed: list[int] = []
+
+    async def on_close() -> None:
+        closed.append(1)
+
+    events = shows.live_seats(redis, ST, None, reload, seconds=1.5, on_close=on_close)
     await next_event(events)
     before = (await redis.info("stats"))["total_commands_processed"]
     rest = [chunk async for chunk in events]
     after = (await redis.info("stats"))["total_commands_processed"]
     assert len(rest) >= 10 and all(c == ": ping\n\n" for c in rest)
     assert after - before <= 6  # INFO and closing the subscription: a constant, not per ping
+    assert reads == [1] and closed == [1]  # sold read once (after subscribing); slot given back
+
+
+@pytest.mark.redis
+async def test_stream_slots_per_network(app: FastAPI) -> None:
+    redis = redis_for(app)
+    assert redis is not None
+    settings = app.state.settings
+    taken = [await holds.take_slot(redis, "fr:streams:n", 2, settings) for _ in range(3)]
+    assert taken == [True, True, False]
+    await holds.give_slot(redis, "fr:streams:n")
+    assert await holds.take_slot(redis, "fr:streams:n", 2, settings)
+    assert 0 < await redis.ttl("fr:streams:n") <= settings.stream_seconds + 60
 
 
 @pytest.mark.db

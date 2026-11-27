@@ -20,6 +20,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import anyio
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 from sqlalchemy import func, select
@@ -165,7 +166,7 @@ async def sold_seats(db: AsyncSession, show_id: uuid.UUID) -> list[str]:
     ]
 
 
-def _state(sold: list[str], live: holds.Holds, now: datetime) -> SeatState:
+def state_of(sold: list[str], live: holds.Holds, now: datetime) -> SeatState:
     sold_set = set(sold)
     return SeatState(
         v=live.v,
@@ -187,7 +188,7 @@ async def seat_state(
 ) -> SeatState:
     show, _, _, _ = await load(db, show_id, now)
     sold = await sold_seats(db, show.id)
-    return _state(sold, await holds.snapshot(redis, show.id, holder, now=now), now)
+    return state_of(sold, await holds.snapshot(redis, show.id, holder, now=now), now)
 
 
 PING_SECONDS = 15.0  # an SSE comment keeps idle proxies from closing the stream
@@ -195,29 +196,31 @@ PING_SECONDS = 15.0  # an SSE comment keeps idle proxies from closing the stream
 
 async def live_seats(
     redis: Redis,
-    show_id: uuid.UUID,
+    show_id: uuid.UUID | str,
     holder: str | None,
-    sold: list[str],
     reload_sold: Callable[[], Awaitable[list[str]]],
     *,
     seconds: float,
+    on_close: Callable[[], Awaitable[None]] | None = None,
 ) -> AsyncIterator[str]:
     """The seat map's live feed (L1), as SSE: a `snapshot` event (the `/seats` body) now and
     after every change, nothing in between but a ping comment. It sleeps on the show's pub/sub
     channel, waking for a publish (`holds.channel`) or the next hold deadline (expiry bumps no
-    version), so an idle map costs no Redis commands. Sold seats are re-read from Postgres
-    only on an "s" publish. Ends after `seconds`, inside the platform's function limit; the
-    browser's EventSource reconnects and gets a fresh snapshot."""
+    version), so an idle map costs no Redis commands. Sold seats are read from Postgres once
+    subscribed (a sale in between can't be missed) and again only on an "s" publish. Ends after
+    `seconds`, inside the platform's function limit; the browser's EventSource reconnects and
+    gets a fresh snapshot."""
     loop = asyncio.get_running_loop()
     end = loop.time() + seconds
     pubsub = redis.pubsub()
     try:
         await pubsub.subscribe(holds.channel(show_id))
+        sold = await reload_sold()
         yield "retry: 2000\n\n"
         last = ""
         while True:
             now = datetime.now(UTC)
-            state = _state(sold, await holds.snapshot(redis, show_id, holder, now=now), now)
+            state = state_of(sold, await holds.snapshot(redis, show_id, holder, now=now), now)
             same = state.model_dump_json(exclude={"server_time"})
             if same != last:
                 last = same
@@ -251,7 +254,12 @@ async def live_seats(
     except RedisError:
         return  # the browser reconnects, or falls back to polling
     finally:
-        await pubsub.aclose()
+        # A disconnect cancels the generator: shield the cleanup so the connection goes back
+        # to the pool and the stream's slot is given back.
+        with anyio.CancelScope(shield=True):
+            await pubsub.aclose()
+            if on_close is not None:
+                await on_close()
 
 
 async def check_seats(db: AsyncSession, show: Show, seat_ids: list[str]) -> list[str]:

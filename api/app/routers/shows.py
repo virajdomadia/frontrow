@@ -8,6 +8,8 @@ polling fallback. Reads and hold writes answer 410 `show_closed` once the show h
 cancelled.
 """
 
+import uuid
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
@@ -18,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.db import get_session, side_session
+from app.errors import ApiError
 from app.redis import optional_redis, require_redis
 from app.routers.catalog import cache_until
 from app.schemas.layouts import Layout
@@ -26,6 +29,8 @@ from app.services import holds, shows
 from app.services.auth import Auth, client_ip, holder_of, optional_auth
 
 router = APIRouter(tags=["seat map"])
+
+STREAMS_PER_NET = 6  # open at once: a few tabs and the landing demo, not a botnet's worth
 
 IMMUTABLE = "public, max-age=31536000, s-maxage=31536000, immutable"
 
@@ -85,22 +90,44 @@ async def stream_seats(
     """Server-sent events: `snapshot` (a `SeatState`) at once and after every hold, release,
     sale or lapse; `closed` if the show is cancelled. Ends after a few minutes; EventSource
     reconnects on its own."""
-    settings: Settings = request.app.state.settings
     show, _, _, _ = await shows.load(db, show_id, datetime.now(UTC))
-    net = shows.net_of(client_ip(request, settings))
-    if net:  # an open stream is a held connection: cap how many one network opens
-        await holds.rate_limit(redis, f"stream:{net}", settings.holds_per_minute)
+    await db.close()  # don't pin a pooled connection for minutes
     # The stream's first hold must land on the same holder as the page's (sets fr_sid if new).
     holder = holder_of(request, response, auth, create=True)
-    sold = await shows.sold_seats(db, show.id)
-    await db.close()  # don't pin a pooled connection for minutes
 
     async def reload_sold() -> list[str]:
         async with side_session(request) as s:
             return await shows.sold_seats(s, show.id)
 
+    return await event_stream(request, response, redis, show.id, holder, reload_sold)
+
+
+async def event_stream(
+    request: Request,
+    response: Response,
+    redis: Redis,
+    show_key: uuid.UUID | str,
+    holder: str | None,
+    reload_sold: Callable[[], Awaitable[list[str]]],
+) -> StreamingResponse:
+    """`shows.live_seats` as an SSE response, limited per network (opens a minute, and open at
+    once), carrying any cookie the route set. Shared with the landing page's demo hall."""
+    settings: Settings = request.app.state.settings
+    net = shows.net_of(client_ip(request, settings))
+    if net:  # an open stream is a held connection: cap how many one network opens and keeps
+        await holds.rate_limit(redis, f"stream:{net}", settings.holds_per_minute)
+    open_key = f"fr:streams:{net}"
+    if net and not await holds.take_slot(redis, open_key, STREAMS_PER_NET, settings):
+        raise ApiError(
+            "rate_limited", "Too many live seat maps open from your network.", status=429
+        )
+
+    async def closed() -> None:
+        if net:
+            await holds.give_slot(redis, open_key)
+
     events = shows.live_seats(
-        redis, show.id, holder, sold, reload_sold, seconds=settings.stream_seconds
+        redis, show_key, holder, reload_sold, seconds=settings.stream_seconds, on_close=closed
     )
     out = StreamingResponse(
         events,
