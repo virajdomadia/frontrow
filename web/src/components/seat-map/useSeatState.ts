@@ -10,14 +10,14 @@ export const POLL_MS = 5_000;
 const STREAM_FAILS = 2;
 
 /**
- * Live seat state for one show (04 §3, L1). The API pushes a `snapshot` over SSE
- * (`/shows/{id}/stream`) on every hold, release, sale or lapse, and nothing while the hall is
- * quiet. If the stream can't be had (no EventSource, the API answers 503, or it fails twice in
- * a row), the hook polls `GET /shows/{id}/seats` every 5 s instead. Either way snapshots merge by
+ * Live seat state for one hall (04 §3, L1): `base` is `/shows/{id}`, or the landing page's
+ * `/demo/hall`. The API pushes a `snapshot` over SSE (`{base}/stream`) on every hold, release,
+ * sale or lapse, and nothing while the hall is quiet. If the stream can't be had (no EventSource, the API answers 503, or it fails twice in
+ * a row), the hook polls `GET {base}/seats` every 5 s instead. Either way snapshots merge by
  * version, so an older one never overwrites a newer one. A hidden tab closes the stream (and
  * stops polling) and catches up the moment it's visible again.
  */
-export function useSeatState(showId: string, initial: SeatSnapshot) {
+export function useSeatState(base: string, initial: SeatSnapshot) {
   const [state, setState] = useState<SeatState>(() => fromSnapshot(initial));
   const [snapshot, setSnapshot] = useState<SeatSnapshot>(initial);
   const [offset, setOffset] = useState(() => clockOffset(initial.server_time, Date.now()));
@@ -44,14 +44,14 @@ export function useSeatState(showId: string, initial: SeatSnapshot) {
     inFlight.current = ctl;
     const sent = Date.now();
     try {
-      const snap = await send<SeatSnapshot>("GET", `/shows/${showId}/seats`, undefined, { signal: ctl.signal });
+      const snap = await send<SeatSnapshot>("GET", `${base}/seats`, undefined, { signal: ctl.signal });
       take(snap, sent);
       return snap;
     } catch (e) {
       if ((e as Error)?.name !== "AbortError") setStale(true);
       return null;
     }
-  }, [showId, take]);
+  }, [base, take]);
 
   useEffect(() => {
     let source: EventSource | null = null;
@@ -67,7 +67,7 @@ export function useSeatState(showId: string, initial: SeatSnapshot) {
     };
     const open = () => {
       if (polling) return poll();
-      source = new EventSource(`/api/shows/${showId}/stream`);
+      source = new EventSource(`/api${base}/stream`);
       source.addEventListener("snapshot", (e) => {
         fails = 0;
         take(JSON.parse((e as MessageEvent<string>).data) as SeatSnapshot, Date.now());
@@ -105,7 +105,7 @@ export function useSeatState(showId: string, initial: SeatSnapshot) {
       document.removeEventListener("visibilitychange", onVisible);
       inFlight.current?.abort();
     };
-  }, [refresh, showId, take]);
+  }, [base, refresh, take]);
 
   /** Mark seats someone else just took (a 409) without waiting for the next update. */
   const markHeld = useCallback((ids: string[]) => {
