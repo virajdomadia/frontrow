@@ -108,7 +108,7 @@ def _apply(film: Film, body: FilmIn) -> None:
     film.synopsis = body.synopsis.strip()
     film.cast_crew = [c.model_dump() for c in body.cast_crew]
     film.runtime_min = body.runtime_min
-    film.cert = Cert(body.cert)
+    film.cert = Cert(body.cert) if body.cert else None
     film.genres = list(body.genres)
     film.languages = list(body.languages)
     film.formats = list(body.formats)

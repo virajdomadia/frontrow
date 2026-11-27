@@ -12,7 +12,7 @@ from app.schemas.catalog import CastMember, Cert, FilmCard, FilmStatus
 from app.schemas.owner import FilmRef
 
 # Posters come from the bundled CC library (uploads are out of scope in v1).
-Poster = Annotated[str, Field(pattern=r"^/img/posters/[a-z0-9-]+\.jpg$")]
+Poster = Annotated[str, Field(pattern=r"^/img/posters/[a-z0-9-]+\.(jpg|png)$")]
 Trailer = Annotated[
     str, Field(pattern=r"^https://(www\.)?(youtube\.com|youtu\.be|vimeo\.com)/\S+$")
 ]
@@ -23,8 +23,8 @@ class FilmIn(ApiModel):
     title: str = Field(min_length=1, max_length=120)
     synopsis: str = Field(min_length=20, max_length=1500)
     cast_crew: list[CastMember] = Field(min_length=1, max_length=20)
-    runtime_min: int = Field(ge=40, le=240)
-    cert: Cert
+    runtime_min: int | None = Field(default=None, ge=40, le=240, description="Null: not announced.")
+    cert: Cert | None = Field(default=None, description="Null: not yet certified.")
     genres: list[Short] = Field(min_length=1, max_length=4)
     languages: list[Short] = Field(min_length=1, max_length=6)
     formats: list[Literal["2D", "3D", "IMAX"]] = Field(min_length=1, max_length=3)

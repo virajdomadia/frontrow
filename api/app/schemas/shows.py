@@ -15,8 +15,8 @@ class ShowFilm(ApiModel):
     id: UUID
     slug: str
     title: str
-    cert: Cert
-    runtime_min: int
+    cert: Cert | None
+    runtime_min: int | None
     poster_url: str
     genres: list[str]
 

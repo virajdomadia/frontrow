@@ -1,7 +1,7 @@
 """Download one Wikimedia Commons photo into web/public/img/ with its licence checked and its
 credit appended to web/public/img/CREDITS.md. Commons requires a descriptive User-Agent.
 
-    uv run python scripts/fetch_photo.py "File:Some photo.jpg" posters/neon-alley.jpg
+    uv run python scripts/fetch_photo.py "File:Some photo.jpg" cinemas/some-hall.jpg
 
 Seed posters and venue photos are served by the web app in v1 (Blob uploads arrive in v2).
 
@@ -91,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("title", help='Commons title, e.g. "File:Some photo.jpg"')
-    parser.add_argument("dest", help="path under web/public/img, e.g. posters/neon-alley.jpg")
+    parser.add_argument("dest", help="path under web/public/img, e.g. cinemas/some-hall.jpg")
     args = parser.parse_args(argv)
     title = args.title if args.title.startswith("File:") else f"File:{args.title}"
     rel = Path(args.dest)

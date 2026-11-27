@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BookButton } from "@/components/movies/BookButton";
-import { CERT_NOTE, CertBadge } from "@/components/movies/badges";
+import { CertBadge, certNote } from "@/components/movies/badges";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
 import { api, ApiRequestError } from "@/lib/api";
 import { duration, rupees } from "@/lib/format";
@@ -60,7 +60,7 @@ export default async function MoviePage({ params }: Props) {
               name: film.title,
               image: `${SITE_URL}${film.poster_url}`,
               description: film.synopsis,
-              duration: `PT${film.runtime_min}M`,
+              duration: film.runtime_min ? `PT${film.runtime_min}M` : undefined,
               genre: film.genres,
               director: directors.map((d) => ({ "@type": "Person", name: d.name })),
             }),
@@ -128,7 +128,7 @@ export default async function MoviePage({ params }: Props) {
             </h2>
             <p className="max-w-[65ch] text-[17px] leading-relaxed">{film.synopsis}</p>
             <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-              <CertBadge cert={film.cert} /> {CERT_NOTE[film.cert]}
+              <CertBadge cert={film.cert} /> {certNote(film.cert)}
             </p>
           </section>
           <section aria-labelledby="cast" className="grid content-start gap-4">

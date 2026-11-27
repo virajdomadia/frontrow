@@ -120,7 +120,7 @@ async def get_show(
             id=film.id,
             slug=film.slug,
             title=film.title,
-            cert=film.cert.value,  # type: ignore[arg-type]
+            cert=film.cert.value if film.cert else None,  # type: ignore[arg-type]
             runtime_min=film.runtime_min,
             poster_url=film.poster_url,
             genres=list(film.genres),

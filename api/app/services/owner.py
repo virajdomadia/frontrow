@@ -66,6 +66,7 @@ from app.services.schedules import (
     ist_today,
     materialise_schedule,
     occurrences,
+    planned_minutes,
 )
 from app.services.screens import create_screen
 from app.services.shows import parse_id
@@ -372,7 +373,8 @@ async def bulk_schedule(
             raise ApiError(
                 "overlap",
                 f"{local:%H:%M} starts before the {a.astimezone(IST):%H:%M} show of "
-                f"{film.title} ({film.runtime_min} min) ends and the screen is cleaned",
+                f"{film.title} ({planned_minutes(film.runtime_min)} min) ends and the screen "
+                "is cleaned",
                 status=409,
                 details={"show": {"film_title": film.title, "starts_at": a.isoformat()}},
             )

@@ -162,7 +162,7 @@ class ShowFilmRef(ApiModel):
     slug: str
     title: str
     poster_url: str
-    runtime_min: int
+    runtime_min: int | None
 
 
 class OwnerShow(ApiModel):

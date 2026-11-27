@@ -181,7 +181,7 @@ async def show_out(db: AsyncSession, show_id: uuid.UUID) -> tuple[OrderShow, Scr
             film=OrderFilm(
                 slug=film.slug,
                 title=film.title,
-                cert=film.cert.value,  # type: ignore[arg-type]
+                cert=film.cert.value if film.cert else None,  # type: ignore[arg-type]
                 poster_url=film.poster_url,
                 runtime_min=film.runtime_min,
             ),

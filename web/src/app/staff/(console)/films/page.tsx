@@ -66,7 +66,7 @@ export default async function FilmsPage() {
                     <StatusPill status={f.status} />
                   </td>
                   <td className="px-3 py-3">
-                    <Pill tone="grey">{f.cert}</Pill> <span className="ml-1">{duration(f.runtime_min)}</span>
+                    <Pill tone="grey">{f.cert ?? "TBC"}</Pill> <span className="ml-1">{duration(f.runtime_min)}</span>
                   </td>
                   <td className="px-3 py-3">{f.languages.join(", ")}</td>
                   <td className="px-3 py-3">{f.formats.join(" · ")}</td>

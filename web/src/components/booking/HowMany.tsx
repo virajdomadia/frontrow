@@ -22,7 +22,7 @@ export function HowMany({
   onClose,
 }: {
   open: boolean;
-  cert: Cert;
+  cert: Cert | null;
   certNote: string;
   title: string;
   initial: number;
@@ -51,7 +51,7 @@ export function HowMany({
       aria-labelledby="how-many"
       className="m-auto w-[min(480px,100%-32px)] rounded-card bg-paper p-6 text-ink shadow-[0_30px_80px_rgb(42_11_30_/_.35)] backdrop:bg-ink/55"
     >
-      {cert !== "U" && (
+      {cert && cert !== "U" && (
         <div className={cn("mb-5 flex gap-3 rounded-card p-3.5", cert === "A" ? "bg-red-dark/10" : "bg-paper-2")}>
           <CertBadge cert={cert} className="mt-0.5 shrink-0" />
           <div className="grid gap-2 text-sm">

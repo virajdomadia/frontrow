@@ -38,7 +38,7 @@ async def test_register_to_bookable_show(
     """A new owner sets up a cinema with two screens, schedules a film, and it goes public the
     moment staff approve the business (R8/R9/R11)."""
     await seed(db_engine, now=datetime.now(UTC), staff="boss@frontrow.example")
-    film = await db.scalar(select(Film).where(Film.slug == "hollowmere"))
+    film = await db.scalar(select(Film).where(Film.slug == "ramayana-part-1"))
     assert film is not None
     async with tab(db_app) as owner:
         await code_sign_in(
@@ -86,7 +86,7 @@ async def test_register_to_bookable_show(
             "/owner/shows/bulk",
             json={
                 "screen_id": one.json()["id"], "film_id": str(film.id), "language": "Kannada",
-                "format": "3D", "days": [0, 1, 2, 3, 4, 5, 6], "times": ["10:00", "13:30"],
+                "format": "2D", "days": [0, 1, 2, 3, 4, 5, 6], "times": ["09:00", "13:00"],
                 "from_date": tomorrow(), "to_date": tomorrow(),
                 "prices": {"classic": 15000, "prime": 21000},
             },
@@ -98,8 +98,8 @@ async def test_register_to_bookable_show(
         # Not public while the business is pending.
         shows = (
             await owner.get(
-                "/films/hollowmere/shows",
-                params={"date": tomorrow(), "language": "Kannada", "format": "3D"},
+                "/films/ramayana-part-1/shows",
+                params={"date": tomorrow(), "language": "Kannada", "format": "2D"},
             )
         ).json()
         assert not any(c["name"] == "Sunrise Talkies" for c in shows["cinemas"])
@@ -116,8 +116,8 @@ async def test_register_to_bookable_show(
     async with tab(db_app) as visitor:
         shows = (
             await visitor.get(
-                "/films/hollowmere/shows",
-                params={"date": tomorrow(), "language": "Kannada", "format": "3D"},
+                "/films/ramayana-part-1/shows",
+                params={"date": tomorrow(), "language": "Kannada", "format": "2D"},
             )
         ).json()
         [sunrise] = [c for c in shows["cinemas"] if c["name"] == "Sunrise Talkies"]
@@ -128,7 +128,7 @@ async def test_show_overlap(db_engine: AsyncEngine, db: AsyncSession, db_app: Fa
     """Shows on one screen may not overlap (runtime + cleaning gap); the clash is named."""
     await seed(db_engine, now=datetime.now(UTC))
     screen = await db.scalar(select(Screen).where(Screen.name == "Screen 2"))
-    film = await db.scalar(select(Film).where(Film.slug == "neon-alley"))
+    film = await db.scalar(select(Film).where(Film.slug == "yeh-prem-mol-liya"))
     assert screen is not None and film is not None
     base = {
         "screen_id": str(screen.id), "film_id": str(film.id), "language": "Hindi",
@@ -137,12 +137,13 @@ async def test_show_overlap(db_engine: AsyncEngine, db: AsyncSession, db_app: Fa
     }  # fmt: skip
     async with tab(db_app) as owner:
         await demo(owner, "owner")
-        # Screen 2 shows Glass City at 17:30 every day (seeded, open-ended).
+        # Screen 2 shows How to Rob a Bank at 17:30 every day (seeded, open-ended).
         clash = await owner.post("/owner/shows/bulk", json={**base, "times": ["16:00"]})
         assert clash.status_code == 409, clash.text
         err = clash.json()["error"]
-        assert err["code"] == "overlap" and err["details"]["show"]["film_title"] == "Glass City"
-        assert "Glass City" in err["message"]
+        assert err["code"] == "overlap"
+        assert err["details"]["show"]["film_title"] == "How to Rob a Bank"
+        assert "How to Rob a Bank" in err["message"]
 
         # Two times closer together than the runtime → refused before anything is created.
         tight = await owner.post("/owner/shows/bulk", json={**base, "times": ["09:00", "10:30"]})
@@ -165,7 +166,7 @@ async def test_show_overlap(db_engine: AsyncEngine, db: AsyncSession, db_app: Fa
         assert ok.status_code == 201, ok.text
         again = await owner.post("/owner/shows/bulk", json={**base, "times": ["11:00"]})
         assert again.status_code == 409
-        assert again.json()["error"]["details"]["show"]["film_title"] == "Neon Alley"
+        assert again.json()["error"]["details"]["show"]["film_title"] == "Yeh Prem Mol Liya"
 
 
 async def test_ownership_is_private(
@@ -179,7 +180,7 @@ async def test_ownership_is_private(
         await demo(owner, "owner")
         assert (await owner.get(f"/owner/screens/{other.id}")).status_code == 404
         assert (await owner.get(f"/owner/cinemas/{other.cinema_id}")).status_code == 404
-        film = await db.scalar(select(Film).where(Film.slug == "undertow"))
+        film = await db.scalar(select(Film).where(Film.slug == "how-to-rob-a-bank"))
         assert film is not None
         res = await owner.post(
             "/owner/shows/bulk",
@@ -198,14 +199,14 @@ async def test_film_requests(db_engine: AsyncEngine, db_app: FastAPI) -> None:
     await seed(db_engine, now=datetime.now(UTC))
     async with tab(db_app) as owner:
         await demo(owner, "owner")
-        exists = await owner.post("/owner/film-requests", json={"title": "neon alley"})
+        exists = await owner.post("/owner/film-requests", json={"title": "ramayana: part 1"})
         assert exists.status_code == 409  # already in the catalogue
         made = await owner.post(
             "/owner/film-requests", json={"title": "Bengaluru Blues", "note": "Kannada, 2D"}
         )
         assert made.status_code == 201 and made.json()["status"] == "open"
         titles = [r["title"] for r in (await owner.get("/owner/film-requests")).json()]
-        assert titles[0] == "Bengaluru Blues" and "Kaveri Express" in titles
+        assert titles[0] == "Bengaluru Blues" and "Jumanji: Open World" in titles
 
 
 async def test_bookings_and_csv(db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI) -> None:

@@ -11,6 +11,10 @@ when there is, a transaction-scoped advisory lock lets one request do it while t
 carry on; `UNIQUE (screen_id, starts_at)` makes a race harmless. Owner schedules are bounded
 and materialised at once (`services/owner.py`).
 
+**Release day.** A coming-soon film turns now-showing on its release date: the first
+materialisation of that day (the horizon moves daily, so there always is one) flips it. A seeded
+coming-soon film's schedules start on that date, so its shows appear exactly then.
+
 **Seeded sales.** A seeded schedule carries `seed_fill`; each show it materialises gets that
 share of seats sold to fictional bookers in 1–4-seat orders, scattered the way a real hall
 fills, so the demo never shows a row of empty halls. Real owners' schedules never do this.
@@ -28,12 +32,12 @@ from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, func, insert, or_, select, text
+from sqlalchemy import delete, func, insert, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Film, Order, OrderSeat, Screen, Show, ShowPrice, ShowSchedule, Ticket, User
-from app.models.enums import OrderStatus, ShowStatus
+from app.models.enums import FilmStatus, OrderStatus, ShowStatus
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +47,8 @@ CLEANING_GAP = timedelta(minutes=15)
 FEE_PAISE = 3000  # ₹30 convenience fee per ticket (R6); orders use the same constant
 BOOKER_DOMAIN = "@bookers.frontrow.demo"
 _LOCK = 72_011_402  # pg advisory lock id for materialisation
+# A film whose runtime isn't announced yet still has to occupy its screen for a known time.
+PLANNING_RUNTIME_MIN = 180
 
 
 def ist_today(now: datetime) -> date:
@@ -69,8 +75,13 @@ def occurrences(
     return out
 
 
-def ends(starts_at: datetime, runtime_min: int) -> datetime:
-    return starts_at + timedelta(minutes=runtime_min)
+def planned_minutes(runtime_min: int | None) -> int:
+    """How long a show occupies its screen: the runtime, or a generous 3 h until it's known."""
+    return runtime_min or PLANNING_RUNTIME_MIN
+
+
+def ends(starts_at: datetime, runtime_min: int | None) -> datetime:
+    return starts_at + timedelta(minutes=planned_minutes(runtime_min))
 
 
 def clashes(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datetime) -> bool:
@@ -100,6 +111,11 @@ async def materialise(db: AsyncSession, *, now: datetime) -> int:
     if not got:
         await db.rollback()
         return 0
+    await db.execute(
+        update(Film)
+        .where(Film.status == FilmStatus.COMING_SOON, Film.release_date <= today)
+        .values(status=FilmStatus.NOW_SHOWING)
+    )
     schedules = list(await db.scalars(select(ShowSchedule).where(*due_filter)))
     created = 0
     bookers = await booker_ids(db)

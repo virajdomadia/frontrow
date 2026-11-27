@@ -84,7 +84,7 @@ export function SiteFooter() {
   return (
     <footer className="mx-auto mt-20 flex w-[min(1240px,100%-32px)] flex-wrap justify-between gap-2 border-t border-border pt-6 pb-10 text-sm text-muted-foreground">
       <span>Frontrow · a portfolio project by Viraj Domadia</span>
-      <span>Bengaluru · fictional films and cinemas · photos CC-licensed</span>
+      <span>Bengaluru · real films, fictional cinemas and bookings · posters are our own type</span>
     </footer>
   );
 }

@@ -13,7 +13,7 @@ export function SearchBox({ defaultValue, className }: { defaultValue?: string; 
           name="q"
           defaultValue={defaultValue}
           maxLength={60}
-          placeholder="Search movies, e.g. Neon Alley or comedy"
+          placeholder="Search movies, e.g. Ramayana or comedy"
           className="w-full rounded-l-btn border border-r-0 border-ink/25 bg-white/85 py-3 pr-3 pl-11 text-[16px] text-ink placeholder:text-ink-3 focus-visible:border-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-amber"
         />
       </label>

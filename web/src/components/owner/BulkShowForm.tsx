@@ -135,7 +135,7 @@ export function BulkShowForm({
           <select value={filmId} onChange={(e) => setFilmId(e.target.value)} className={field.input}>
             {films.map((f) => (
               <option key={f.id} value={f.id}>
-                {f.title} ({f.cert}, {f.runtime_min} min){f.status === "coming_soon" ? " — coming soon" : ""}
+                {f.title} ({f.cert ?? "not yet certified"}, {f.runtime_min ? `${f.runtime_min} min` : "runtime TBA"}){f.status === "coming_soon" ? " — coming soon" : ""}
               </option>
             ))}
           </select>
@@ -241,7 +241,7 @@ export function BulkShowForm({
           </li>
         </ul>
         <span className={cn(field.hint, "mt-1 block")}>
-          {film ? `${film.title} runs ${film.runtime_min} min; leave room for 15 min of cleaning between shows.` : ""}
+          {film ? (film.runtime_min ? `${film.title} runs ${film.runtime_min} min` : `${film.title}'s runtime isn't announced, so each show is planned at 3 hours`) + "; leave room for 15 min of cleaning between shows." : ""}
         </span>
         {err("times") && <span className={cn(field.error, "block")}>{err("times")}</span>}
       </fieldset>

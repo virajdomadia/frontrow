@@ -26,9 +26,9 @@ class VerifyPayment(ApiModel):
 class OrderFilm(ApiModel):
     slug: str
     title: str
-    cert: Cert
+    cert: Cert | None
     poster_url: str
-    runtime_min: int
+    runtime_min: int | None
 
 
 class OrderCinema(ApiModel):

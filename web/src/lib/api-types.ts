@@ -1075,9 +1075,9 @@ export interface components {
             banner_url: string | null;
             /**
              * Cert
-             * @enum {string}
+             * @description CBFC certificate; null = not yet certified.
              */
-            cert: "U" | "UA" | "A";
+            cert: ("U" | "UA" | "UA 7+" | "UA 13+" | "UA 16+" | "A") | null;
             /** Formats */
             formats: string[];
             /**
@@ -1101,8 +1101,11 @@ export interface components {
              * Format: date
              */
             release_date: string;
-            /** Runtime Min */
-            runtime_min: number;
+            /**
+             * Runtime Min
+             * @description Minutes; null = not announced yet.
+             */
+            runtime_min: number | null;
             /**
              * Show Count
              * @description Bookable shows in the next 14 days.
@@ -1126,9 +1129,9 @@ export interface components {
             cast_crew: components["schemas"]["CastMember"][];
             /**
              * Cert
-             * @enum {string}
+             * @description CBFC certificate; null = not yet certified.
              */
-            cert: "U" | "UA" | "A";
+            cert: ("U" | "UA" | "UA 7+" | "UA 13+" | "UA 16+" | "A") | null;
             /** Formats */
             formats: string[];
             /**
@@ -1152,8 +1155,11 @@ export interface components {
              * Format: date
              */
             release_date: string;
-            /** Runtime Min */
-            runtime_min: number;
+            /**
+             * Runtime Min
+             * @description Minutes; null = not announced yet.
+             */
+            runtime_min: number | null;
             /**
              * Show Count
              * @description Bookable shows in the next 14 days.
@@ -1186,9 +1192,9 @@ export interface components {
             cast_crew: components["schemas"]["CastMember"][];
             /**
              * Cert
-             * @enum {string}
+             * @description Null: not yet certified.
              */
-            cert: "U" | "UA" | "A";
+            cert?: ("U" | "UA" | "UA 7+" | "UA 13+" | "UA 16+" | "A") | null;
             /** Formats */
             formats: ("2D" | "3D" | "IMAX")[];
             /** Genres */
@@ -1207,8 +1213,11 @@ export interface components {
              * @description Add the film an owner asked for: the request is linked.
              */
             request_id?: string | null;
-            /** Runtime Min */
-            runtime_min: number;
+            /**
+             * Runtime Min
+             * @description Null: not announced.
+             */
+            runtime_min?: number | null;
             /**
              * Status
              * @enum {string}
@@ -1532,15 +1541,12 @@ export interface components {
         };
         /** OrderFilm */
         OrderFilm: {
-            /**
-             * Cert
-             * @enum {string}
-             */
-            cert: "U" | "UA" | "A";
+            /** Cert */
+            cert: ("U" | "UA" | "UA 7+" | "UA 13+" | "UA 16+" | "A") | null;
             /** Poster Url */
             poster_url: string;
             /** Runtime Min */
-            runtime_min: number;
+            runtime_min: number | null;
             /** Slug */
             slug: string;
             /** Title */
@@ -1950,11 +1956,8 @@ export interface components {
         };
         /** ShowFilm */
         ShowFilm: {
-            /**
-             * Cert
-             * @enum {string}
-             */
-            cert: "U" | "UA" | "A";
+            /** Cert */
+            cert: ("U" | "UA" | "UA 7+" | "UA 13+" | "UA 16+" | "A") | null;
             /** Genres */
             genres: string[];
             /**
@@ -1965,7 +1968,7 @@ export interface components {
             /** Poster Url */
             poster_url: string;
             /** Runtime Min */
-            runtime_min: number;
+            runtime_min: number | null;
             /** Slug */
             slug: string;
             /** Title */
@@ -1981,7 +1984,7 @@ export interface components {
             /** Poster Url */
             poster_url: string;
             /** Runtime Min */
-            runtime_min: number;
+            runtime_min: number | null;
             /** Slug */
             slug: string;
             /** Title */
@@ -2111,9 +2114,9 @@ export interface components {
             cast_crew: components["schemas"]["CastMember"][];
             /**
              * Cert
-             * @enum {string}
+             * @description CBFC certificate; null = not yet certified.
              */
-            cert: "U" | "UA" | "A";
+            cert: ("U" | "UA" | "UA 7+" | "UA 13+" | "UA 16+" | "A") | null;
             /**
              * Created At
              * Format: date-time
@@ -2142,8 +2145,11 @@ export interface components {
              * Format: date
              */
             release_date: string;
-            /** Runtime Min */
-            runtime_min: number;
+            /**
+             * Runtime Min
+             * @description Minutes; null = not announced yet.
+             */
+            runtime_min: number | null;
             /**
              * Scheduled Shows
              * @description Upcoming shows across every cinema.
