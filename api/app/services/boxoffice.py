@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from redis.asyncio import Redis
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ApiError
@@ -224,7 +225,6 @@ async def counter_sale(
     one seat twice. No convenience fee. `key` comes from the till: the same key again (a retry,
     a double tap) returns the first sale; the same key for other seats is a 409."""
     show, _ = await own_show_row(db, business, show_id)
-    _open(show, now)
     ids = await check_seats(db, show, seat_ids)
 
     async def same_sale() -> Order | None:
@@ -245,7 +245,8 @@ async def counter_sale(
         return found
 
     if (found := await same_sale()) is not None:
-        return found
+        return found  # a replay works even once the show has started
+    _open(show, now)
     await _not_busy(db, redis, show, ids, holder=holder, now=now)
     await show_lock(db, show.id)
     if (found := await same_sale()) is not None:  # a double tap that waited on the lock
@@ -277,23 +278,32 @@ async def counter_sale(
         paid_at=now,
         idempotency_key=key,
     )
-    db.add(order)
-    await db.flush()
-    db.add_all(
-        OrderSeat(
-            order_id=order.id, seat_id=s.id, tier_key=s.tier_key, price_paise=prices[s.tier_key]
-        )
-        for s in seats
-    )
-    # Tickets in ids order, so the till shows them as the cashier picked them.
-    await db.execute(
-        insert(Ticket),
-        [
-            {"id": uuid.uuid4(), "order_id": order.id, "show_id": show.id,
-             "seat_id": uuid.UUID(i), "user_id": cashier.id}
-            for i in ids
-        ],
-    )  # fmt: skip
-    await db.commit()
+    try:
+        db.add(order)
+        await db.flush()
+        db.add_all(
+            OrderSeat(
+                order_id=order.id, seat_id=s.id, tier_key=s.tier_key,
+                price_paise=prices[s.tier_key],
+            )
+            for s in seats
+        )  # fmt: skip
+        # Tickets in ids order, so the till shows them as the cashier picked them.
+        await db.execute(
+            insert(Ticket),
+            [
+                {"id": uuid.uuid4(), "order_id": order.id, "show_id": show.id,
+                 "seat_id": uuid.UUID(i), "user_id": cashier.id}
+                for i in ids
+            ],
+        )  # fmt: skip
+        await db.commit()
+    except IntegrityError as e:
+        # The show lock makes this unreachable for seats; it is the same key sent for another
+        # show at the same moment (the key is unique everywhere, the lock is per show).
+        await db.rollback()
+        raise ApiError(
+            "idempotency_conflict", "That sale key was already used for another sale", status=409
+        ) from e
     await holds.clear_sold(redis, show.id, ids)
     return order

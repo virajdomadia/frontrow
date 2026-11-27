@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session, side_session
 from app.errors import ApiError
+from app.models import User
 from app.redis import optional_redis, require_redis
 from app.routers.shows import event_stream
 from app.schemas.layouts import Layout
@@ -329,7 +330,14 @@ async def counter_sale(
         db, redis, owner.business, owner.auth.user, show_id, body.seat_ids,
         body.idempotency_key, holder=holder, now=now,
     )  # fmt: skip
+    # A replay can be another cashier's sale at this business: the bundle is the seller's.
+    seller = (
+        owner.auth.user
+        if order.user_id == owner.auth.user.id
+        else await db.get(User, order.user_id)
+    )
+    assert seller is not None
     return await order_svc.ticket_bundle(
         db, request.app.state.settings, gateway_for(request.app), str(order.id),
-        user=owner.auth.user, now=now,
+        user=seller, now=now,
     )  # fmt: skip

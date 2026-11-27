@@ -2,11 +2,12 @@
 
 import { X } from "lucide-react";
 import QRCode from "qrcode";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { changedSeats, indexLayout, statusOf, tierPalette, type SeatState } from "@/components/seat-map/core";
 import { SeatMap, type SeatLook } from "@/components/seat-map/SeatMap";
 import { useSeatState } from "@/components/seat-map/useSeatState";
 import { Button } from "@/components/ui/button";
+import { ApiRequestError } from "@/lib/api-error";
 import { messageOf, send } from "@/lib/client";
 import { rupees, showTime } from "@/lib/format";
 import type { Layout, OwnerShow, SeatSnapshot, TicketBundle } from "@/lib/types";
@@ -26,6 +27,7 @@ const MAX_SALE = 10;
 export function ShowFloor({ show, demo, onChange }: { show: OwnerShow; demo: boolean; onChange: () => void }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState("");
+  const titleId = useId();
   useEffect(() => {
     let live = true;
     Promise.all([send<Layout>("GET", `/screens/${show.screen_id}/layout`), send<SeatSnapshot>("GET", `/owner/shows/${show.id}/seats`)]).then(
@@ -38,8 +40,8 @@ export function ShowFloor({ show, demo, onChange }: { show: OwnerShow; demo: boo
   }, [show.id, show.screen_id]);
 
   return (
-    <section aria-labelledby="floor-title" className="rounded-card border border-border bg-paper p-4 sm:p-5">
-      <h2 id="floor-title" className="font-cond text-2xl font-bold uppercase">
+    <section aria-labelledby={titleId} className="rounded-card border border-border bg-paper p-4 sm:p-5">
+      <h2 id={titleId} className="font-cond text-2xl font-bold uppercase">
         {show.film.title} <span className="font-normal text-muted-foreground normal-case">· {showTime(show.starts_at)} · {show.screen_name}</span>
       </h2>
       {error ? (
@@ -63,6 +65,9 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
   const [mode, setMode] = useState<Mode>("sell");
   const [picked, setPicked] = useState<string[]>([]);
   const [receipt, setReceipt] = useState<TicketBundle | null>(null);
+  // The sale in flight or unanswered: its seats and key. A retry with the same seats sends the
+  // same key, so a sale that went through but whose answer was lost comes back as its receipt.
+  const sale = useRef<{ key: string; seats: string } | null>(null);
   const [reason, setReason] = useState<(typeof REASONS)[number]["key"]>("broken");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -79,7 +84,10 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
     const ids = changedSeats(before, state);
     if (!ids.length) return;
     setRipple({ ids });
-    setPicked((p) => p.filter((id) => !state.sold.has(id) || state.blocked.has(id)));
+    setPicked((p) => {
+      const kept = p.filter((id) => !state.sold.has(id) || state.blocked.has(id) || sale.current?.seats.includes(id));
+      return kept.length === p.length ? p : kept;
+    });
     const sold = ids.filter((id) => state.sold.has(id) && !state.blocked.has(id));
     if (sold.length) {
       setNote(`${sold.map(name).join(", ")} just sold.`);
@@ -112,19 +120,25 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
   const toBlock = picked.filter((id) => !state.blocked.has(id));
   const toFree = picked.filter((id) => state.blocked.has(id));
   const total = picked.reduce((a, id) => a + (show.prices?.[index.byId.get(id)?.tier ?? ""] ?? 0), 0);
-  // One key per selection: a retry after a timeout (or a double tap) is the same sale.
-  const saleKey = useMemo(() => (picked.length ? crypto.randomUUID().replaceAll("-", "") : ""), [picked]);
-
   async function sell() {
+    const seats = [...picked].sort().join();
+    if (sale.current?.seats !== seats) sale.current = { key: crypto.randomUUID().replaceAll("-", ""), seats };
     setBusy(true);
     try {
-      const bundle = await send<TicketBundle>("POST", `/owner/shows/${show.id}/counter-orders`, { seat_ids: picked, idempotency_key: saleKey });
+      const bundle = await send<TicketBundle>("POST", `/owner/shows/${show.id}/counter-orders`, {
+        seat_ids: picked,
+        idempotency_key: sale.current.key,
+      });
+      sale.current = null;
       setReceipt(bundle);
       setNote(`${bundle.tickets.map((t) => t.label).join(", ")} sold at the counter.`);
       setPicked([]);
       onChange();
     } catch (e) {
-      setNote(messageOf(e, "That sale didn't go through. Try again: it won't be charged twice."));
+      // A definite "no" (taken, held, closed) ends this sale; anything else may have gone
+      // through, so the seats and key stay for a retry.
+      if (e instanceof ApiRequestError && e.status >= 400 && e.status < 500) sale.current = null;
+      setNote(messageOf(e, "No answer from the till. Tap Sell again: the same sale can't be charged twice."));
     } finally {
       setBusy(false);
     }
@@ -231,6 +245,7 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
 /** The counter sale's tickets: one QR per seat for the customer to photograph or scan. */
 function Receipt({ bundle, onClose }: { bundle: TicketBundle | null; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [svgs, setSvgs] = useState<string[]>([]);
   useEffect(() => {
     const d = ref.current;
@@ -251,14 +266,14 @@ function Receipt({ bundle, onClose }: { bundle: TicketBundle | null; onClose: ()
     <dialog
       ref={ref}
       onClose={onClose}
-      aria-labelledby="receipt-title"
+      aria-labelledby={titleId}
       className="m-auto max-h-[calc(100dvh-32px)] w-[min(560px,100%-32px)] overflow-y-auto rounded-card bg-paper p-6 text-ink shadow-[0_30px_80px_rgb(42_11_30_/_.35)] backdrop:bg-ink/60"
     >
       {bundle && (
         <>
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <h2 id="receipt-title" className="font-cond text-3xl font-extrabold uppercase">
+              <h2 id={titleId} className="font-cond text-3xl font-extrabold uppercase">
                 Sold · {rupees(bundle.order.total_paise)} cash
               </h2>
               <p className="mt-1 text-sm text-ink-2">

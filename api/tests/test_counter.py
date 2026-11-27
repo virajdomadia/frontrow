@@ -62,7 +62,7 @@ async def test_counter_sale_issues_tickets(
         assert hold.status_code == 409
 
         board = (await owner.get("/owner/today")).json()
-        assert any(r["channel"] == "counter" for r in board["recent"]) or board["recent"] == []
+        assert any(r["channel"] == "counter" and r["seats"] == 2 for r in board["recent"])
         # Counter sales are the cinema's, not the cashier's own tickets.
         assert (await owner.get("/my/tickets")).json()["upcoming"] == []
 
@@ -216,3 +216,28 @@ async def test_other_business_show_is_404(
             f"/owner/shows/{found.show.id}/counter-orders", json=sale(found.all_free[:1])
         )
         assert res.status_code == 404
+
+
+async def test_another_cashier_can_replay_a_sale(
+    db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI
+) -> None:
+    """The till retries on a second cashier's login (same business): the first sale comes back."""
+    await seed(db_engine, now=datetime.now(UTC))
+    found = await orbit_show(db)
+    seat = found.all_free[0]
+    url = f"/owner/shows/{found.show.id}/counter-orders"
+    key = uuid.uuid4().hex
+    async with tab(db_app) as first, tab(db_app) as second:
+        await orbit_owner(db_app, first, db)
+        sold = await first.post(url, json=sale([seat], key))
+        orbit = await db.scalar(select(Business).where(Business.slug == "orbit-cinemas"))
+        assert orbit is not None
+        u = User(email="till2@orbit.example", name="Till Two")
+        db.add(u)
+        await db.flush()
+        db.add(BusinessMember(business_id=orbit.id, user_id=u.id, role="owner"))
+        await db.commit()
+        await code_sign_in(db_app, second, u.email, door="business", name=None)
+        again = await second.post(url, json=sale([seat], key))
+        assert again.status_code == 201
+        assert again.json()["order"]["id"] == sold.json()["order"]["id"]
