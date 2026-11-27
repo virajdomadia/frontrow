@@ -7,6 +7,12 @@ in the same slot):
     fr:holds:{st}         hash seat → "holder|net|expires_ms" — snapshot mirror, lazily cleaned
     fr:st:{st}:v          int, INCR on every hold / release / sale
     fr:rl:holds:{holder}  int, 60 s window                 — rate limit
+    fr:live:{st}          pub/sub channel: "h" holds changed, "s" sold/blocked changed,
+                          "x" show closed — the live seat stream (L1) wakes on it
+
+Every script that bumps the version also publishes, so a seat map never has to ask "anything
+new?": a hold, release or sale reaches open maps in one round trip, and an idle show costs
+nothing. Expiry is a TTL, so it bumps nothing; the stream wakes for the next deadline itself.
 
 A holder is the anonymous `fr_sid` cookie (or a bearer session's sid), so a visitor can hold
 before signing in and keep the seats when they do.
@@ -30,6 +36,7 @@ from datetime import UTC, datetime
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
+from app.config import Settings
 from app.errors import ApiError
 from app.schemas.shows import HeldSeat
 
@@ -49,6 +56,14 @@ def hash_key(showtime_id: uuid.UUID | str) -> str:
 
 def version_key(showtime_id: uuid.UUID | str) -> str:
     return f"fr:st:{{{showtime_id}}}:v"
+
+
+def channel(showtime_id: uuid.UUID | str) -> str:
+    return f"fr:live:{{{showtime_id}}}"
+
+
+# KEYS[1] is `fr:holds:{st}` — 9 characters of prefix, then the `{st}` the channel shares.
+PUB = "redis.call('PUBLISH', 'fr:live:' .. string.sub(KEYS[1], 10), {msg})"
 
 
 # KEYS = hash, version, hold keys…; ARGV = holder, ttl_ms, now_ms, net, max per holder,
@@ -95,9 +110,12 @@ for _, i in ipairs(fresh) do
   redis.call('SET', KEYS[i], holder, 'PX', left)
   redis.call('HSET', KEYS[1], ARGV[i + 4], holder .. '|' .. net .. '|' .. expires)
 end
-if #fresh > 0 then redis.call('INCR', KEYS[2]) end
+if #fresh > 0 then
+  redis.call('INCR', KEYS[2])
+  PUBLISH_H
+end
 return {1, expires}
-"""
+""".replace("PUBLISH_H", PUB.format(msg="'h'"))
 
 # KEYS = hash, version, hold keys…; ARGV = holder, seat ids… — compare-and-delete.
 RELEASE = """
@@ -114,9 +132,12 @@ for i = 3, #KEYS do
     redis.call('HDEL', KEYS[1], seat)
   end
 end
-if n > 0 then redis.call('INCR', KEYS[2]) end
+if n > 0 then
+  redis.call('INCR', KEYS[2])
+  PUBLISH_H
+end
 return n
-"""
+""".replace("PUBLISH_H", PUB.format(msg="'h'"))
 
 # KEYS = hash, version, hold keys…; ARGV = seat ids… — a sale: the seat is gone for everyone.
 CLEAR = """
@@ -125,8 +146,9 @@ for i = 3, #KEYS do
   redis.call('HDEL', KEYS[1], ARGV[i - 2])
 end
 redis.call('INCR', KEYS[2])
+PUBLISH_S
 return 1
-"""
+""".replace("PUBLISH_S", PUB.format(msg="'s'"))
 
 # KEYS = hash; ARGV = seat, value, seat, value… — drop mirror entries that are still the stale
 # value we read (a fresh hold written in between is left alone).
@@ -189,9 +211,32 @@ async def rate_limit(redis: Redis, holder: str, per_minute: int) -> None:
         )
 
 
+async def take_slot(redis: Redis, key: str, cap: int, settings: Settings) -> bool:
+    """One of `cap` concurrent slots (open live streams per network), else False. The key lives a
+    minute past a stream's life, so a slot a crashed function never gave back frees itself."""
+    try:
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.incr(key)
+            pipe.expire(key, settings.stream_seconds + 60)
+            count, _ = await pipe.execute()
+        if int(count) <= cap:
+            return True
+        await redis.decr(key)
+    except RedisError as e:
+        raise _unavailable(e) from e
+    return False
+
+
+async def give_slot(redis: Redis, key: str) -> None:
+    try:
+        await redis.decr(key)
+    except RedisError as e:
+        log.warning("could not give back a stream slot: %s", e)
+
+
 async def acquire(
     redis: Redis,
-    showtime_id: uuid.UUID,
+    showtime_id: uuid.UUID | str,
     holder: str,
     seat_ids: Sequence[str],
     *,
@@ -236,7 +281,7 @@ async def acquire(
 
 
 async def release(
-    redis: Redis, showtime_id: uuid.UUID, holder: str, seat_ids: Sequence[str]
+    redis: Redis, showtime_id: uuid.UUID | str, holder: str, seat_ids: Sequence[str]
 ) -> int:
     """Drop the holder's own holds on `seat_ids` (someone else's are untouched)."""
     if not seat_ids:
@@ -290,7 +335,7 @@ async def owned(
 
 
 async def snapshot(
-    redis: Redis | None, showtime_id: uuid.UUID, holder: str | None, *, now: datetime
+    redis: Redis | None, showtime_id: uuid.UUID | str, holder: str | None, *, now: datetime
 ) -> Holds:
     """`HGETALL holds:{st}` + `GET st:{st}:v`, expired mirror entries dropped (and pruned).
     Without Redis — or with it down — there are no holds to show, and v stays 0."""

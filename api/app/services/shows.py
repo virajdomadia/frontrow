@@ -13,12 +13,16 @@ say so and link back to the film.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import uuid
-from datetime import datetime, timedelta
+from collections.abc import AsyncIterator, Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import anyio
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -162,6 +166,18 @@ async def sold_seats(db: AsyncSession, show_id: uuid.UUID) -> list[str]:
     ]
 
 
+def state_of(sold: list[str], live: holds.Holds, now: datetime) -> SeatState:
+    sold_set = set(sold)
+    return SeatState(
+        v=live.v,
+        server_time=now,
+        sold=sold,
+        held=[h for h in live.others if h.seat_id not in sold_set],  # sold beats held
+        mine=[m for m in live.mine if m not in sold_set],
+        mine_expires_at=live.mine_expires_at,
+    )
+
+
 async def seat_state(
     db: AsyncSession,
     show_id: str,
@@ -172,16 +188,78 @@ async def seat_state(
 ) -> SeatState:
     show, _, _, _ = await load(db, show_id, now)
     sold = await sold_seats(db, show.id)
-    live = await holds.snapshot(redis, show.id, holder, now=now)
-    sold_set = set(sold)
-    return SeatState(
-        v=live.v,
-        server_time=now,
-        sold=sold,
-        held=[h for h in live.others if h.seat_id not in sold_set],  # sold beats held
-        mine=[m for m in live.mine if m not in sold_set],
-        mine_expires_at=live.mine_expires_at,
-    )
+    return state_of(sold, await holds.snapshot(redis, show.id, holder, now=now), now)
+
+
+PING_SECONDS = 15.0  # an SSE comment keeps idle proxies from closing the stream
+
+
+async def live_seats(
+    redis: Redis,
+    show_id: uuid.UUID | str,
+    holder: str | None,
+    reload_sold: Callable[[], Awaitable[list[str]]],
+    *,
+    seconds: float,
+    on_close: Callable[[], Awaitable[None]] | None = None,
+) -> AsyncIterator[str]:
+    """The seat map's live feed (L1), as SSE: a `snapshot` event (the `/seats` body) now and
+    after every change, nothing in between but a ping comment. It sleeps on the show's pub/sub
+    channel, waking for a publish (`holds.channel`) or the next hold deadline (expiry bumps no
+    version), so an idle map costs no Redis commands. Sold seats are read from Postgres once
+    subscribed (a sale in between can't be missed) and again only on an "s" publish. Ends after
+    `seconds`, inside the platform's function limit; the browser's EventSource reconnects and
+    gets a fresh snapshot."""
+    loop = asyncio.get_running_loop()
+    end = loop.time() + seconds
+    pubsub = redis.pubsub()
+    try:
+        await pubsub.subscribe(holds.channel(show_id))
+        sold = await reload_sold()
+        yield "retry: 2000\n\n"
+        last = ""
+        while True:
+            now = datetime.now(UTC)
+            state = state_of(sold, await holds.snapshot(redis, show_id, holder, now=now), now)
+            same = state.model_dump_json(exclude={"server_time"})
+            if same != last:
+                last = same
+                yield f"event: snapshot\nid: {state.v}\ndata: {state.model_dump_json()}\n\n"
+            deadlines = [h.expires_at for h in state.held]
+            if state.mine_expires_at:
+                deadlines.append(state.mine_expires_at)
+            due = min(deadlines) if deadlines else None
+            while True:
+                left = end - loop.time()
+                if left <= 0:
+                    return
+                wait = min(PING_SECONDS, left)
+                if due is not None:
+                    wait = min(wait, max((due - datetime.now(UTC)).total_seconds(), 0) + 0.05)
+                msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=wait)
+                if msg is None:
+                    if due is not None and datetime.now(UTC) >= due:
+                        break  # a hold lapsed: re-read
+                    yield ": ping\n\n"
+                    continue
+                kinds = {msg["data"]}
+                while msg := await pubsub.get_message(ignore_subscribe_messages=True, timeout=0):
+                    kinds.add(msg["data"])  # a burst of changes → one snapshot
+                if "x" in kinds:
+                    yield "event: closed\ndata: {}\n\n"
+                    return
+                if "s" in kinds:
+                    sold = await reload_sold()
+                break
+    except RedisError:
+        return  # the browser reconnects, or falls back to polling
+    finally:
+        # A disconnect cancels the generator: shield the cleanup so the connection goes back
+        # to the pool and the stream's slot is given back.
+        with anyio.CancelScope(shield=True):
+            await pubsub.aclose()
+            if on_close is not None:
+                await on_close()
 
 
 async def check_seats(db: AsyncSession, show: Show, seat_ids: list[str]) -> list[str]:
@@ -215,6 +293,11 @@ async def check_seats(db: AsyncSession, show: Show, seat_ids: list[str]) -> list
     return ids
 
 
+def net_of(ip: str | None) -> str:
+    """The caller's network as an opaque key ("" when unknown) — limits count per network."""
+    return hashlib.sha256(ip.encode()).hexdigest()[:16] if ip else ""
+
+
 def _too_many() -> ApiError:
     return ApiError(
         "too_many_seats",
@@ -243,7 +326,7 @@ async def place_holds(
         raise _too_many()
     ids = await check_seats(db, show, seat_ids)
     await holds.rate_limit(redis, holder, per_minute)
-    net = hashlib.sha256(ip.encode()).hexdigest()[:16] if ip else ""
+    net = net_of(ip)
     if net:  # rotating the cookie doesn't reset this one
         await holds.rate_limit(redis, f"ip:{net}", 2 * per_minute)
 

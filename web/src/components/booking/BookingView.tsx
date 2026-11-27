@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CertBadge, certNote, FillBadge } from "@/components/movies/badges";
-import { indexLayout, statusOf, tierPalette } from "@/components/seat-map/core";
+import { changedSeats, indexLayout, statusOf, tierPalette } from "@/components/seat-map/core";
 import { SeatMap, type SeatLook } from "@/components/seat-map/SeatMap";
 import { useCountdown } from "@/components/seat-map/useCountdown";
 import { useSeatState } from "@/components/seat-map/useSeatState";
@@ -34,7 +34,7 @@ type Toast = { text: string; tone: "warn" | "info"; key: number };
 export function BookingView({ show, layout, snapshot: initial }: { show: ShowDetail; layout: Layout; snapshot: SeatSnapshot }) {
   const router = useRouter();
   const index = useMemo(() => indexLayout(layout), [layout]);
-  const { state, snapshot, offset, stale, refresh, markHeld } = useSeatState(show.id, initial);
+  const { state, snapshot, offset, stale, polling, refresh, markHeld } = useSeatState(show.id, initial);
 
   const [selected, setSelected] = useState<string[]>(() => initial.mine);
   // Coming back to a hold you already have skips the question; otherwise ask first (R5).
@@ -78,6 +78,35 @@ export function BookingView({ show, layout, snapshot: initial }: { show: ShowDet
     if (snapshot.mine.length && snapshot.mine_expires_at) setExpiresAt(snapshot.mine_expires_at);
     else if (!snapshot.mine.length && !adding.current.size) setExpiresAt(null);
   }, [snapshot, nameOf, say]);
+
+  // Other people's changes: ripple each seat at once; tell screen readers at most every 4 s.
+  const [ripple, setRipple] = useState<{ ids: string[] } | null>(null);
+  const [liveNote, setLiveNote] = useState("");
+  const seen = useRef(state);
+  const heard = useRef({ taken: [] as string[], freed: [] as string[], timer: 0 });
+  useEffect(() => {
+    const before = seen.current;
+    seen.current = state;
+    if (before === state) return;
+    const ids = changedSeats(before, state).filter(
+      (id) => statusOf(before, id) !== "mine" && statusOf(state, id) !== "mine" && !selectedRef.current.includes(id),
+    );
+    if (!ids.length) return;
+    setRipple({ ids });
+    const h = heard.current;
+    for (const id of ids) (statusOf(state, id) === "free" ? h.freed : h.taken).push(id);
+    if (h.timer) return;
+    h.timer = window.setTimeout(() => {
+      const parts: string[] = [];
+      if (h.taken.length) parts.push(h.taken.length <= 3 ? `${takenNames(h.taken, nameOf)}.` : `${h.taken.length} seats were just taken.`);
+      if (h.freed.length) parts.push(h.freed.length === 1 ? `${nameOf(h.freed[0])} is free again.` : `${h.freed.length} seats are free again.`);
+      // Cleared first, so the same sentence twice ("D4 is free again.") is still read out.
+      setLiveNote("");
+      window.setTimeout(() => setLiveNote(parts.join(" ")), 50);
+      heard.current = { taken: [], freed: [], timer: 0 };
+    }, 4000);
+  }, [state, nameOf]);
+  useEffect(() => () => window.clearTimeout(heard.current.timer), []);
 
   const lookOf = useCallback(
     (id: string): SeatLook => {
@@ -265,7 +294,7 @@ export function BookingView({ show, layout, snapshot: initial }: { show: ShowDet
               <span className="text-muted-foreground">
                 {soldOut
                   ? "Every seat for this show has been sold."
-                  : "Holds last 10 minutes — seats come back the moment one lapses. This page checks every 5 seconds."}
+                  : "Holds last 10 minutes, and seats come back here the moment one lapses."}
               </span>
             </span>
             <Link href={`/movies/${show.film.slug}/shows`} className="font-semibold text-amber underline underline-offset-4">
@@ -300,12 +329,16 @@ export function BookingView({ show, layout, snapshot: initial }: { show: ShowDet
             onToggle={toggle}
             palette={palette}
             tierText={tierText}
+            ripple={ripple}
             className="h-[min(520px,62dvh)] rounded-card border border-border bg-plum-2 lg:h-auto lg:min-h-0 lg:flex-1"
           />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-x-4">
           <p className={cn("mt-3 text-xs", stale ? "text-amber" : "text-ink-3")} aria-live="polite">
-            {stale ? "Reconnecting… seat colours may be a few seconds old" : "Live · refreshes every 5 s"}
+            {stale ? "Reconnecting… seat colours may be a few seconds old" : polling ? "Live · refreshes every 5 s" : "Live: seats change here as others pick them"}
+          </p>
+          <p className="sr-only" aria-live="polite">
+            {liveNote}
           </p>
         </div>
         <SeatList index={index} lookOf={lookOf} onToggle={toggle} tierText={tierText} />

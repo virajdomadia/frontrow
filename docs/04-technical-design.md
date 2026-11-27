@@ -82,6 +82,8 @@ Seats already held by the *same* session are re-granted (idempotent re-tap) but 
 
 ## 5. Realtime (v2): SSE on Vercel
 
+> **Built in L1 (2026-11-28):** no per-second loop. Every hold script also `PUBLISH`es `h` (holds) or `s` (sold) on `fr:live:{show}`; the stream (`services/shows.live_seats`) blocks on that channel and wakes only for a message or the next hold deadline (expiry bumps no version), then sends a full `snapshot` (the `/seats` body, `id: v`). No `diff` events: a snapshot is a few KB and the client already merges by `v`. Idle maps send a `: ping` comment every 15 s and cost no Redis commands; `s` re-reads sold seats from Postgres, `x` ends the stream with `closed`. Each stream lives 240 s (inside Hobby's 300 s), is `no-store, no-transform` (Next's gzip would buffer it), and is limited per network. A hidden tab closes it. The paragraph below is the original design, kept for the record.
+>
 > **Free-tier rule (2026-11-15):** the loop below checks Redis every second per open map (~3,600 commands per viewer-hour against Upstash's 500K/month) and holds a Vercel function open for minutes. Row L1 starts by redesigning it to push only on change (for example waking on a Redis publish, or long-polling on the version) before building. The contract (`snapshot` / `diff` events, `SeatState` shape) stays.
 ```
 GET /showtimes/{id}/stream        text/event-stream, maxDuration 300
