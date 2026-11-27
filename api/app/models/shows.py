@@ -11,6 +11,7 @@ from datetime import date, datetime, time
 from typing import Any
 
 from sqlalchemy import (
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -94,3 +95,19 @@ class ShowPrice(Base):
     price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
 
     show: Mapped[Show] = relationship(back_populates="prices")
+
+
+class BlockedSeat(CreatedMixin, Base):
+    """A seat the owner took off sale for one show (L3): customers see it unavailable; holds,
+    orders and `orders.confirm` refuse it (under the per-show lock, `shows.show_lock`)."""
+
+    __tablename__ = "blocked_seats"
+    __table_args__ = (CheckConstraint("reason in ('broken', 'staff', 'guests')", name="reason"),)
+
+    show_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("shows.id", ondelete="CASCADE"), primary_key=True
+    )
+    seat_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("seats.id", ondelete="RESTRICT"), primary_key=True
+    )
+    reason: Mapped[str] = mapped_column(Text, nullable=False)

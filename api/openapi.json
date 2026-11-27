@@ -38,6 +38,34 @@
         "title": "ApiErrorResponse",
         "type": "object"
       },
+      "BlockIn": {
+        "properties": {
+          "reason": {
+            "enum": [
+              "broken",
+              "staff",
+              "guests"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "seat_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seat_ids",
+          "reason"
+        ],
+        "title": "BlockIn",
+        "type": "object"
+      },
       "Booking": {
         "properties": {
           "amount_paise": {
@@ -2496,6 +2524,12 @@
       },
       "OwnerShow": {
         "properties": {
+          "blocked": {
+            "default": 0,
+            "description": "Seats the cinema took off sale (L3).",
+            "title": "Blocked",
+            "type": "integer"
+          },
           "checked_in": {
             "title": "Checked In",
             "type": "integer"
@@ -2617,6 +2651,47 @@
         "title": "OwnerShows",
         "type": "object"
       },
+      "OwnerToday": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "recent": {
+            "description": "Today's latest sales, newest first.",
+            "items": {
+              "$ref": "#/components/schemas/RecentOrder"
+            },
+            "title": "Recent",
+            "type": "array"
+          },
+          "revenue_paise": {
+            "title": "Revenue Paise",
+            "type": "integer"
+          },
+          "shows": {
+            "items": {
+              "$ref": "#/components/schemas/OwnerShow"
+            },
+            "title": "Shows",
+            "type": "array"
+          },
+          "tickets": {
+            "title": "Tickets",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "shows",
+          "tickets",
+          "revenue_paise",
+          "recent"
+        ],
+        "title": "OwnerToday",
+        "type": "object"
+      },
       "Person": {
         "properties": {
           "email": {
@@ -2633,6 +2708,74 @@
           "email"
         ],
         "title": "Person",
+        "type": "object"
+      },
+      "RecentOrder": {
+        "properties": {
+          "amount_paise": {
+            "description": "Ticket sales (excludes the fee).",
+            "title": "Amount Paise",
+            "type": "integer"
+          },
+          "channel": {
+            "enum": [
+              "online",
+              "counter"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "film_title": {
+            "title": "Film Title",
+            "type": "string"
+          },
+          "name": {
+            "description": "Masked for the demo owner.",
+            "title": "Name",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "paid_at": {
+            "format": "date-time",
+            "title": "Paid At",
+            "type": "string"
+          },
+          "screen_name": {
+            "title": "Screen Name",
+            "type": "string"
+          },
+          "seats": {
+            "title": "Seats",
+            "type": "integer"
+          },
+          "show_id": {
+            "format": "uuid",
+            "title": "Show Id",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "show_id",
+          "film_title",
+          "starts_at",
+          "screen_name",
+          "name",
+          "seats",
+          "amount_paise",
+          "channel",
+          "paid_at"
+        ],
+        "title": "RecentOrder",
         "type": "object"
       },
       "RegisterBusiness": {
@@ -2780,6 +2923,14 @@
       },
       "SeatState": {
         "properties": {
+          "blocked": {
+            "description": "Taken off sale by the cinema: unavailable, like sold.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocked",
+            "type": "array"
+          },
           "held": {
             "description": "Held by someone else (not the caller).",
             "items": {
@@ -2835,6 +2986,24 @@
           "mine"
         ],
         "title": "SeatState",
+        "type": "object"
+      },
+      "SeatsIn": {
+        "properties": {
+          "seat_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seat_ids"
+        ],
+        "title": "SeatsIn",
         "type": "object"
       },
       "ShowCinema": {
@@ -5456,6 +5625,105 @@
         ]
       }
     },
+    "/owner/shows/{show_id}/blocks": {
+      "delete": {
+        "operationId": "unblock_owner_shows__show_id__blocks_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Unblock",
+        "tags": [
+          "theatre owner"
+        ]
+      },
+      "post": {
+        "description": "Take seats off sale for this show (broken, staff, guests), all or none.",
+        "operationId": "block_owner_shows__show_id__blocks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatsIn"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`seat_taken` (sold) or `seat_held` (a customer holds it)"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Block",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
     "/owner/shows/{show_id}/bookings": {
       "get": {
         "operationId": "bookings_owner_shows__show_id__bookings_get",
@@ -5505,6 +5773,117 @@
           }
         },
         "summary": "Bookings",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/shows/{show_id}/seats": {
+      "get": {
+        "description": "The owner's live map of any of their shows (public or not): sold, blocked and held.",
+        "operationId": "show_seats_owner_shows__show_id__seats_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Show Seats",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/shows/{show_id}/stream": {
+      "get": {
+        "description": "`/owner/shows/{id}/seats`, pushed on every change (same stream as the public map).",
+        "operationId": "show_stream_owner_shows__show_id__stream_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Show Stream",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/today": {
+      "get": {
+        "description": "Every show today with fill, today's tickets and revenue, and the latest sales.",
+        "operationId": "today_owner_today_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerToday"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Today",
         "tags": [
           "theatre owner"
         ]

@@ -9,10 +9,11 @@ from app.models.base import Base
 from app.models.business import Business, BusinessMember, Cinema, Screen, Seat
 from app.models.films import Film, FilmRequest
 from app.models.orders import Order, OrderSeat, Ticket, WebhookEvent
-from app.models.shows import Show, ShowPrice, ShowSchedule
+from app.models.shows import BlockedSeat, Show, ShowPrice, ShowSchedule
 
 __all__ = [
     "Base",
+    "BlockedSeat",
     "Business",
     "BusinessMember",
     "Cinema",

@@ -180,6 +180,7 @@ class OwnerShow(ApiModel):
     sold: int
     checked_in: int
     revenue_paise: int = Field(description="Ticket sales for the cinema (excludes the fee).")
+    blocked: int = Field(default=0, description="Seats the cinema took off sale (L3).")
     public: bool = Field(description="Customers can see it (business verified, film showing).")
 
 
@@ -234,3 +235,38 @@ class CheckInResult(ApiModel):
     checked_in_at: datetime | None = None
     admitted: int = Field(description="Tickets scanned in for this show so far.")
     sold: int
+
+
+# --- L3: the Today board, blocked seats -----------------------------------------------------------
+
+BlockReason = Literal["broken", "staff", "guests"]
+
+
+class BlockIn(ApiModel):
+    seat_ids: list[str] = Field(min_length=1, max_length=100)
+    reason: BlockReason
+
+
+class SeatsIn(ApiModel):
+    seat_ids: list[str] = Field(min_length=1, max_length=100)
+
+
+class RecentOrder(ApiModel):
+    order_id: UUID
+    show_id: UUID
+    film_title: str
+    starts_at: datetime
+    screen_name: str
+    name: str = Field(description="Masked for the demo owner.")
+    seats: int
+    amount_paise: int = Field(description="Ticket sales (excludes the fee).")
+    channel: Literal["online", "counter"]
+    paid_at: datetime
+
+
+class OwnerToday(ApiModel):
+    date: date
+    shows: list[OwnerShow]
+    tickets: int
+    revenue_paise: int
+    recent: list[RecentOrder] = Field(description="Today's latest sales, newest first.")

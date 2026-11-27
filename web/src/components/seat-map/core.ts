@@ -362,6 +362,8 @@ export type SeatSnapshot = {
   v: number;
   server_time: string;
   sold: string[];
+  /** Taken off sale by the cinema (L3): unavailable, like sold. */
+  blocked?: string[];
   held: { seat_id: string; expires_at: string }[];
   mine: string[];
   /** When the caller's own holds lapse (one shared clock). */
@@ -378,18 +380,22 @@ export type SeatDiff = {
 
 export type SeatState = {
   v: number;
+  /** Everything nobody can buy: sold and blocked (customers needn't know which). */
   sold: ReadonlySet<string>;
+  /** The blocked part of `sold`, for the owner's map. */
+  blocked: ReadonlySet<string>;
   /** Someone else's holds: seat id → expires_at (ISO). */
   held: ReadonlyMap<string, string>;
   mine: ReadonlySet<string>;
 };
 
-export const EMPTY_STATE: SeatState = { v: -1, sold: new Set(), held: new Map(), mine: new Set() };
+export const EMPTY_STATE: SeatState = { v: -1, sold: new Set(), blocked: new Set(), held: new Map(), mine: new Set() };
 
 export function fromSnapshot(s: SeatSnapshot): SeatState {
   return {
     v: s.v,
-    sold: new Set(s.sold),
+    sold: new Set([...s.sold, ...(s.blocked ?? [])]),
+    blocked: new Set(s.blocked ?? []),
     held: new Map(s.held.map((h) => [h.seat_id, h.expires_at])),
     mine: new Set(s.mine),
   };
@@ -420,7 +426,7 @@ export function applyDiff(prev: SeatState, diff: SeatDiff): SeatState | null {
     held.delete(id);
     mine.delete(id);
   }
-  return { v: diff.v, sold, held, mine };
+  return { v: diff.v, sold, blocked: prev.blocked, held, mine };
 }
 
 /** Sold beats held beats mine — a seat sold under you is sold. */

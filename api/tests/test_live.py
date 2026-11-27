@@ -43,8 +43,8 @@ async def test_stream_pushes_every_change(app: FastAPI) -> None:
     assert redis is not None
     sold: list[str] = []
 
-    async def reload() -> list[str]:
-        return list(sold)
+    async def reload() -> tuple[list[str], list[str]]:
+        return list(sold), []
 
     events = shows.live_seats(redis, ST, "b", reload, seconds=8)
     name, first = await next_event(events)
@@ -95,9 +95,9 @@ async def test_stream_is_quiet_when_nothing_changes(
 
     reads: list[int] = []
 
-    async def reload() -> list[str]:
+    async def reload() -> tuple[list[str], list[str]]:
         reads.append(1)
-        return []
+        return [], []
 
     closed: list[int] = []
 
