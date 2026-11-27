@@ -1945,7 +1945,7 @@
                 "type": "null"
               }
             ],
-            "description": "`seat_sold` when paid after the hold lapsed.",
+            "description": "Paid after the hold lapsed: `seat_sold` (someone bought it) or `seat_unavailable` (the cinema took it off sale).",
             "title": "Refund Reason"
           },
           "seats": {

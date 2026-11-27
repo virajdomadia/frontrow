@@ -120,6 +120,7 @@ async def get_show(
         or 0
     )
     held = (await holds.held_counts(redis, [show.id])).get(show.id, 0)
+    sold += len(await blocked_seats(db, show.id))  # off sale counts as gone for customers
     return ShowDetail(
         id=show.id,
         starts_at=show.starts_at,

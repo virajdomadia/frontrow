@@ -17,11 +17,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ApiError
 from app.models import BlockedSeat, Business, Cinema, Film, Order, OrderSeat, Screen, Show, User
-from app.models.enums import OrderStatus, ShowStatus
+from app.models.enums import OrderChannel, OrderStatus, ShowStatus
 from app.schemas.owner import OwnerToday, RecentOrder
 from app.services import holds
 from app.services import owner as owner_svc
 from app.services.auth import initials
+from app.services.orders import PAY_WINDOW
 from app.services.schedules import IST, ist_today
 from app.services.shows import check_seats, parse_id, show_lock, taken_seats
 
@@ -118,10 +119,25 @@ async def block(
     ids = await check_seats(db, show, seat_ids)
     live = await holds.snapshot(redis, show.id, holder, now=now)
     busy = {h.seat_id for h in live.others} & set(ids)
-    if busy:
+    # A hold lapses at 10 minutes but checkout stays open for 15: don't block a seat someone may
+    # be paying for right now (they would only be refunded).
+    paying = {
+        str(s)
+        for s in await db.scalars(
+            select(OrderSeat.seat_id)
+            .join(Order, Order.id == OrderSeat.order_id)
+            .where(
+                Order.show_id == show.id,
+                Order.status == OrderStatus.PENDING,
+                Order.channel == OrderChannel.ONLINE,
+                Order.created_at > now - PAY_WINDOW,
+            )
+        )
+    } & set(ids)
+    if busy or paying:
         raise ApiError(
-            "seat_held", "A customer is holding that seat right now", status=409,
-            details={"taken": sorted(busy)},
+            "seat_held", "A customer is holding or paying for that seat right now", status=409,
+            details={"taken": sorted(busy | paying)},
         )  # fmt: skip
     await show_lock(db, show.id)
     sold, _ = await taken_seats(db, show.id)

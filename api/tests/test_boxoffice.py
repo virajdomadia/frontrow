@@ -4,11 +4,11 @@ owner can look (names masked) but not block a real show."""
 
 import asyncio
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.models import BlockedSeat, Business, Cinema, Film, Order, Screen, Seat, Show, Ticket
@@ -106,6 +106,17 @@ async def test_block_refuses_sold_and_held_seats(
         bad = await owner.post(url, json={"seat_ids": [free[0]], "reason": "vip"})
         assert bad.status_code == 422
 
+        # Checkout outlives the hold: a seat in a pending payment can't be blocked either.
+        seat = free[2]
+        await customer.post(f"/shows/{found.show.id}/holds", json={"seat_ids": [seat]})
+        made = await customer.post(
+            "/orders", json={"show_id": str(found.show.id), "seat_ids": [seat]}
+        )
+        assert made.status_code == 201
+        await customer.request("DELETE", f"/shows/{found.show.id}/holds", json={"seat_ids": [seat]})
+        res = await owner.post(url, json={"seat_ids": [seat], "reason": "staff"})
+        assert res.status_code == 409 and res.json()["error"]["details"] == {"taken": [seat]}
+
 
 async def test_a_block_after_the_hold_lapsed_refunds_the_payment(
     db_engine: AsyncEngine, db: AsyncSession, db_app: FastAPI
@@ -123,7 +134,7 @@ async def test_a_block_after_the_hold_lapsed_refunds_the_payment(
         db.add(BlockedSeat(show_id=found.show.id, seat_id=uuid.UUID(seat), reason="broken"))
         await db.commit()
         paid = (await c.post(f"/orders/{order['id']}/demo-pay")).json()
-        assert paid["status"] == "refunded" and paid["refund_reason"] == "seat_sold"
+        assert paid["status"] == "refunded" and paid["refund_reason"] == "seat_unavailable"
     assert (
         await db.scalar(
             select(Ticket.id).where(
@@ -149,6 +160,14 @@ async def test_block_and_sale_race_one_winner(
             await c.post(f"/shows/{found.show.id}/holds", json={"seat_ids": [seat]})
             made = await c.post("/orders", json={"show_id": str(found.show.id), "seat_ids": [seat]})
             order_id = uuid.UUID(made.json()["id"])
+        # Paid late (after the pay window): the case the pending-order guard can't cover, so
+        # the lock alone has to decide.
+        await db.execute(
+            update(Order)
+            .where(Order.id == order_id)
+            .values(created_at=datetime.now(UTC) - timedelta(minutes=20))
+        )
+        await db.commit()
 
         async def pay(order_id: uuid.UUID = order_id) -> None:
             async with factory() as s:

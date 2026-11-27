@@ -380,7 +380,7 @@ export type SeatDiff = {
 
 export type SeatState = {
   v: number;
-  /** Everything nobody can buy: sold and blocked (customers needn't know which). */
+  /** Everything nobody can buy: sold and blocked (the customer map draws both as sold). */
   sold: ReadonlySet<string>;
   /** The blocked part of `sold`, for the owner's map. */
   blocked: ReadonlySet<string>;

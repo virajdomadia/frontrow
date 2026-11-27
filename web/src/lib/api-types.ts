@@ -1727,7 +1727,7 @@ export interface components {
             refund_pending: boolean;
             /**
              * Refund Reason
-             * @description `seat_sold` when paid after the hold lapsed.
+             * @description Paid after the hold lapsed: `seat_sold` (someone bought it) or `seat_unavailable` (the cinema took it off sale).
              */
             refund_reason: string | null;
             /** Seats */
