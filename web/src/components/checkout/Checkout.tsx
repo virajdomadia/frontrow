@@ -328,8 +328,10 @@ function Outcome({ order, holdLapsed }: { order: Order; holdLapsed: boolean }) {
     case "refunded":
       return (
         <p className={p}>
-          Your hold ran out before the payment arrived, and in the meantime someone else bought{" "}
-          {order.seats.length === 1 ? "that seat" : "one of those seats"}. We never sell a seat twice, so{" "}
+          Your hold ran out before the payment arrived, and in the meantime{" "}
+          {order.refund_reason === "seat_unavailable" ? "the cinema took " : "someone else bought "}
+          {order.seats.length === 1 ? "that seat" : "one of those seats"}
+          {order.refund_reason === "seat_unavailable" ? " off sale" : ""}. We never sell a seat twice, so{" "}
           {order.refund_pending
             ? `your ${rupees(order.total_paise)} refund is in progress — we're retrying it with the bank and it reaches your account in 5–7 working days after that.`
             : `we refunded your ${rupees(order.total_paise)} in full — it reaches your account in 5–7 working days.`}

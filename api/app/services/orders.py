@@ -48,12 +48,13 @@ from app.services import holds
 from app.services import tickets as tokens
 from app.services.payments import Gateway
 from app.services.schedules import FEE_PAISE
-from app.services.shows import check_seats, load, parse_id, sold_seats
+from app.services.shows import check_seats, load, parse_id, show_lock, taken_seats
 
 log = logging.getLogger(__name__)
 
 PAY_WINDOW = timedelta(minutes=15)
 SEAT_SOLD = "seat_sold"
+SEAT_UNAVAILABLE = "seat_unavailable"  # the cinema blocked it while the customer paid (L3)
 
 OnPaid = Callable[[Order], Awaitable[None]]
 
@@ -109,11 +110,12 @@ async def create(
             status=409,
             details={"missing": missing},
         )
-    sold = set(await sold_seats(db, show.id)) & set(ids)
-    if sold:
+    sold, blocked = await taken_seats(db, show.id)
+    gone = (set(sold) | set(blocked)) & set(ids)
+    if gone:
         raise ApiError(
-            "seat_taken", "Some of these seats were just sold", status=409,
-            details={"taken": sorted(sold)},
+            "seat_taken", "Some of these seats aren't available any more", status=409,
+            details={"taken": sorted(gone)},
         )  # fmt: skip
 
     prices = {
@@ -310,16 +312,28 @@ async def confirm(
     ]
     order.razorpay_payment_id = payment_id
     order.payment_method = method or ("Test payment" if gateway.mode == "demo" else "Razorpay")
-    try:
-        async with db.begin_nested():
-            await db.execute(insert(Ticket), rows)
-    except IntegrityError:
-        # A seat was sold to someone else after this hold lapsed: refund the whole payment.
+    # A block (L3) can land while the customer pays: under the show's lock it either committed
+    # first (refund below) or waits for these tickets (and then refuses the sold seats).
+    await show_lock(db, order.show_id)
+    _, blocked = await taken_seats(db, order.show_id)
+    reason = SEAT_UNAVAILABLE if set(blocked) & {str(s.seat_id) for s in seats} else None
+    if reason is None:
+        try:
+            async with db.begin_nested():
+                await db.execute(insert(Ticket), rows)
+        except IntegrityError:
+            reason = SEAT_SOLD
+    if reason is not None:
+        # A seat went to someone else (or was blocked) after this hold lapsed: refund it all.
+        # Recorded and committed first, so the locks aren't held through a slow gateway call;
+        # a refund the gateway doesn't take is retried by `settle_refund`.
         order.status = OrderStatus.REFUNDED
-        order.refund_reason = SEAT_SOLD
-        order.refund_id = await gateway.refund(payment_id, order.total_paise)
+        order.refund_reason = reason
         await db.commit()
-        log.info("order %s refunded: seat sold after the hold lapsed", order.id)
+        order.refund_id = await gateway.refund(payment_id, order.total_paise)
+        if order.refund_id:
+            await db.commit()
+        log.info("order %s refunded: %s after the hold lapsed", order.id, reason)
         return order
 
     order.status = OrderStatus.PAID

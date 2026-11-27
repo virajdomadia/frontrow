@@ -5,13 +5,17 @@ from datetime import UTC, date, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Request, Response
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import get_session
+from app.db import get_session, side_session
 from app.errors import ApiError
+from app.redis import optional_redis, require_redis
+from app.routers.shows import event_stream
 from app.schemas.layouts import Layout
 from app.schemas.owner import (
+    BlockIn,
     Bookings,
     BulkResult,
     BulkShows,
@@ -26,15 +30,21 @@ from app.schemas.owner import (
     OwnerScreen,
     OwnerScreenDetail,
     OwnerShows,
+    OwnerToday,
     RegisterBusiness,
     ScreenIn,
     ScreenPreview,
+    SeatsIn,
 )
+from app.schemas.shows import SeatState
 from app.services import auth as auth_svc
+from app.services import boxoffice, holds
 from app.services import owner as svc
+from app.services import shows as seat_svc
 from app.services.auth import (
     Auth,
     Owner,
+    holder_of,
     refuse_demo,
     require_auth,
     require_owner,
@@ -48,6 +58,7 @@ door = APIRouter(tags=["theatre owner"])
 Db = Annotated[AsyncSession, Depends(get_session)]
 Own = Annotated[Owner, Depends(require_owner)]
 Writer = Annotated[Owner, Depends(require_owner_writer)]  # the demo owner only looks
+OptRedis = Annotated[Redis | None, Depends(optional_redis)]
 
 
 def _now(response: Response) -> datetime:
@@ -210,3 +221,77 @@ async def check_in(
         show_id=body.show_id,
         now=_now(response),
     )
+
+
+# --- L3: the Today board, blocked seats, the owner's live seat map -------------------------------
+
+
+@router.get("/today", response_model=OwnerToday)
+async def today(response: Response, db: Db, owner: Own) -> OwnerToday:
+    """Every show today with fill, today's tickets and revenue, and the latest sales."""
+    demo = auth_svc.is_demo(owner.auth.user)
+    return await boxoffice.today(db, owner.business, _now(response), demo=demo)
+
+
+@router.post(
+    "/shows/{show_id}/blocks",
+    response_model=SeatsIn,
+    responses={409: {"description": "`seat_taken` (sold) or `seat_held` (a customer holds it)"}},
+)
+async def block(
+    show_id: str,
+    body: BlockIn,
+    request: Request,
+    response: Response,
+    db: Db,
+    redis: OptRedis,
+    owner: Writer,
+) -> SeatsIn:
+    """Take seats off sale for this show (broken, staff, guests), all or none."""
+    now = _now(response)
+    holder = holder_of(request, response, owner.auth, create=False)
+    ids = await boxoffice.block(
+        db, redis, owner.business, show_id, body.seat_ids, body.reason, holder=holder, now=now
+    )
+    return SeatsIn(seat_ids=ids)
+
+
+@router.delete("/shows/{show_id}/blocks", status_code=204)
+async def unblock(
+    show_id: str, body: SeatsIn, response: Response, db: Db, redis: OptRedis, owner: Writer
+) -> None:
+    await boxoffice.unblock(db, redis, owner.business, show_id, body.seat_ids, now=_now(response))
+
+
+@router.get("/shows/{show_id}/seats", response_model=SeatState)
+async def show_seats(
+    show_id: str, request: Request, response: Response, db: Db, redis: OptRedis, owner: Own
+) -> SeatState:
+    """The owner's live map of any of their shows (public or not): sold, blocked and held."""
+    now = _now(response)
+    show, _ = await boxoffice.own_show_row(db, owner.business, show_id)
+    sold, blocked = await seat_svc.taken_seats(db, show.id)
+    holder = holder_of(request, response, owner.auth, create=False)
+    live = await holds.snapshot(redis, show.id, holder, now=now)
+    return seat_svc.state_of(sold, live, now, blocked)
+
+
+@router.get("/shows/{show_id}/stream", response_class=StreamingResponse)
+async def show_stream(
+    show_id: str,
+    request: Request,
+    response: Response,
+    db: Db,
+    redis: Annotated[Redis, Depends(require_redis)],
+    owner: Own,
+) -> StreamingResponse:
+    """`/owner/shows/{id}/seats`, pushed on every change (same stream as the public map)."""
+    show, _ = await boxoffice.own_show_row(db, owner.business, show_id)
+    await db.close()
+    holder = holder_of(request, response, owner.auth, create=True)
+
+    async def reload() -> tuple[list[str], list[str]]:
+        async with side_session(request) as s:
+            return await seat_svc.taken_seats(s, show.id)
+
+    return await event_stream(request, response, redis, show.id, holder, reload)

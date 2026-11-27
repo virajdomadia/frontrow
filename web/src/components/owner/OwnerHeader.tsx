@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 
 const NAV = [
   { key: "overview", href: "/owner", label: "Overview" },
+  { key: "today", href: "/owner/today", label: "Today" },
   { key: "cinemas", href: "/owner/cinemas", label: "Cinemas" },
   { key: "films", href: "/owner/films", label: "Films" },
   { key: "shows", href: "/owner/shows", label: "Shows" },
@@ -16,7 +17,9 @@ export function OwnerHeader({ business }: { business: string }) {
   const active =
     path === "/owner"
       ? "overview"
-      : path.startsWith("/owner/cinemas") || path.startsWith("/owner/screens")
+      : path.startsWith("/owner/today")
+        ? "today"
+        : path.startsWith("/owner/cinemas") || path.startsWith("/owner/screens")
         ? "cinemas"
         : path.startsWith("/owner/films")
           ? "films"

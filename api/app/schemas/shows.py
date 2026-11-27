@@ -61,6 +61,9 @@ class SeatState(ApiModel):
     v: int = Field(description="State version; a diff with a lower `v` is stale.")
     server_time: datetime
     sold: list[str]
+    blocked: list[str] = Field(
+        default_factory=list, description="Taken off sale by the cinema: unavailable, like sold."
+    )
     held: list[HeldSeat] = Field(description="Held by someone else (not the caller).")
     mine: list[str] = Field(description="Held by the caller's session.")
     mine_expires_at: datetime | None = Field(

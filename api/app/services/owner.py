@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import Settings
 from app.errors import ApiError
 from app.models import (
+    BlockedSeat,
     Business,
     Cinema,
     Film,
@@ -440,7 +441,15 @@ async def _shows(
     sold: dict[uuid.UUID, int] = {}
     scanned: dict[uuid.UUID, int] = {}
     revenue: dict[uuid.UUID, int] = {}
+    blocked: dict[uuid.UUID, int] = {}
     if ids:
+        blocked = _pairs(
+            await db.execute(
+                select(BlockedSeat.show_id, func.count())
+                .where(BlockedSeat.show_id.in_(ids))
+                .group_by(BlockedSeat.show_id)
+            )
+        )
         sold = _pairs(
             await db.execute(
                 select(Ticket.show_id, func.count())
@@ -485,6 +494,7 @@ async def _shows(
             sold=sold.get(show.id, 0),
             checked_in=scanned.get(show.id, 0),
             revenue_paise=int(revenue.get(show.id, 0) or 0),
+            blocked=blocked.get(show.id, 0),
             public=public_business and film.status == FilmStatus.NOW_SHOWING,
         )
         for show, film, screen, cinema in rows

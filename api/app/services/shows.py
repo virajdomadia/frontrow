@@ -27,7 +27,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ApiError
-from app.models import Business, Cinema, Film, Screen, Seat, Show, ShowPrice, Ticket
+from app.models import BlockedSeat, Business, Cinema, Film, Screen, Seat, Show, ShowPrice, Ticket
 from app.models.enums import BusinessStatus, FilmStatus, ShowStatus
 from app.schemas.catalog import TierPrice
 from app.schemas.shows import (
@@ -120,6 +120,7 @@ async def get_show(
         or 0
     )
     held = (await holds.held_counts(redis, [show.id])).get(show.id, 0)
+    sold += len(await blocked_seats(db, show.id))  # off sale counts as gone for customers
     return ShowDetail(
         id=show.id,
         starts_at=show.starts_at,
@@ -166,14 +167,35 @@ async def sold_seats(db: AsyncSession, show_id: uuid.UUID) -> list[str]:
     ]
 
 
-def state_of(sold: list[str], live: holds.Holds, now: datetime) -> SeatState:
-    sold_set = set(sold)
+async def blocked_seats(db: AsyncSession, show_id: uuid.UUID) -> list[str]:
+    return [
+        str(s)
+        for s in await db.scalars(select(BlockedSeat.seat_id).where(BlockedSeat.show_id == show_id))
+    ]
+
+
+async def taken_seats(db: AsyncSession, show_id: uuid.UUID) -> tuple[list[str], list[str]]:
+    """(sold, blocked): every seat nobody can hold or buy."""
+    return await sold_seats(db, show_id), await blocked_seats(db, show_id)
+
+
+async def show_lock(db: AsyncSession, show_id: uuid.UUID) -> None:
+    """Serialise the writes that decide who has a seat (a sale's tickets, an owner's block, a
+    counter sale) per show, until the transaction ends. Holds stay lock-free in Redis."""
+    await db.execute(select(func.pg_advisory_xact_lock(func.hashtextextended(str(show_id), 0))))
+
+
+def state_of(
+    sold: list[str], live: holds.Holds, now: datetime, blocked: list[str] | None = None
+) -> SeatState:
+    gone = set(sold) | set(blocked or [])
     return SeatState(
         v=live.v,
         server_time=now,
         sold=sold,
-        held=[h for h in live.others if h.seat_id not in sold_set],  # sold beats held
-        mine=[m for m in live.mine if m not in sold_set],
+        blocked=blocked or [],
+        held=[h for h in live.others if h.seat_id not in gone],  # sold / blocked beat held
+        mine=[m for m in live.mine if m not in gone],
         mine_expires_at=live.mine_expires_at,
     )
 
@@ -187,8 +209,8 @@ async def seat_state(
     now: datetime,
 ) -> SeatState:
     show, _, _, _ = await load(db, show_id, now)
-    sold = await sold_seats(db, show.id)
-    return state_of(sold, await holds.snapshot(redis, show.id, holder, now=now), now)
+    sold, blocked = await taken_seats(db, show.id)
+    return state_of(sold, await holds.snapshot(redis, show.id, holder, now=now), now, blocked)
 
 
 PING_SECONDS = 15.0  # an SSE comment keeps idle proxies from closing the stream
@@ -198,7 +220,7 @@ async def live_seats(
     redis: Redis,
     show_id: uuid.UUID | str,
     holder: str | None,
-    reload_sold: Callable[[], Awaitable[list[str]]],
+    reload_sold: Callable[[], Awaitable[tuple[list[str], list[str]]]],
     *,
     seconds: float,
     on_close: Callable[[], Awaitable[None]] | None = None,
@@ -215,12 +237,13 @@ async def live_seats(
     pubsub = redis.pubsub()
     try:
         await pubsub.subscribe(holds.channel(show_id))
-        sold = await reload_sold()
+        sold, blocked = await reload_sold()
         yield "retry: 2000\n\n"
         last = ""
         while True:
             now = datetime.now(UTC)
-            state = state_of(sold, await holds.snapshot(redis, show_id, holder, now=now), now)
+            live = await holds.snapshot(redis, show_id, holder, now=now)
+            state = state_of(sold, live, now, blocked)
             same = state.model_dump_json(exclude={"server_time"})
             if same != last:
                 last = same
@@ -249,7 +272,7 @@ async def live_seats(
                     yield "event: closed\ndata: {}\n\n"
                     return
                 if "s" in kinds:
-                    sold = await reload_sold()
+                    sold, blocked = await reload_sold()
                 break
     except RedisError:
         return  # the browser reconnects, or falls back to polling
@@ -330,13 +353,14 @@ async def place_holds(
     if net:  # rotating the cookie doesn't reset this one
         await holds.rate_limit(redis, f"ip:{net}", 2 * per_minute)
 
-    sold = set(await sold_seats(db, show.id)) & set(ids)
-    if sold:
+    sold, blocked = await taken_seats(db, show.id)
+    gone = (set(sold) | set(blocked)) & set(ids)
+    if gone:
         raise ApiError(
             "seat_taken",
-            "That seat was just sold" if len(sold) == 1 else "Those seats were just sold",
+            "That seat isn't available" if len(gone) == 1 else "Those seats aren't available",
             status=409,
-            details={"taken": sorted(sold)},
+            details={"taken": sorted(gone)},
         )
     granted = await holds.acquire(
         redis, show.id, holder, ids, ttl_seconds=ttl_seconds, now=now, net=net

@@ -77,7 +77,10 @@ class Order(ApiModel):
     hold_expires_at: datetime | None = Field(
         description="While pending: when the seat holds lapse (the checkout countdown)."
     )
-    refund_reason: str | None = Field(description="`seat_sold` when paid after the hold lapsed.")
+    refund_reason: str | None = Field(
+        description="Paid after the hold lapsed: `seat_sold` (someone bought it) or "
+        "`seat_unavailable` (the cinema took it off sale)."
+    )
     refund_pending: bool = Field(description="Refunded, but the gateway hasn't taken it yet.")
     gateway: GatewayMode = Field(
         description="`razorpay` → open Razorpay Checkout with `key_id`; `demo` → no keys are "

@@ -134,8 +134,8 @@ async def stream(
     """The same live stream as a real seat map (`/shows/{id}/stream`), on the sandbox."""
     box, sid = _sandbox(request, response)
 
-    async def no_sales() -> list[str]:
-        return []
+    async def no_sales() -> tuple[list[str], list[str]]:
+        return [], []
 
     return await event_stream(request, response, redis, box, f"{sid}:a", no_sales)
 

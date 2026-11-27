@@ -575,6 +575,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/owner/shows/{show_id}/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block
+         * @description Take seats off sale for this show (broken, staff, guests), all or none.
+         */
+        post: operations["block_owner_shows__show_id__blocks_post"];
+        /** Unblock */
+        delete: operations["unblock_owner_shows__show_id__blocks_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/owner/shows/{show_id}/bookings": {
         parameters: {
             query?: never;
@@ -584,6 +605,66 @@ export interface paths {
         };
         /** Bookings */
         get: operations["bookings_owner_shows__show_id__bookings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/shows/{show_id}/seats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Show Seats
+         * @description The owner's live map of any of their shows (public or not): sold, blocked and held.
+         */
+        get: operations["show_seats_owner_shows__show_id__seats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/shows/{show_id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Show Stream
+         * @description `/owner/shows/{id}/seats`, pushed on every change (same stream as the public map).
+         */
+        get: operations["show_stream_owner_shows__show_id__stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Today
+         * @description Every show today with fill, today's tickets and revenue, and the latest sales.
+         */
+        get: operations["today_owner_today_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -884,6 +965,16 @@ export interface components {
         /** ApiErrorResponse */
         ApiErrorResponse: {
             error: components["schemas"]["ApiErrorBody"];
+        };
+        /** BlockIn */
+        BlockIn: {
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "broken" | "staff" | "guests";
+            /** Seat Ids */
+            seat_ids: string[];
         };
         /** Booking */
         Booking: {
@@ -1636,7 +1727,7 @@ export interface components {
             refund_pending: boolean;
             /**
              * Refund Reason
-             * @description `seat_sold` when paid after the hold lapsed.
+             * @description Paid after the hold lapsed: `seat_sold` (someone bought it) or `seat_unavailable` (the cinema took it off sale).
              */
             refund_reason: string | null;
             /** Seats */
@@ -1870,6 +1961,12 @@ export interface components {
         };
         /** OwnerShow */
         OwnerShow: {
+            /**
+             * Blocked
+             * @description Seats the cinema took off sale (L3).
+             * @default 0
+             */
+            blocked: number;
             /** Checked In */
             checked_in: number;
             /** Cinema Name */
@@ -1936,12 +2033,75 @@ export interface components {
             /** Shows */
             shows: components["schemas"]["OwnerShow"][];
         };
+        /** OwnerToday */
+        OwnerToday: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Recent
+             * @description Today's latest sales, newest first.
+             */
+            recent: components["schemas"]["RecentOrder"][];
+            /** Revenue Paise */
+            revenue_paise: number;
+            /** Shows */
+            shows: components["schemas"]["OwnerShow"][];
+            /** Tickets */
+            tickets: number;
+        };
         /** Person */
         Person: {
             /** Email */
             email: string;
             /** Name */
             name: string;
+        };
+        /** RecentOrder */
+        RecentOrder: {
+            /**
+             * Amount Paise
+             * @description Ticket sales (excludes the fee).
+             */
+            amount_paise: number;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "online" | "counter";
+            /** Film Title */
+            film_title: string;
+            /**
+             * Name
+             * @description Masked for the demo owner.
+             */
+            name: string;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /**
+             * Paid At
+             * Format: date-time
+             */
+            paid_at: string;
+            /** Screen Name */
+            screen_name: string;
+            /** Seats */
+            seats: number;
+            /**
+             * Show Id
+             * Format: uuid
+             */
+            show_id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
         };
         /**
          * RegisterBusiness
@@ -1988,6 +2148,11 @@ export interface components {
         /** SeatState */
         SeatState: {
             /**
+             * Blocked
+             * @description Taken off sale by the cinema: unavailable, like sold.
+             */
+            blocked?: string[];
+            /**
              * Held
              * @description Held by someone else (not the caller).
              */
@@ -2014,6 +2179,11 @@ export interface components {
              * @description State version; a diff with a lower `v` is stale.
              */
             v: number;
+        };
+        /** SeatsIn */
+        SeatsIn: {
+            /** Seat Ids */
+            seat_ids: string[];
         };
         /** ShowCinema */
         ShowCinema: {
@@ -3679,6 +3849,81 @@ export interface operations {
             };
         };
     };
+    block_owner_shows__show_id__blocks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatsIn"];
+                };
+            };
+            /** @description `seat_taken` (sold) or `seat_held` (a customer holds it) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    unblock_owner_shows__show_id__blocks_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeatsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     bookings_owner_shows__show_id__bookings_get: {
         parameters: {
             query?: {
@@ -3700,6 +3945,95 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Bookings"];
                     "text/csv": unknown;
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    show_seats_owner_shows__show_id__seats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatState"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    show_stream_owner_shows__show_id__stream_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    today_owner_today_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerToday"];
                 };
             };
             /** @description Error envelope (06 §C) */

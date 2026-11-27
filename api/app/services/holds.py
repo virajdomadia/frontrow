@@ -211,6 +211,20 @@ async def rate_limit(redis: Redis, holder: str, per_minute: int) -> None:
         )
 
 
+async def announce(redis: Redis | None, showtime_id: uuid.UUID, kind: str) -> None:
+    """Tell open seat maps something outside the hold scripts changed: "s" sold or blocked seats
+    (re-read from Postgres), "x" the show closed. Best effort, like `clear_sold`."""
+    if redis is None:
+        return
+    try:
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.incr(version_key(showtime_id))
+            pipe.publish(channel(showtime_id), kind)
+            await pipe.execute()
+    except RedisError as e:
+        log.warning("could not announce %s on %s: %s", kind, showtime_id, e)
+
+
 async def take_slot(redis: Redis, key: str, cap: int, settings: Settings) -> bool:
     """One of `cap` concurrent slots (open live streams per network), else False. The key lives a
     minute past a stream's life, so a slot a crashed function never gave back frees itself."""

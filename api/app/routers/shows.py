@@ -95,9 +95,9 @@ async def stream_seats(
     # The stream's first hold must land on the same holder as the page's (sets fr_sid if new).
     holder = holder_of(request, response, auth, create=True)
 
-    async def reload_sold() -> list[str]:
+    async def reload_sold() -> tuple[list[str], list[str]]:
         async with side_session(request) as s:
-            return await shows.sold_seats(s, show.id)
+            return await shows.taken_seats(s, show.id)
 
     return await event_stream(request, response, redis, show.id, holder, reload_sold)
 
@@ -108,7 +108,7 @@ async def event_stream(
     redis: Redis,
     show_key: uuid.UUID | str,
     holder: str | None,
-    reload_sold: Callable[[], Awaitable[list[str]]],
+    reload_sold: Callable[[], Awaitable[tuple[list[str], list[str]]]],
 ) -> StreamingResponse:
     """`shows.live_seats` as an SSE response, limited per network (opens a minute, and open at
     once), carrying any cookie the route set. Shared with the landing page's demo hall."""

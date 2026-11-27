@@ -47,6 +47,8 @@ export type BulkResult = S["BulkResult"];
 export type Bookings = S["Bookings"];
 export type Booking = S["Booking"];
 export type CheckInResult = S["CheckInResult"];
+export type OwnerToday = S["OwnerToday"];
+export type RecentOrder = S["RecentOrder"];
 
 // Frontrow staff
 export type StaffFilm = S["StaffFilm"];
