@@ -11,22 +11,29 @@ import type { StaffFilm } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DEMO_REASON, FormError } from "./ui";
 
-/** v1 posters come from the bundled CC library (uploads are out of scope). */
+/** v1 posters are the bundled typographic ones (api/scripts/make_posters.py); uploads are out of scope. */
 const POSTERS = [
-  "neon-alley",
-  "the-last-dune",
-  "undertow",
-  "hollowmere",
-  "glass-city",
-  "static-bloom",
-  "midnight-brass",
-  "rhythm-collective",
-].map((p) => `/img/posters/${p}.jpg`);
+  "ramayana-part-1",
+  "yeh-prem-mol-liya",
+  "maatrubhumi",
+  "eetha",
+  "king",
+  "golmaal-5",
+  "love-and-war",
+  "hunger-games-sunrise-on-the-reaping",
+  "how-to-rob-a-bank",
+  "avengers-doomsday",
+  "dune-part-three",
+].map((p) => `/img/posters/${p}.png`);
 
 const FORMATS = ["2D", "3D", "IMAX"] as const;
 const CERTS = [
+  ["", "Not yet certified"],
   ["U", "U — all ages"],
-  ["UA", "UA — parental guidance"],
+  ["UA 7+", "UA 7+ — parental guidance under 7"],
+  ["UA 13+", "UA 13+ — parental guidance under 13"],
+  ["UA 16+", "UA 16+ — parental guidance under 16"],
+  ["UA", "UA — parental guidance (pre-2024 certificate)"],
   ["A", "A — adults only (18+)"],
 ] as const;
 const STATUSES = [
@@ -89,8 +96,8 @@ export function FilmForm({
       title: String(data.get("title") ?? "").trim(),
       synopsis: String(data.get("synopsis") ?? "").trim(),
       cast_crew: cast.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), role: c.role.trim() || "Actor" })),
-      runtime_min: Number(data.get("runtime_min")),
-      cert: String(data.get("cert")),
+      runtime_min: data.get("runtime_min") ? Number(data.get("runtime_min")) : null, // blank: not announced
+      cert: String(data.get("cert") ?? "") || null, // blank: not yet certified
       genres: list(String(data.get("genres") ?? "")),
       languages: list(String(data.get("languages") ?? "")),
       formats,
@@ -200,13 +207,13 @@ export function FilmForm({
 
         <div className="grid gap-4 sm:grid-cols-3">
           <label className={labelClass}>
-            Runtime (minutes)
-            <input name="runtime_min" type="number" required min={40} max={240} defaultValue={film?.runtime_min ?? 120} className={inputClass} aria-invalid={!!err("runtime_min")} />
+            Runtime (minutes, blank if not announced)
+            <input name="runtime_min" type="number" min={40} max={240} defaultValue={film ? (film.runtime_min ?? "") : 120} className={inputClass} aria-invalid={!!err("runtime_min")} />
             {note("runtime_min")}
           </label>
           <label className={labelClass}>
             Certificate
-            <select name="cert" defaultValue={film?.cert ?? "UA"} className={inputClass}>
+            <select name="cert" defaultValue={film ? (film.cert ?? "") : "UA 13+"} className={inputClass}>
               {CERTS.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
@@ -283,7 +290,7 @@ export function FilmForm({
           </div>
           <PosterPicker value={poster} onChange={setPoster} label="Poster" />
           {note("poster_url")}
-          <p className="text-xs text-ink-3">Fictional films use CC-licensed photos from the bundled library (credits in /img/CREDITS.md).</p>
+          <p className="text-xs text-ink-3">Films are real, so posters are our own typographic art (api/scripts/make_posters.py) — never studio artwork.</p>
         </div>
         <div className="grid gap-3 rounded-card border border-border bg-plum-2 p-5">
           <h2 className="font-cond text-xl font-bold uppercase">Banner</h2>

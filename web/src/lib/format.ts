@@ -53,8 +53,9 @@ export function when(iso: string, now?: Date) {
   return `${dayLabel(iso, now)} · ${showTime(iso)}`;
 }
 
-/** 134 → "2h 14m" */
-export function duration(min: number) {
+/** 134 → "2h 14m"; null (not announced yet) → "Runtime TBA" */
+export function duration(min: number | null) {
+  if (min == null) return "Runtime TBA";
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h ? `${h}h${m ? ` ${String(m).padStart(2, "0")}m` : ""}` : `${m}m`;

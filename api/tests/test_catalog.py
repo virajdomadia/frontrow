@@ -2,7 +2,7 @@
 cinema with availability colours, and the seat-map routes (show detail, layout, closed shows)."""
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 
 import pytest
 from fastapi import FastAPI
@@ -13,29 +13,67 @@ from app.models import Business, Film, Show
 from app.models.enums import ShowStatus
 from app.routers.catalog import cache_until
 from app.seed import seed
+from app.seed.content import FILMS
 from app.services import catalog
-from app.services.schedules import IST
+from app.services.schedules import IST, ist_today
 from tests.helpers import open_show, tab
 
 pytestmark = [pytest.mark.db]
+
+
+def released(now: datetime) -> set[str]:
+    """Titles out by `now` (IST) — the catalogue's real release dates decide "now showing"."""
+    return {f.title for f in FILMS if f.release <= ist_today(now)}
 
 
 async def test_home_and_search(db_engine: AsyncEngine, db: AsyncSession) -> None:
     now = datetime.now(UTC)
     await seed(db_engine, now=now)
     home = await catalog.home(db, now=now)
-    titles = [c.title for c in home.now_showing]
-    assert len(titles) == 7 and "The Rhythm Collective" not in titles
+    assert {c.title for c in home.now_showing} == released(now)
     assert all(c.show_count > 0 and c.from_price_paise for c in home.now_showing)
-    assert [c.title for c in home.coming_soon] == ["The Rhythm Collective"]
+    coming = [c.title for c in home.coming_soon]
+    assert set(coming) == {f.title for f in FILMS} - released(now)
+    release = {f.title: f.release for f in FILMS}
+    assert coming == sorted(coming, key=lambda t: release[t])
 
     found = await catalog.search(db, "dune", now=now)
-    assert [f.title for f in found.films] == ["The Last Dune"]
-    assert [f.title for f in (await catalog.search(db, "comedy", now=now)).films] == [
-        "Static Bloom",
-        "The Rhythm Collective",
-    ]
+    assert [f.title for f in found.films] == ["Dune: Part Three"]
+    comedy = {f.title for f in (await catalog.search(db, "comedy", now=now)).films}
+    assert comedy == {"How to Rob a Bank", "Golmaal 5"}
     assert (await catalog.search(db, "zzz", now=now)).films == []
+
+
+async def test_real_catalogue_facts(db_engine: AsyncEngine, db: AsyncSession) -> None:
+    """Certificates as the CBFC issued them (age-banded U/A) or none yet; a runtime that isn't
+    announced stays unknown rather than invented."""
+    now = datetime.now(UTC)
+    await seed(db_engine, now=now)
+    ypml = await catalog.film_detail(db, "yeh-prem-mol-liya", now=now)
+    assert ypml.cert == "UA 13+" and ypml.runtime_min == 173
+    king = await catalog.film_detail(db, "king", now=now)
+    assert king.cert is None and king.runtime_min is None and king.trailer_url is None
+    assert king.poster_url == "/img/posters/king.png"
+    assert [c.name for c in king.cast_crew[:2]] == ["Siddharth Anand", "Shah Rukh Khan"]
+
+
+async def test_coming_soon_opens_on_release_day(db_engine: AsyncEngine, db: AsyncSession) -> None:
+    """A coming-soon film has no shows before its release date; on the day it turns now showing
+    with no reseed (the day's first read flips it) and its shows are on sale."""
+    now = datetime.now(UTC)
+    await seed(db_engine, now=now)
+    upcoming = [f for f in FILMS if f.release > ist_today(now)]
+    if not upcoming:
+        pytest.skip("every film in the catalogue is out already")
+    spec = min(upcoming, key=lambda f: f.release)
+    film = await db.scalar(select(Film).where(Film.slug == spec.slug))
+    assert film is not None
+    first = await db.scalar(select(func.min(Show.starts_at)).where(Show.film_id == film.id))
+    assert first is None or first.astimezone(IST).date() >= spec.release
+    on_the_day = datetime.combine(spec.release, time(9, 0), IST).astimezone(UTC)
+    home = await catalog.home(db, now=on_the_day)
+    assert spec.title in {c.title for c in home.now_showing}
+    assert spec.title not in {c.title for c in home.coming_soon}
 
 
 async def test_catalogue_never_empties(db_engine: AsyncEngine, db: AsyncSession) -> None:
@@ -47,9 +85,9 @@ async def test_catalogue_never_empties(db_engine: AsyncEngine, db: AsyncSession)
     before = await db.scalar(select(func.count()).select_from(Show).where(Show.starts_at > later))
     assert before == 0
     home = await catalog.home(db, now=later)
-    assert len(home.now_showing) == 7
+    assert {c.title for c in home.now_showing} == released(later)
     shows = await catalog.film_shows(
-        db, "neon-alley", day=None, language=None, format=None, now=later
+        db, "ramayana-part-1", day=None, language=None, format=None, now=later
     )
     assert shows.cinemas and all(s.starts_at > later for c in shows.cinemas for s in c.shows)
     # Idempotent: reading again creates nothing new.
@@ -61,29 +99,29 @@ async def test_catalogue_never_empties(db_engine: AsyncEngine, db: AsyncSession)
 async def test_movie_page_and_showtimes(db_engine: AsyncEngine, db: AsyncSession) -> None:
     now = datetime.now(UTC)
     await seed(db_engine, now=now)
-    film = await catalog.film_detail(db, "the-last-dune", now=now)
-    assert film.cert == "UA" and film.runtime_min == 152 and film.cast_crew[0].role == "Director"
+    film = await catalog.film_detail(db, "ramayana-part-1", now=now)
+    assert film.cert == "U" and film.runtime_min == 195 and film.cast_crew[0].role == "Director"
     versions = {(v.language, v.format) for v in film.versions}
-    assert {("English", "IMAX"), ("English", "3D"), ("Hindi", "2D")} <= versions
+    assert {("Hindi", "2D"), ("Kannada", "2D"), ("Tamil", "2D"), ("Telugu", "2D")} <= versions
 
-    imax = await catalog.film_shows(
-        db, "the-last-dune", day=None, language="English", format="IMAX", now=now
+    tamil = await catalog.film_shows(
+        db, "ramayana-part-1", day=None, language="Tamil", format="2D", now=now
     )
-    assert [c.name for c in imax.cinemas] == ["Orbit Cinemas · Whitefield"]
-    assert all(s.format == "IMAX" and s.starts_at > now for s in imax.cinemas[0].shows)
-    assert len(imax.dates) == 7 and imax.dates[0].date == now.astimezone(IST).date()
-    day = imax.dates[3].date
+    assert [c.name for c in tamil.cinemas] == ["Nandi Screens · Koramangala"]
+    assert all(s.language == "Tamil" and s.starts_at > now for s in tamil.cinemas[0].shows)
+    assert len(tamil.dates) == 7 and tamil.dates[0].date == now.astimezone(IST).date()
+    day = tamil.dates[3].date
     later = await catalog.film_shows(
-        db, "the-last-dune", day=day, language="English", format="IMAX", now=now
+        db, "ramayana-part-1", day=day, language="Hindi", format="2D", now=now
     )
     assert later.date == day
     assert all(s.starts_at.astimezone(IST).date() == day for c in later.cinemas for s in c.shows)
-    tiers = later.cinemas[0].shows[0].tiers
-    assert [t.label for t in tiers] == ["Classic", "Prime", "Recliner"]
+    whitefield = next(c for c in later.cinemas if c.name == "Orbit Cinemas · Whitefield")
+    assert [t.label for t in whitefield.shows[0].tiers] == ["Classic", "Prime", "Recliner"]
 
     # The pending business (Lakeview) never shows up; once approved, it does.
     everywhere = await catalog.film_shows(
-        db, "glass-city", day=None, language="Kannada", format="2D", now=now
+        db, "yeh-prem-mol-liya", day=None, language="Hindi", format="2D", now=now
     )
     names = {c.name for d in [everywhere] for c in d.cinemas}
     assert not any("Lakeview" in n for n in names)
@@ -93,7 +131,7 @@ async def test_movie_page_and_showtimes(db_engine: AsyncEngine, db: AsyncSession
     await db.commit()
     all_days = [
         await catalog.film_shows(
-            db, "glass-city", day=d.date, language="Kannada", format="2D", now=now
+            db, "yeh-prem-mol-liya", day=d.date, language="Hindi", format="2D", now=now
         )
         for d in everywhere.dates
     ]
@@ -106,7 +144,9 @@ async def test_availability_colours(db_engine: AsyncEngine, db: AsyncSession) ->
     assert catalog.fill_of(100, 50, 19) == "available"
     now = datetime.now(UTC)
     await seed(db_engine, now=now)
-    data = await catalog.film_shows(db, "neon-alley", day=None, language=None, format=None, now=now)
+    data = await catalog.film_shows(
+        db, "ramayana-part-1", day=None, language=None, format=None, now=now
+    )
     assert {s.fill for c in data.cinemas for s in c.shows} <= {"available", "filling", "sold_out"}
 
 
@@ -116,12 +156,12 @@ async def test_routes_over_http(db_engine: AsyncEngine, db: AsyncSession, db_app
     async with tab(db_app) as c:
         home = await c.get("/home")
         assert home.status_code == 200 and "s-maxage=60" in home.headers["cache-control"]
-        assert (await c.get("/films", params={"q": "neon"})).json()["films"][0][
+        assert (await c.get("/films", params={"q": "ramayana"})).json()["films"][0][
             "slug"
-        ] == "neon-alley"
+        ] == "ramayana-part-1"
         assert (await c.get("/films/no-such-film")).status_code == 404
         listing = await c.get(
-            "/films/hollowmere/shows", params={"language": "Kannada", "format": "2D"}
+            "/films/ramayana-part-1/shows", params={"language": "Kannada", "format": "2D"}
         )
         assert listing.status_code == 200 and listing.json()["language"] == "Kannada"
 

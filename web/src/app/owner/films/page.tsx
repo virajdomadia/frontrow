@@ -28,7 +28,7 @@ export default async function OwnerFilmsPage() {
               <div className="grid content-start gap-1.5">
                 <h2 className="font-cond text-xl leading-none font-bold uppercase">{f.title}</h2>
                 <p className="text-xs text-ink-2">
-                  {f.cert} · {duration(f.runtime_min)} · {f.genres.join(", ")}
+                  {f.cert ?? "Not yet certified"} · {duration(f.runtime_min)} · {f.genres.join(", ")}
                 </p>
                 <p className="text-xs text-ink-3">
                   {f.languages.join(", ")} · {f.formats.join(" / ")}

@@ -1,7 +1,8 @@
 # Migrates and seeds the production database — run it by hand (Actions → seed → Run workflow).
 # No schedule: since the movies re-plan (B1) the seeded cinemas have open-ended schedules whose
 # shows materialise 14 days ahead on read, so the catalogue never empties without a cron. The seed
-# is idempotent and never deletes shows, so re-running it is safe.
+# is idempotent and never deletes shows of current films, so re-running it is safe; it retires the
+# films in content.RETIRED_FILMS (their unbooked shows go; ones a real visitor holds tickets for stay).
 # Runs on GitHub's runner (free for a public repo) — no Vercel compute. Needs repo secret DATABASE_URL
 # (the same Neon URL as the frontrow-api project; app.db.asyncpg_url converts it).
 name: seed

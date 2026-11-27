@@ -19,13 +19,13 @@ Roles: **Customer**, **Theatre owner** (a business with one or more cinemas), **
 
 **R2. Look and catalogue that never empties** [B1]
 - Paper pages, oxblood header with the torn-stub edge, Box office style otherwise unchanged; landing page written for movies.
-- Seed: 3 cinema businesses, their cinemas and screens, 8 fictional films with CC photos; shows come from repeating schedules, generated lazily so the next 14 days always exist (no cron, no manual reseed).
+- Seed: 3 cinema businesses, their cinemas and screens, 11 real films (Hindi and Hollywood, in cinemas late Nov 2026 – Jan 2027) with their real release dates and CBFC certificates and original typographic posters; shows come from repeating schedules, generated lazily so the next 14 days always exist (no cron, no manual reseed); a coming-soon film gets shows from its release date and turns now-showing that day.
 - **Accept:** prod shows films on sale today and a month later without a reseed.
 
 ### Customer
 **R3. Home, search, movie page** [B3]
 - Home: Now showing, search by film title.
-- Movie page: poster, banner, synopsis, cast and crew, certificate (U / UA / A), runtime, genres, trailer link, Book tickets.
+- Movie page: poster, banner, synopsis, cast and crew, certificate (U / UA 7+ / UA 13+ / UA 16+ / A, or not yet certified), runtime, genres, trailer link, Book tickets.
 - **Accept:** a search finds a film by title; the page renders at 390 and 1440 px.
 
 **R4. Language, format, showtimes** [B4]

@@ -22,7 +22,7 @@ A BookMyShow-style movie ticketing marketplace for Bengaluru. Cinemas list their
 
 ## Locked decisions
 1. **Movies only.** No concerts, plays or events. Venue layouts: cinema grid, and stalls + balcony for older single screens. No arena.
-2. **Bengaluru only, no city step.** Fictional films with CC photos from Wikimedia Commons (no real posters).
+2. **Bengaluru only, no city step.** Real films in Indian cinemas (Hindi plus Hollywood with its Indian dubs; changed from fictional films on 27 Nov 2026), shown at fictional cinemas with fictional prices and bookings. No studio posters, stills or trailers: each film gets an original typographic poster and our own one-line synopsis.
 3. **A marketplace with three roles.** Theatre owners self-serve (BookMyShow does this through contracts and box-office software; Frontrow does it in the product). New businesses are verified once by staff before going public.
 4. **Shared film catalogue.** Staff create every film once; theatre owners pick films and add shows; owners request missing films. One page per film lists every cinema showing it.
 5. **Customer flow = BookMyShow's**, with three changes: an email code instead of a phone OTP, no city step, and no add-ons (no food, donation, offers or coupons).

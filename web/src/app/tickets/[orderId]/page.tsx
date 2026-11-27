@@ -145,7 +145,7 @@ export default async function TicketsPage({ params }: Props) {
                     Ticket {i + 1} of {tickets.length}
                   </span>
                   <span>{duration(st.film.runtime_min)}</span>
-                  <span>Rated {st.film.cert}</span>
+                  <span>{st.film.cert ? `Rated ${st.film.cert}` : "Not yet certified"}</span>
                   <span className="font-mono">#{t.id.slice(0, 8).toUpperCase()}</span>
                 </p>
               </div>

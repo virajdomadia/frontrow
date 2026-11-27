@@ -736,13 +736,24 @@
             "title": "Banner Url"
           },
           "cert": {
-            "enum": [
-              "U",
-              "UA",
-              "A"
+            "anyOf": [
+              {
+                "enum": [
+                  "U",
+                  "UA",
+                  "UA 7+",
+                  "UA 13+",
+                  "UA 16+",
+                  "A"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Cert",
-            "type": "string"
+            "description": "CBFC certificate; null = not yet certified.",
+            "title": "Cert"
           },
           "formats": {
             "items": {
@@ -792,8 +803,16 @@
             "type": "string"
           },
           "runtime_min": {
-            "title": "Runtime Min",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Minutes; null = not announced yet.",
+            "title": "Runtime Min"
           },
           "show_count": {
             "description": "Bookable shows in the next 14 days.",
@@ -858,13 +877,24 @@
             "type": "array"
           },
           "cert": {
-            "enum": [
-              "U",
-              "UA",
-              "A"
+            "anyOf": [
+              {
+                "enum": [
+                  "U",
+                  "UA",
+                  "UA 7+",
+                  "UA 13+",
+                  "UA 16+",
+                  "A"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Cert",
-            "type": "string"
+            "description": "CBFC certificate; null = not yet certified.",
+            "title": "Cert"
           },
           "formats": {
             "items": {
@@ -914,8 +944,16 @@
             "type": "string"
           },
           "runtime_min": {
-            "title": "Runtime Min",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Minutes; null = not announced yet.",
+            "title": "Runtime Min"
           },
           "show_count": {
             "description": "Bookable shows in the next 14 days.",
@@ -991,7 +1029,7 @@
           "banner_url": {
             "anyOf": [
               {
-                "pattern": "^/img/posters/[a-z0-9-]+\\.jpg$",
+                "pattern": "^/img/posters/[a-z0-9-]+\\.(jpg|png)$",
                 "type": "string"
               },
               {
@@ -1010,13 +1048,24 @@
             "type": "array"
           },
           "cert": {
-            "enum": [
-              "U",
-              "UA",
-              "A"
+            "anyOf": [
+              {
+                "enum": [
+                  "U",
+                  "UA",
+                  "UA 7+",
+                  "UA 13+",
+                  "UA 16+",
+                  "A"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Cert",
-            "type": "string"
+            "description": "Null: not yet certified.",
+            "title": "Cert"
           },
           "formats": {
             "items": {
@@ -1055,7 +1104,7 @@
             "type": "array"
           },
           "poster_url": {
-            "pattern": "^/img/posters/[a-z0-9-]+\\.jpg$",
+            "pattern": "^/img/posters/[a-z0-9-]+\\.(jpg|png)$",
             "title": "Poster Url",
             "type": "string"
           },
@@ -1078,10 +1127,18 @@
             "title": "Request Id"
           },
           "runtime_min": {
-            "maximum": 240.0,
-            "minimum": 40.0,
-            "title": "Runtime Min",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 240.0,
+                "minimum": 40.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null: not announced.",
+            "title": "Runtime Min"
           },
           "status": {
             "enum": [
@@ -1121,8 +1178,6 @@
           "title",
           "synopsis",
           "cast_crew",
-          "runtime_min",
-          "cert",
           "genres",
           "languages",
           "formats",
@@ -1893,21 +1948,38 @@
       "OrderFilm": {
         "properties": {
           "cert": {
-            "enum": [
-              "U",
-              "UA",
-              "A"
+            "anyOf": [
+              {
+                "enum": [
+                  "U",
+                  "UA",
+                  "UA 7+",
+                  "UA 13+",
+                  "UA 16+",
+                  "A"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Cert",
-            "type": "string"
+            "title": "Cert"
           },
           "poster_url": {
             "title": "Poster Url",
             "type": "string"
           },
           "runtime_min": {
-            "title": "Runtime Min",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Min"
           },
           "slug": {
             "title": "Slug",
@@ -2833,13 +2905,23 @@
       "ShowFilm": {
         "properties": {
           "cert": {
-            "enum": [
-              "U",
-              "UA",
-              "A"
+            "anyOf": [
+              {
+                "enum": [
+                  "U",
+                  "UA",
+                  "UA 7+",
+                  "UA 13+",
+                  "UA 16+",
+                  "A"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Cert",
-            "type": "string"
+            "title": "Cert"
           },
           "genres": {
             "items": {
@@ -2858,8 +2940,15 @@
             "type": "string"
           },
           "runtime_min": {
-            "title": "Runtime Min",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Min"
           },
           "slug": {
             "title": "Slug",
@@ -2894,8 +2983,15 @@
             "type": "string"
           },
           "runtime_min": {
-            "title": "Runtime Min",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Min"
           },
           "slug": {
             "title": "Slug",
@@ -3201,13 +3297,24 @@
             "type": "array"
           },
           "cert": {
-            "enum": [
-              "U",
-              "UA",
-              "A"
+            "anyOf": [
+              {
+                "enum": [
+                  "U",
+                  "UA",
+                  "UA 7+",
+                  "UA 13+",
+                  "UA 16+",
+                  "A"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Cert",
-            "type": "string"
+            "description": "CBFC certificate; null = not yet certified.",
+            "title": "Cert"
           },
           "created_at": {
             "format": "date-time",
@@ -3262,8 +3369,16 @@
             "type": "string"
           },
           "runtime_min": {
-            "title": "Runtime Min",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Minutes; null = not announced yet.",
+            "title": "Runtime Min"
           },
           "scheduled_shows": {
             "description": "Upcoming shows across every cinema.",

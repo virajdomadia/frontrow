@@ -9,8 +9,15 @@ class SessionKind(StrEnum):
 
 
 class Cert(StrEnum):
+    """CBFC certificates. Since 2024 U/A carries an age band (7+, 13+, 16+); plain "UA" is the
+    older certificate, kept for films certified before then. A film with no certificate yet has
+    `cert` null ("not yet certified")."""
+
     U = "U"
     UA = "UA"
+    UA7 = "UA 7+"
+    UA13 = "UA 13+"
+    UA16 = "UA 16+"
     A = "A"
 
 

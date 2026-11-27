@@ -1,6 +1,8 @@
 # Seed photo credits
 
-Every photo under `web/public/img/` is from Wikimedia Commons under a CC licence (or public domain), downscaled to 1400 px. Films and cinemas are fictional; these photos stand in for posters and hall imagery. Add photos only through `api/scripts/fetch_photo.py`, which checks the licence and appends the row.
+Every photo under `web/public/img/` is from Wikimedia Commons under a CC licence (or public domain), downscaled to 1400 px. Cinemas are fictional; these photos stand in for hall imagery. Add photos only through `api/scripts/fetch_photo.py`, which checks the licence and appends the row.
+
+The film posters in use (`posters/*.png`) are not photos: the catalogue is real films, so each poster is original typographic art drawn by `api/scripts/make_posters.py` (Barlow Condensed, SIL Open Font Licence) with no studio artwork. The `posters/*.jpg` photos below belonged to the first, fictional catalogue; they stay only so tickets a visitor still holds for those retired films keep their image.
 
 | File | Title | Licence | Artist | Link |
 |---|---|---|---|---|

@@ -12,17 +12,19 @@ from tests.helpers import code_sign_in, demo, tab
 pytestmark = [pytest.mark.db, pytest.mark.redis]
 
 STAFF = "boss@frontrow.example"
+# Answers the seeded request for it. Not certified and no runtime yet: both may be left out.
 FILM = {
-    "title": "Kaveri Express",
-    "synopsis": "Two strangers share the last seats on a night bus from Mysuru to Bengaluru.",
-    "cast_crew": [{"name": "Hamsa Rao", "role": "Director"}, {"name": "Dev Nair", "role": "Actor"}],
-    "runtime_min": 121,
-    "cert": "U",
-    "genres": ["Drama"],
-    "languages": ["Kannada"],
-    "formats": ["2D"],
-    "poster_url": "/img/posters/glass-city.jpg",
-    "release_date": "2026-12-01",
+    "title": "Jumanji: Open World",
+    "synopsis": "The players are pulled back into the game for one more adventure.",
+    "cast_crew": [
+        {"name": "Jake Kasdan", "role": "Director"},
+        {"name": "Dwayne Johnson", "role": "Actor"},
+    ],
+    "genres": ["Adventure", "Comedy"],
+    "languages": ["English", "Hindi", "Tamil", "Telugu"],
+    "formats": ["2D", "3D"],
+    "poster_url": "/img/posters/king.png",
+    "release_date": "2026-12-25",
     "status": "coming_soon",
 }
 
@@ -33,38 +35,43 @@ async def test_catalogue_and_requests(db_engine: AsyncEngine, db_app: FastAPI) -
         await code_sign_in(db_app, staff, STAFF, door="staff", name=None)
         await demo(owner, "owner")
         counts = (await staff.get("/staff/counts")).json()
-        assert counts == {"pending_businesses": 1, "open_requests": 2, "films": 8}
+        assert counts == {"pending_businesses": 1, "open_requests": 2, "films": 11}
 
         films = (await staff.get("/staff/films")).json()
-        assert len(films) == 8 and films[0]["status"] == "now_showing"
+        assert len(films) == 11 and films[0]["status"] == "now_showing"
         assert any(f["scheduled_shows"] > 0 for f in films)
 
         requests = (await staff.get("/staff/film-requests", params={"status": "open"})).json()
-        kaveri = next(r for r in requests if r["title"] == "Kaveri Express")
-        assert kaveri["business"]["name"] == "Orbit Cinemas"
+        jumanji = next(r for r in requests if r["title"] == "Jumanji: Open World")
+        assert jumanji["business"]["name"] == "Orbit Cinemas"
 
         bad = await staff.post(
             "/staff/films", json={**FILM, "poster_url": "https://evil.example/x.jpg"}
         )
         assert bad.status_code == 422
-        made = await staff.post("/staff/films", json={**FILM, "request_id": kaveri["id"]})
+        bad_cert = await staff.post("/staff/films", json={**FILM, "cert": "PG-13"})
+        assert bad_cert.status_code == 422
+        made = await staff.post("/staff/films", json={**FILM, "request_id": jumanji["id"]})
         assert made.status_code == 201, made.text
         film = made.json()
-        assert film["slug"] == "kaveri-express" and film["status"] == "coming_soon"
+        assert film["slug"] == "jumanji-open-world" and film["status"] == "coming_soon"
+        assert film["cert"] is None and film["runtime_min"] is None
 
         # The owner sees the request answered with the film linked.
         mine = (await owner.get("/owner/film-requests")).json()
-        answered = next(r for r in mine if r["title"] == "Kaveri Express")
-        assert answered["status"] == "added" and answered["film"]["slug"] == "kaveri-express"
+        answered = next(r for r in mine if r["title"] == "Jumanji: Open World")
+        assert answered["status"] == "added" and answered["film"]["slug"] == "jumanji-open-world"
 
         # Now showing → it can be scheduled and shows on home once it has shows.
         edited = await staff.patch(
-            f"/staff/films/{film['id']}", json={**FILM, "status": "now_showing", "runtime_min": 125}
+            f"/staff/films/{film['id']}",
+            json={**FILM, "status": "now_showing", "runtime_min": 125, "cert": "UA 7+"},
         )
-        assert edited.status_code == 200 and edited.json()["runtime_min"] == 125
+        assert edited.status_code == 200, edited.text
+        assert edited.json()["runtime_min"] == 125 and edited.json()["cert"] == "UA 7+"
 
         # Decline needs a reason.
-        other = next(r for r in requests if r["title"] == "Monsoon Letters")
+        other = next(r for r in requests if r["title"] == "Gunmaaster G9")
         no_reason = await staff.patch(
             f"/staff/film-requests/{other['id']}", json={"action": "decline"}
         )
@@ -101,7 +108,7 @@ async def test_approvals(db_engine: AsyncEngine, db_app: FastAPI) -> None:
             f"/staff/businesses/{pending['id']}", json={"action": "approve"}
         )
         assert approved.json()["status"] == "verified" and approved.json()["verified_at"]
-        home = (await staff.get("/films/the-last-dune")).json()
+        home = (await staff.get("/films/yeh-prem-mol-liya")).json()
         assert home["show_count"] > 0
 
     async with tab(db_app) as customer:

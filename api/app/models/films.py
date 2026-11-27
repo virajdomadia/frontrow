@@ -21,8 +21,8 @@ class Film(UuidMixin, CreatedMixin, Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     synopsis: Mapped[str] = mapped_column(Text, nullable=False)
     cast_crew: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)  # name, role
-    runtime_min: Mapped[int] = mapped_column(Integer, nullable=False)
-    cert: Mapped[Cert] = mapped_column(pg_enum(Cert, "cert"), nullable=False)
+    runtime_min: Mapped[int | None] = mapped_column(Integer)  # null: not announced yet
+    cert: Mapped[Cert | None] = mapped_column(pg_enum(Cert, "cert"))  # null: not yet certified
     genres: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
     languages: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
     formats: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)

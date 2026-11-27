@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CERT_NOTE, CertBadge, FillBadge } from "@/components/movies/badges";
+import { CertBadge, certNote, FillBadge } from "@/components/movies/badges";
 import { indexLayout, statusOf, tierPalette } from "@/components/seat-map/core";
 import { SeatMap, type SeatLook } from "@/components/seat-map/SeatMap";
 import { useCountdown } from "@/components/seat-map/useCountdown";
@@ -314,7 +314,7 @@ export function BookingView({ show, layout, snapshot: initial }: { show: ShowDet
       <HowMany
         open={asking}
         cert={show.film.cert}
-        certNote={CERT_NOTE[show.film.cert]}
+        certNote={certNote(show.film.cert)}
         title={show.film.title}
         initial={count ?? 2}
         max={MAX_SEATS}

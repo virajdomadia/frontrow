@@ -12,7 +12,8 @@ export type ShowSlot = S["ShowSlot"];
 export type Version = S["Version"];
 export type Home = S["Home"];
 export type Fill = ShowSlot["fill"];
-export type Cert = FilmCard["cert"];
+/** A CBFC certificate. Films not yet certified have `cert: null`. */
+export type Cert = NonNullable<FilmCard["cert"]>;
 export type CastMember = S["CastMember"];
 
 // Seat map + booking

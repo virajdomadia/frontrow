@@ -159,7 +159,7 @@ def card(film: Film, slots: list[Slot]) -> FilmCard:
         id=film.id,
         slug=film.slug,
         title=film.title,
-        cert=film.cert.value,  # type: ignore[arg-type]
+        cert=film.cert.value if film.cert else None,  # type: ignore[arg-type]
         runtime_min=film.runtime_min,
         genres=list(film.genres),
         languages=list(film.languages),

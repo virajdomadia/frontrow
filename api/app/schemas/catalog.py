@@ -10,7 +10,7 @@ from pydantic import Field
 from app.schemas import ApiModel
 
 Fill = Literal["available", "filling", "sold_out"]
-Cert = Literal["U", "UA", "A"]
+Cert = Literal["U", "UA", "UA 7+", "UA 13+", "UA 16+", "A"]
 FilmStatus = Literal["coming_soon", "now_showing", "ended"]
 
 
@@ -23,8 +23,8 @@ class FilmCard(ApiModel):
     id: UUID
     slug: str
     title: str
-    cert: Cert
-    runtime_min: int
+    cert: Cert | None = Field(description="CBFC certificate; null = not yet certified.")
+    runtime_min: int | None = Field(description="Minutes; null = not announced yet.")
     genres: list[str]
     languages: list[str]
     formats: list[str]

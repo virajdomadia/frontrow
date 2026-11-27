@@ -5,7 +5,7 @@ import { googleCalendarUrl, ics, icsText, icsTime } from "../src/lib/calendar.ts
 
 const entry = {
   uid: "order-1",
-  title: "Midnight Brass",
+  title: "Yeh Prem Mol Liya",
   start: "2026-11-28T14:00:00.000Z",
   end: "2026-11-28T15:45:00.000Z",
   location: "Cadence Hall, 80 Feet Road, Koramangala",
@@ -32,5 +32,5 @@ test("the .ics has one event with a 2-hour reminder, CRLF line ends", () => {
 test("the Google link carries the same window", () => {
   const url = new URL(googleCalendarUrl(entry));
   assert.equal(url.searchParams.get("dates"), "20261128T140000Z/20261128T154500Z");
-  assert.equal(url.searchParams.get("text"), "Midnight Brass");
+  assert.equal(url.searchParams.get("text"), "Yeh Prem Mol Liya");
 });
