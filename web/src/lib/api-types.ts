@@ -586,6 +586,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/shows/{show_id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream Seats
+         * @description Server-sent events: `snapshot` (a `SeatState`) at once and after every hold, release,
+         *     sale or lapse; `closed` if the show is cancelled. Ends after a few minutes; EventSource
+         *     reconnects on its own.
+         */
+        get: operations["stream_seats_shows__show_id__stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/businesses": {
         parameters: {
             query?: never;
@@ -3599,6 +3621,44 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SeatState"];
                 };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    stream_seats_shows__show_id__stream_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `snapshot` events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description No live updates right now: poll `/seats` */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error envelope (06 §C) */
             default: {

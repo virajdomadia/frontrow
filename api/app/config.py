@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     test_redis_url: SecretStr | None = None
     hold_ttl_seconds: int = 600  # 10 minutes (R4); tests shorten it
     holds_per_minute: int = 30  # rate limit per holder (06 §B)
+    stream_seconds: int = 240  # one live seat stream, inside Vercel Hobby's 300 s function limit
 
     # --- Payments (Razorpay test mode) — F5 ---
     razorpay_key_id: str | None = None

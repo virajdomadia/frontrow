@@ -7,6 +7,12 @@ in the same slot):
     fr:holds:{st}         hash seat → "holder|net|expires_ms" — snapshot mirror, lazily cleaned
     fr:st:{st}:v          int, INCR on every hold / release / sale
     fr:rl:holds:{holder}  int, 60 s window                 — rate limit
+    fr:live:{st}          pub/sub channel: "h" holds changed, "s" sold/blocked changed,
+                          "x" show closed — the live seat stream (L1) wakes on it
+
+Every script that bumps the version also publishes, so a seat map never has to ask "anything
+new?": a hold, release or sale reaches open maps in one round trip, and an idle show costs
+nothing. Expiry is a TTL, so it bumps nothing; the stream wakes for the next deadline itself.
 
 A holder is the anonymous `fr_sid` cookie (or a bearer session's sid), so a visitor can hold
 before signing in and keep the seats when they do.
@@ -49,6 +55,14 @@ def hash_key(showtime_id: uuid.UUID | str) -> str:
 
 def version_key(showtime_id: uuid.UUID | str) -> str:
     return f"fr:st:{{{showtime_id}}}:v"
+
+
+def channel(showtime_id: uuid.UUID | str) -> str:
+    return f"fr:live:{{{showtime_id}}}"
+
+
+# KEYS[1] is `fr:holds:{st}` — 9 characters of prefix, then the `{st}` the channel shares.
+PUB = "redis.call('PUBLISH', 'fr:live:' .. string.sub(KEYS[1], 10), {msg})"
 
 
 # KEYS = hash, version, hold keys…; ARGV = holder, ttl_ms, now_ms, net, max per holder,
@@ -95,9 +109,12 @@ for _, i in ipairs(fresh) do
   redis.call('SET', KEYS[i], holder, 'PX', left)
   redis.call('HSET', KEYS[1], ARGV[i + 4], holder .. '|' .. net .. '|' .. expires)
 end
-if #fresh > 0 then redis.call('INCR', KEYS[2]) end
+if #fresh > 0 then
+  redis.call('INCR', KEYS[2])
+  PUBLISH_H
+end
 return {1, expires}
-"""
+""".replace("PUBLISH_H", PUB.format(msg="'h'"))
 
 # KEYS = hash, version, hold keys…; ARGV = holder, seat ids… — compare-and-delete.
 RELEASE = """
@@ -114,9 +131,12 @@ for i = 3, #KEYS do
     redis.call('HDEL', KEYS[1], seat)
   end
 end
-if n > 0 then redis.call('INCR', KEYS[2]) end
+if n > 0 then
+  redis.call('INCR', KEYS[2])
+  PUBLISH_H
+end
 return n
-"""
+""".replace("PUBLISH_H", PUB.format(msg="'h'"))
 
 # KEYS = hash, version, hold keys…; ARGV = seat ids… — a sale: the seat is gone for everyone.
 CLEAR = """
@@ -125,8 +145,9 @@ for i = 3, #KEYS do
   redis.call('HDEL', KEYS[1], ARGV[i - 2])
 end
 redis.call('INCR', KEYS[2])
+PUBLISH_S
 return 1
-"""
+""".replace("PUBLISH_S", PUB.format(msg="'s'"))
 
 # KEYS = hash; ARGV = seat, value, seat, value… — drop mirror entries that are still the stale
 # value we read (a fresh hold written in between is left alone).

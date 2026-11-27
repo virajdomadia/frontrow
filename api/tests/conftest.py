@@ -130,6 +130,7 @@ async def db_app(app: FastAPI, db_engine: AsyncEngine) -> AsyncIterator[FastAPI]
             yield session
 
     app.dependency_overrides[get_session] = override
+    app.state.session_factory = factory  # db.side_session
     try:
         yield app
     finally:

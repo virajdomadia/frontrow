@@ -7,6 +7,7 @@ back, so a test app with no URL stays offline even when the developer's `.env.lo
 """
 
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import Request
@@ -64,6 +65,16 @@ async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
     """FastAPI dependency: one session per request, rolled back unless the service committed."""
     settings: Settings = request.app.state.settings
     async with session_factory(settings)() as session:
+        yield session
+
+
+@asynccontextmanager
+async def side_session(request: Request) -> AsyncIterator[AsyncSession]:
+    """A short session apart from the request's own, for a long response (the live seat stream)
+    that must not pin a pooled connection between reads. Tests point `app.state.session_factory`
+    at their database."""
+    factory = getattr(request.app.state, "session_factory", None)
+    async with (factory or session_factory(request.app.state.settings))() as session:
         yield session
 
 

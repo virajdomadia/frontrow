@@ -100,6 +100,9 @@ p{margin:0}
 @keyframes sm-drop{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
 /* A seat you just took pulses once (the hold moment). */
 .sm-seat.mine{animation:sm-take .45s ease-out}
+/* L1: a seat someone else just took or freed rings once, so the change is seen, not just there. */
+.sm-seat.sm-ripple{animation:sm-ripple .7s ease-out}
+@keyframes sm-ripple{0%{stroke:var(--amber);stroke-width:7;stroke-opacity:.9;transform:scale(1.3)}100%{stroke:var(--amber);stroke-width:0;stroke-opacity:0;transform:none}}
 @keyframes sm-take{0%{transform:scale(.8)}60%{transform:scale(1.22)}100%{transform:none}}
 
 /* Pay → ticket, the signature (04-ui-mockups): the stub tears along its perforation and falls;
@@ -113,7 +116,7 @@ p{margin:0}
 @keyframes tk-qr{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
 
 @media (prefers-reduced-motion:reduce){
-  .sm-toast,.sm-seat.mine,.tk-rise,.tk-qr{animation:none}
+  .sm-toast,.sm-seat.mine,.sm-seat.sm-ripple,.tk-rise,.tk-qr{animation:none}
   .tk-tear{animation:tk-fade .3s linear forwards}
   .sm-row,.sm-stub,.sm-sheet{animation:none}
   .sm-seat,.sm-section polygon,.sm-section rect,.sm-section-label,.sm-seat-tag{transition:none}

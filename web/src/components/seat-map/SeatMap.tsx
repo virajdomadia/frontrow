@@ -76,6 +76,8 @@ type Props = {
   palette: Record<string, TierToken>;
   /** "Prime ₹320" per tier key — for seat labels. */
   tierText: Record<string, string>;
+  /** Seats someone else just took or let go (L1): each gets one ripple. A new object replays. */
+  ripple?: { ids: string[] } | null;
   className?: string;
 };
 
@@ -89,7 +91,7 @@ type Props = {
  * focusable button (Enter zooms in and puts focus on a seat there); Page Up / Page Down jump
  * between sections from any seat.
  */
-export function SeatMap({ index, lookOf, onToggle, palette, tierText, className }: Props) {
+export function SeatMap({ index, lookOf, onToggle, palette, tierText, ripple, className }: Props) {
   const { layout } = index;
   const content = layoutBox(layout);
   const wrap = useRef<HTMLDivElement>(null);
@@ -310,6 +312,18 @@ export function SeatMap({ index, lookOf, onToggle, palette, tierText, className 
   };
 
   const isFree = (id: string) => lookOf(id) === "free";
+
+  // Straight on the DOM, so a ripple never re-renders a row; React keeps the seat's own classes.
+  useEffect(() => {
+    for (const id of ripple?.ids ?? []) {
+      const el = svg.current?.querySelector<SVGElement>(`[data-id="${id}"]`);
+      if (!el) continue;
+      el.classList.remove("sm-ripple");
+      void el.getBoundingClientRect(); // restart the animation if it is still running
+      el.classList.add("sm-ripple");
+      el.addEventListener("animationend", () => el.classList.remove("sm-ripple"), { once: true });
+    }
+  }, [ripple]);
 
   // Focusing the seat is enough: `onFocus` reveals it, which zooms into its section if needed.
   const focusSeat = (id: string) => {

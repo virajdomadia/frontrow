@@ -5522,6 +5522,48 @@
         ]
       }
     },
+    "/shows/{show_id}/stream": {
+      "get": {
+        "description": "Server-sent events: `snapshot` (a `SeatState`) at once and after every hold, release,\nsale or lapse; `closed` if the show is cancelled. Ends after a few minutes; EventSource\nreconnects on its own.",
+        "operationId": "stream_seats_shows__show_id__stream_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "`snapshot` events"
+          },
+          "503": {
+            "description": "No live updates right now: poll `/seats`"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Stream Seats",
+        "tags": [
+          "seat map"
+        ]
+      }
+    },
     "/staff/businesses": {
       "get": {
         "operationId": "businesses_staff_businesses_get",

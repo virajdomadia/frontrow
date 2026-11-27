@@ -33,14 +33,15 @@ sequenceDiagram
   API->>R: same Lua — F7 belongs to A
   API-->>B: 409 seat_taken {taken: [F7]}
   Note over B: toast "F7 was just taken", seat greys
-  B->>API: GET /shows/7/seats (every 5 s)
-  API->>R: HGETALL holds:{7} + GET st:{7}:v
+  Note over R: the Lua also PUBLISHes on live:{7}
+  R-->>API: B's open stream (GET /shows/7/stream) wakes
+  API-->>B: SSE snapshot: F6, F7 held (B's map greys them)
   A->>API: POST /orders → Razorpay → verify / webhook
   API->>PG: one tx: INSERT tickets (UNIQUE show_id, seat_id) · order paid
   API->>R: DEL holds · INCR version
 ```
 
-- **Holds live only in Redis** (`api/app/services/holds.py`). One Lua script checks every requested `hold:{show}:{seat}` key and sets them all or none, so there is no window between check and set. One holder's seats share one deadline: the clock starts at the first tap. A `holds:{show}` hash mirrors them for a one-round-trip snapshot, and `st:{show}:v` counts every change (v2's stream diffs on it). Holds are keyed on an anonymous `fr_sid` cookie, so a visitor can hold before signing in and keeps the seats after.
+- **Holds live only in Redis** (`api/app/services/holds.py`). One Lua script checks every requested `hold:{show}:{seat}` key and sets them all or none, so there is no window between check and set. One holder's seats share one deadline: the clock starts at the first tap. A `holds:{show}` hash mirrors them for a one-round-trip snapshot, and `st:{show}:v` counts every change. Every script that changes a hold also publishes on `live:{show}`, and open seat maps listen on a server-sent-event stream that wakes only for a publish or the next hold deadline: a change reaches every open map in well under a second, and a quiet hall costs no Redis commands. Without the stream (no Redis, an old browser, a proxy that buffers) the map polls `GET /shows/{id}/seats` every 5 s. Holds are keyed on an anonymous `fr_sid` cookie, so a visitor can hold before signing in and keeps the seats after.
 - **Sales live only in Postgres.** `tickets` has `UNIQUE (show_id, seat_id)`; confirming an order inserts its tickets in one transaction under a row lock on the order. Redis is the fast path, Postgres is the guard: even if a hold lapses mid-payment, a seat cannot be sold twice.
 - **Payments are idempotent.** The Checkout `verify` call, the Razorpay webhook (HMAC-checked, deduplicated by event id) and the demo payment all call the same `confirm()`; whichever lands first issues tickets, the rest are no-ops.
 - **Paid after the hold expired:** seats still free → sold anyway; someone else bought one meanwhile → the insert hits the unique constraint, the payment is refunded through Razorpay and the order shows "refunded — seat sold".
