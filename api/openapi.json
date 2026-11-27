@@ -651,6 +651,31 @@
         "title": "CodeRequest",
         "type": "object"
       },
+      "CounterSaleIn": {
+        "description": "L4: a box-office sale paid in cash. `idempotency_key` is made by the till once per sale\nand sent again on a retry.",
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9_-]{8,64}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "seat_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Seat Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seat_ids",
+          "idempotency_key"
+        ],
+        "title": "CounterSaleIn",
+        "type": "object"
+      },
       "CreateOrder": {
         "properties": {
           "seat_ids": {
@@ -2558,6 +2583,14 @@
           "language": {
             "title": "Language",
             "type": "string"
+          },
+          "prices": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Tier key → paise, for the box office (L4).",
+            "title": "Prices",
+            "type": "object"
           },
           "public": {
             "description": "Customers can see it (business verified, film showing).",
@@ -5773,6 +5806,62 @@
           }
         },
         "summary": "Bookings",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
+    "/owner/shows/{show_id}/counter-orders": {
+      "post": {
+        "description": "Sell seats at the box office, paid in cash: tickets at once, one QR per seat for the\ndoor. Same guards as an online sale; a retried key returns the first sale.",
+        "operationId": "counter_sale_owner_shows__show_id__counter_orders_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CounterSaleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketBundle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "`seat_taken`, `seat_held`, or `idempotency_conflict`"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Counter Sale",
         "tags": [
           "theatre owner"
         ]

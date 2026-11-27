@@ -13,10 +13,24 @@ from datetime import datetime, timedelta
 from redis.asyncio import Redis
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ApiError
-from app.models import BlockedSeat, Business, Cinema, Film, Order, OrderSeat, Screen, Show, User
+from app.models import (
+    BlockedSeat,
+    Business,
+    Cinema,
+    Film,
+    Order,
+    OrderSeat,
+    Screen,
+    Seat,
+    Show,
+    ShowPrice,
+    Ticket,
+    User,
+)
 from app.models.enums import OrderChannel, OrderStatus, ShowStatus
 from app.schemas.owner import OwnerToday, RecentOrder
 from app.services import holds
@@ -117,6 +131,35 @@ async def block(
     show, _ = await own_show_row(db, business, show_id)
     _open(show, now)
     ids = await check_seats(db, show, seat_ids)
+    await _not_busy(db, redis, show, ids, holder=holder, now=now)
+    await show_lock(db, show.id)
+    sold, _ = await taken_seats(db, show.id)
+    gone = set(sold) & set(ids)
+    if gone:
+        raise ApiError(
+            "seat_taken", "That seat is sold", status=409, details={"taken": sorted(gone)}
+        )
+    await db.execute(
+        insert(BlockedSeat)
+        .values([{"show_id": show.id, "seat_id": uuid.UUID(i), "reason": reason} for i in ids])
+        .on_conflict_do_nothing()
+    )
+    await db.commit()
+    await holds.announce(redis, show.id, "s")
+    return ids
+
+
+async def _not_busy(
+    db: AsyncSession,
+    redis: Redis | None,
+    show: Show,
+    ids: list[str],
+    *,
+    holder: str | None,
+    now: datetime,
+) -> None:
+    """409 `seat_held` for a seat a customer is holding, or paying for: a block or a counter
+    sale must not pull it from under them (they would only be refunded)."""
     live = await holds.snapshot(redis, show.id, holder, now=now)
     busy = {h.seat_id for h in live.others} & set(ids)
     # A hold lapses at 10 minutes but checkout stays open for 15: don't block a seat someone may
@@ -139,21 +182,6 @@ async def block(
             "seat_held", "A customer is holding or paying for that seat right now", status=409,
             details={"taken": sorted(busy | paying)},
         )  # fmt: skip
-    await show_lock(db, show.id)
-    sold, _ = await taken_seats(db, show.id)
-    gone = set(sold) & set(ids)
-    if gone:
-        raise ApiError(
-            "seat_taken", "That seat is sold", status=409, details={"taken": sorted(gone)}
-        )
-    await db.execute(
-        insert(BlockedSeat)
-        .values([{"show_id": show.id, "seat_id": uuid.UUID(i), "reason": reason} for i in ids])
-        .on_conflict_do_nothing()
-    )
-    await db.commit()
-    await holds.announce(redis, show.id, "s")
-    return ids
 
 
 async def unblock(
@@ -178,3 +206,104 @@ async def unblock(
     )
     await db.commit()
     await holds.announce(redis, show.id, "s")
+
+
+async def counter_sale(
+    db: AsyncSession,
+    redis: Redis | None,
+    business: Business,
+    cashier: User,
+    show_id: str,
+    seat_ids: list[str],
+    key: str,
+    *,
+    holder: str | None,
+    now: datetime,
+) -> Order:
+    """A walk-in paid in cash (L4): a paid order with tickets, all or none, under the same per-show
+    lock and `UNIQUE (show_id, seat_id)` as an online sale, so online and counter can never sell
+    one seat twice. No convenience fee. `key` comes from the till: the same key again (a retry,
+    a double tap) returns the first sale; the same key for other seats is a 409."""
+    show, _ = await own_show_row(db, business, show_id)
+    ids = await check_seats(db, show, seat_ids)
+
+    async def same_sale() -> Order | None:
+        found = await db.scalar(select(Order).where(Order.idempotency_key == key))
+        if found is None:
+            return None
+        seats = {
+            str(s)
+            for s in await db.scalars(
+                select(OrderSeat.seat_id).where(OrderSeat.order_id == found.id)
+            )
+        }
+        if found.show_id != show.id or seats != set(ids):
+            raise ApiError(
+                "idempotency_conflict", "That sale key was already used for other seats",
+                status=409,
+            )  # fmt: skip
+        return found
+
+    if (found := await same_sale()) is not None:
+        return found  # a replay works even once the show has started
+    _open(show, now)
+    await _not_busy(db, redis, show, ids, holder=holder, now=now)
+    await show_lock(db, show.id)
+    if (found := await same_sale()) is not None:  # a double tap that waited on the lock
+        await db.commit()
+        return found
+    sold, blocked = await taken_seats(db, show.id)
+    gone = (set(sold) | set(blocked)) & set(ids)
+    if gone:
+        raise ApiError(
+            "seat_taken", "That seat isn't available", status=409,
+            details={"taken": sorted(gone)},
+        )  # fmt: skip
+    prices = {
+        p.tier_key: p.price_paise
+        for p in await db.scalars(select(ShowPrice).where(ShowPrice.show_id == show.id))
+    }
+    seats = list(await db.scalars(select(Seat).where(Seat.id.in_([uuid.UUID(i) for i in ids]))))
+    subtotal = sum(prices[s.tier_key] for s in seats)
+    order = Order(
+        user_id=cashier.id,
+        sid=f"counter:{cashier.id}",
+        show_id=show.id,
+        channel=OrderChannel.COUNTER,
+        status=OrderStatus.PAID,
+        subtotal_paise=subtotal,
+        fee_paise=0,
+        total_paise=subtotal,
+        payment_method="Cash at the counter",
+        paid_at=now,
+        idempotency_key=key,
+    )
+    try:
+        db.add(order)
+        await db.flush()
+        db.add_all(
+            OrderSeat(
+                order_id=order.id, seat_id=s.id, tier_key=s.tier_key,
+                price_paise=prices[s.tier_key],
+            )
+            for s in seats
+        )  # fmt: skip
+        # Tickets in ids order, so the till shows them as the cashier picked them.
+        await db.execute(
+            insert(Ticket),
+            [
+                {"id": uuid.uuid4(), "order_id": order.id, "show_id": show.id,
+                 "seat_id": uuid.UUID(i), "user_id": cashier.id}
+                for i in ids
+            ],
+        )  # fmt: skip
+        await db.commit()
+    except IntegrityError as e:
+        # The show lock makes this unreachable for seats; it is the same key sent for another
+        # show at the same moment (the key is unique everywhere, the lock is per show).
+        await db.rollback()
+        raise ApiError(
+            "idempotency_conflict", "That sale key was already used for another sale", status=409
+        ) from e
+    await holds.clear_sold(redis, show.id, ids)
+    return order

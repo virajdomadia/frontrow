@@ -1,13 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
+import QRCode from "qrcode";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { changedSeats, indexLayout, statusOf, tierPalette, type SeatState } from "@/components/seat-map/core";
 import { SeatMap, type SeatLook } from "@/components/seat-map/SeatMap";
 import { useSeatState } from "@/components/seat-map/useSeatState";
 import { Button } from "@/components/ui/button";
+import { ApiRequestError } from "@/lib/api-error";
 import { messageOf, send } from "@/lib/client";
-import { showTime } from "@/lib/format";
-import type { Layout, OwnerShow, SeatSnapshot } from "@/lib/types";
+import { rupees, showTime } from "@/lib/format";
+import type { Layout, OwnerShow, SeatSnapshot, TicketBundle } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const REASONS = [
   { key: "broken", label: "Broken" },
@@ -16,11 +20,14 @@ const REASONS = [
 ] as const;
 
 type Loaded = { layout: Layout; seats: SeatSnapshot };
+type Mode = "sell" | "block";
+const MAX_SALE = 10;
 
 /** One show's live map on the Today board: loads its layout and seats, then the live part. */
 export function ShowFloor({ show, demo, onChange }: { show: OwnerShow; demo: boolean; onChange: () => void }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState("");
+  const titleId = useId();
   useEffect(() => {
     let live = true;
     Promise.all([send<Layout>("GET", `/screens/${show.screen_id}/layout`), send<SeatSnapshot>("GET", `/owner/shows/${show.id}/seats`)]).then(
@@ -33,8 +40,8 @@ export function ShowFloor({ show, demo, onChange }: { show: OwnerShow; demo: boo
   }, [show.id, show.screen_id]);
 
   return (
-    <section aria-labelledby="floor-title" className="rounded-card border border-border bg-paper p-4 sm:p-5">
-      <h2 id="floor-title" className="font-cond text-2xl font-bold uppercase">
+    <section aria-labelledby={titleId} className="rounded-card border border-border bg-paper p-4 sm:p-5">
+      <h2 id={titleId} className="font-cond text-2xl font-bold uppercase">
         {show.film.title} <span className="font-normal text-muted-foreground normal-case">· {showTime(show.starts_at)} · {show.screen_name}</span>
       </h2>
       {error ? (
@@ -55,7 +62,12 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
   const palette = useMemo(() => tierPalette(layout.tiers, Object.fromEntries(layout.tiers.map((t, i) => [t.key, i]))), [layout.tiers]);
   const tierText = useMemo(() => Object.fromEntries(layout.tiers.map((t) => [t.key, t.label])), [layout.tiers]);
   const { state, polling, stale } = useSeatState(`/owner/shows/${show.id}`, seats);
+  const [mode, setMode] = useState<Mode>("sell");
   const [picked, setPicked] = useState<string[]>([]);
+  const [receipt, setReceipt] = useState<TicketBundle | null>(null);
+  // The sale in flight or unanswered: its seats and key. A retry with the same seats sends the
+  // same key, so a sale that went through but whose answer was lost comes back as its receipt.
+  const sale = useRef<{ key: string; seats: string } | null>(null);
   const [reason, setReason] = useState<(typeof REASONS)[number]["key"]>("broken");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -72,7 +84,10 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
     const ids = changedSeats(before, state);
     if (!ids.length) return;
     setRipple({ ids });
-    setPicked((p) => p.filter((id) => !state.sold.has(id) || state.blocked.has(id)));
+    setPicked((p) => {
+      const kept = p.filter((id) => !state.sold.has(id) || state.blocked.has(id) || sale.current?.seats.includes(id));
+      return kept.length === p.length ? p : kept;
+    });
     const sold = ids.filter((id) => state.sold.has(id) && !state.blocked.has(id));
     if (sold.length) {
       setNote(`${sold.map(name).join(", ")} just sold.`);
@@ -93,15 +108,41 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
     (id: string) => {
       if (!open) return setNote("This show has started.");
       const st = statusOf(state, id);
+      if (mode === "sell" && state.blocked.has(id)) return setNote(`${name(id)} is blocked. Put it back on sale first.`);
       if (!state.blocked.has(id) && st !== "free" && st !== "mine")
         return setNote(`${name(id)} is ${st === "sold" ? "sold" : "held by a customer"}.`);
+      if (mode === "sell" && !picked.includes(id) && picked.length >= MAX_SALE) return setNote(`Up to ${MAX_SALE} seats per sale.`);
       setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
     },
-    [name, open, state],
+    [mode, name, open, picked, state],
   );
 
   const toBlock = picked.filter((id) => !state.blocked.has(id));
   const toFree = picked.filter((id) => state.blocked.has(id));
+  const total = picked.reduce((a, id) => a + (show.prices?.[index.byId.get(id)?.tier ?? ""] ?? 0), 0);
+  async function sell() {
+    const seats = [...picked].sort().join();
+    if (sale.current?.seats !== seats) sale.current = { key: crypto.randomUUID().replaceAll("-", ""), seats };
+    setBusy(true);
+    try {
+      const bundle = await send<TicketBundle>("POST", `/owner/shows/${show.id}/counter-orders`, {
+        seat_ids: picked,
+        idempotency_key: sale.current.key,
+      });
+      sale.current = null;
+      setReceipt(bundle);
+      setNote(`${bundle.tickets.map((t) => t.label).join(", ")} sold at the counter.`);
+      setPicked([]);
+      onChange();
+    } catch (e) {
+      // A definite "no" (taken, held, closed) ends this sale; anything else may have gone
+      // through, so the seats and key stay for a retry.
+      if (e instanceof ApiRequestError && e.status >= 400 && e.status < 500) sale.current = null;
+      setNote(messageOf(e, "No answer from the till. Tap Sell again: the same sale can't be charged twice."));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function act(method: "POST" | "DELETE", ids: string[]) {
     setBusy(true);
@@ -137,6 +178,33 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
         className="h-[min(440px,60dvh)] rounded-card border border-border bg-plum-2"
       />
       {open && (
+        <div role="radiogroup" aria-label="What a tap does" className="flex w-fit rounded-btn border border-ink/25 p-0.5">
+          {(["sell", "block"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={mode === m}
+              onClick={() => {
+                setMode(m);
+                setPicked([]);
+              }}
+              className={cn("cursor-pointer rounded-[5px] px-3 py-1.5 text-sm font-semibold", mode === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
+            >
+              {m === "sell" ? "Sell at the counter" : "Block seats"}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && mode === "sell" && (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button disabled={demo || busy || !picked.length} onClick={() => void sell()}>
+            {picked.length ? `Sell ${picked.length} · collect ${rupees(total)} cash` : "Pick seats to sell"}
+          </Button>
+          {picked.length > 0 && <span className="text-sm text-ink-2">{picked.map(name).join(", ")}</span>}
+        </div>
+      )}
+      {open && mode === "block" && (
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-ink-2">
             Reason
@@ -165,10 +233,78 @@ function Floor({ show, demo, onChange, layout, seats }: { show: OwnerShow; demo:
           )}
         </div>
       )}
-      {demo && <p className="text-sm text-ink-2">The demo owner can look but not block: this is a real, public cinema.</p>}
+      {demo && <p className="text-sm text-ink-2">The demo owner can look but not sell or block: this is a real, public cinema.</p>}
       <p aria-live="polite" className="min-h-5 text-sm text-ink">
         {note}
       </p>
+      <Receipt bundle={receipt} onClose={() => setReceipt(null)} />
     </div>
+  );
+}
+
+/** The counter sale's tickets: one QR per seat for the customer to photograph or scan. */
+function Receipt({ bundle, onClose }: { bundle: TicketBundle | null; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [svgs, setSvgs] = useState<string[]>([]);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (bundle && !d.open) d.showModal();
+    if (!bundle && d.open) d.close();
+    if (!bundle) return setSvgs([]);
+    let live = true;
+    Promise.all(bundle.tickets.map((t) => QRCode.toString(t.qr_token, { type: "svg", margin: 1, errorCorrectionLevel: "M" }))).then(
+      (out) => live && setSvgs(out),
+    );
+    return () => {
+      live = false;
+    };
+  }, [bundle]);
+
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      aria-labelledby={titleId}
+      className="m-auto max-h-[calc(100dvh-32px)] w-[min(560px,100%-32px)] overflow-y-auto rounded-card bg-paper p-6 text-ink shadow-[0_30px_80px_rgb(42_11_30_/_.35)] backdrop:bg-ink/60"
+    >
+      {bundle && (
+        <>
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 id={titleId} className="font-cond text-3xl font-extrabold uppercase">
+                Sold · {rupees(bundle.order.total_paise)} cash
+              </h2>
+              <p className="mt-1 text-sm text-ink-2">
+                {bundle.order.show.film.title} · {showTime(bundle.order.show.starts_at)}. Each QR is a ticket: the door scans it like
+                any other.
+              </p>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Close" className="-mt-1 -mr-2 cursor-pointer rounded-btn p-2 text-ink-2 hover:bg-ink/10 hover:text-ink">
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+          <ul className="grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3">
+            {bundle.tickets.map((t, i) => (
+              <li key={t.id} className="grid justify-items-center gap-1 rounded-card border border-border bg-white p-2">
+                <div
+                  role="img"
+                  aria-label={`Ticket QR for seat ${t.label}`}
+                  className="size-32 [&_svg]:size-full"
+                  // The SVG comes from the qrcode library, built from our own signed token.
+                  dangerouslySetInnerHTML={{ __html: svgs[i] ?? "" }}
+                />
+                <b className="font-cond text-xl">{t.label}</b>
+                <span className="text-xs text-ink-2">{t.tier_label}</span>
+              </li>
+            ))}
+          </ul>
+          <Button className="mt-5 w-full" onClick={onClose}>
+            Done
+          </Button>
+        </>
+      )}
+    </dialog>
   );
 }

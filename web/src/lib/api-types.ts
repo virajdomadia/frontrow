@@ -613,6 +613,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/owner/shows/{show_id}/counter-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Counter Sale
+         * @description Sell seats at the box office, paid in cash: tickets at once, one QR per seat for the
+         *     door. Same guards as an online sale; a retried key returns the first sale.
+         */
+        post: operations["counter_sale_owner_shows__show_id__counter_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/owner/shows/{show_id}/seats": {
         parameters: {
             query?: never;
@@ -1214,6 +1235,17 @@ export interface components {
             door: "customer" | "business" | "staff";
             /** Email */
             email: string;
+        };
+        /**
+         * CounterSaleIn
+         * @description L4: a box-office sale paid in cash. `idempotency_key` is made by the till once per sale
+         *     and sent again on a retry.
+         */
+        CounterSaleIn: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Seat Ids */
+            seat_ids: string[];
         };
         /** CreateOrder */
         CreateOrder: {
@@ -1986,6 +2018,13 @@ export interface components {
             id: string;
             /** Language */
             language: string;
+            /**
+             * Prices
+             * @description Tier key → paise, for the box office (L4).
+             */
+            prices?: {
+                [key: string]: number;
+            };
             /**
              * Public
              * @description Customers can see it (business verified, film showing).
@@ -3946,6 +3985,48 @@ export interface operations {
                     "application/json": components["schemas"]["Bookings"];
                     "text/csv": unknown;
                 };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    counter_sale_owner_shows__show_id__counter_orders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CounterSaleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketBundle"];
+                };
+            };
+            /** @description `seat_taken`, `seat_held`, or `idempotency_conflict` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error envelope (06 §C) */
             default: {

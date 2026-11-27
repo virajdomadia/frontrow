@@ -30,6 +30,7 @@ from app.models import (
     Screen,
     Seat,
     Show,
+    ShowPrice,
     ShowSchedule,
     Ticket,
     User,
@@ -442,7 +443,10 @@ async def _shows(
     scanned: dict[uuid.UUID, int] = {}
     revenue: dict[uuid.UUID, int] = {}
     blocked: dict[uuid.UUID, int] = {}
+    prices: dict[uuid.UUID, dict[str, int]] = defaultdict(dict)
     if ids:
+        for p in await db.scalars(select(ShowPrice).where(ShowPrice.show_id.in_(ids))):
+            prices[p.show_id][p.tier_key] = p.price_paise
         blocked = _pairs(
             await db.execute(
                 select(BlockedSeat.show_id, func.count())
@@ -495,6 +499,7 @@ async def _shows(
             checked_in=scanned.get(show.id, 0),
             revenue_paise=int(revenue.get(show.id, 0) or 0),
             blocked=blocked.get(show.id, 0),
+            prices=prices[show.id],
             public=public_business and film.status == FilmStatus.NOW_SHOWING,
         )
         for show, film, screen, cinema in rows
