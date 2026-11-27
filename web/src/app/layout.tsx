@@ -20,7 +20,15 @@ export const viewport: Viewport = { themeColor: "#7E1A22" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${cond.variable} ${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-btn bg-paper px-4 py-2 font-semibold text-ink focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        >
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

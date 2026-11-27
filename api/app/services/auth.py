@@ -3,7 +3,8 @@
 **Codes.** `POST /auth/code` stores the HMAC of a random 6-digit code in Redis (`otp:{email}`,
 10-minute life, 5 tries) and emails it; `POST /auth/verify` checks it. Limits: one code a minute
 and five an hour per email, thirty an hour per network. The staff door answers exactly the same
-whether or not the email belongs to staff — it just never sends a code to anyone else.
+whether or not the email belongs to staff: a stranger gets a decoy code record that counts tries
+like a real one, and a staff code is emailed after the response, so timing tells nothing either.
 
 **Doors.** customer (`/sign-in`): a new email is asked for a name. business (`/business`): a new
 email — or an existing customer with no business — registers one (status pending). staff
@@ -16,8 +17,9 @@ cookie (web) or a bearer token (v4 app, `POST /auth/token`). Only its HMAC is st
 **Holds** belong to a *holder* id, not a user: the anonymous `fr_sid` cookie (it survives
 sign-in, and the session records it as `sid` — the "adoption"), or the bearer session's sid.
 
-**Demo accounts** (`*@frontrow.demo`) sign in with one click and are never emailed. Demo staff
-can look at everything and decide nothing.
+**Demo accounts** (`*@frontrow.demo`) sign in with one click and are never emailed. The demo
+owner and demo staff can look at everything, change nothing, and see other people's contact
+details masked.
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
-from fastapi import Depends, Request, Response
+from fastapi import BackgroundTasks, Depends, Request, Response
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 from sqlalchemy import delete, select
@@ -86,6 +88,28 @@ def is_demo(user: User) -> bool:
     return user.email.endswith(DEMO_DOMAIN)
 
 
+def mask_email(email: str) -> str:
+    local, _, domain = email.partition("@")
+    return f"{local[:1]}***@{domain}"
+
+
+def mask_phone(phone: str) -> str:
+    return "••• " + re.sub(r"\D", "", phone)[-4:]
+
+
+def initials(name: str) -> str:
+    return " ".join(f"{w[0]}." for w in name.split()) or "?"
+
+
+def limit_key(email: str) -> str:
+    """One inbox, one rate-limit bucket: `+tags` dropped, and Gmail's dots too."""
+    local, _, domain = email.partition("@")
+    local = local.split("+")[0]
+    if domain in ("gmail.com", "googlemail.com"):
+        local = local.replace(".", "")
+    return f"{local}@{domain}"
+
+
 def normalise_email(email: str) -> str:
     email = email.strip().lower()
     if not EMAIL_RE.match(email) or len(email) > 254:
@@ -119,6 +143,7 @@ def _unavailable(e: Exception) -> ApiError:
 
 async def _limit(redis: Redis, email: str, ip: str | None) -> None:
     """1 a minute + 5 an hour per email, 30 an hour per network. Raises 429."""
+    email = limit_key(email)
     try:
         if not await redis.set(f"fr:rl:otp:m:{email}", 1, ex=60, nx=True):
             raise ApiError(
@@ -155,6 +180,7 @@ async def request_code(
     email: str,
     door: Door,
     ip: str | None,
+    background: BackgroundTasks,
 ) -> None:
     email = normalise_email(email)
     if email.endswith(DEMO_DOMAIN):
@@ -170,16 +196,21 @@ async def request_code(
             status=503,
         )
     await _limit(redis, email, ip)
-    if door == "staff":
-        staff = await db.scalar(select(User.is_staff).where(User.email == email))
-        if not staff:
-            return  # same answer as for a real staff email: no hint either way
+    staff = door != "staff" or bool(
+        await db.scalar(select(User.is_staff).where(User.email == email))
+    )
     code = f"{secrets.randbelow(1_000_000):06d}"
+    # A stranger at the staff door gets a decoy no code matches, which still counts tries.
+    hashed = _code_hash(settings, email, code) if staff else secrets.token_hex(32)
     try:
-        await redis.hset(_code_key(email), mapping={"h": _code_hash(settings, email, code), "t": 0})
+        await redis.hset(_code_key(email), mapping={"h": hashed, "t": 0})
         await redis.expire(_code_key(email), settings.code_ttl_seconds)
     except RedisError as e:
         raise _unavailable(e) from e
+    if door == "staff":
+        if staff:  # after the response, so a staff email doesn't answer slower than a stranger's
+            background.add_task(_send_quietly, mailer, email, code, settings.code_ttl_seconds)
+        return
     try:
         await mailer.send(code_mail(email, code, settings.code_ttl_seconds // 60))
     except MailError as e:
@@ -190,6 +221,25 @@ async def request_code(
         ) from e
 
 
+async def _send_quietly(mailer: Mailer, email: str, code: str, ttl_seconds: int) -> None:
+    try:
+        await mailer.send(code_mail(email, code, ttl_seconds // 60))
+    except MailError as e:
+        log.error("staff sign-in code email failed: %s", e)
+
+
+# KEYS = code key; ARGV = hash, tries allowed. Compare and count in one step, so concurrent wrong
+# guesses can't all be judged before the counter moves, or bring a spent code back to life.
+CHECK = """
+local h = redis.call('HGET', KEYS[1], 'h')
+if not h then return -1 end
+if h == ARGV[1] then return 0 end
+local t = redis.call('HINCRBY', KEYS[1], 't', 1)
+if t >= tonumber(ARGV[2]) then redis.call('DEL', KEYS[1]) end
+return t
+"""
+
+
 async def check_code(
     redis: Redis, settings: Settings, email: str, code: str, *, consume: bool
 ) -> None:
@@ -197,13 +247,13 @@ async def check_code(
     and it's gone); `consume=False` checks a right code without spending it (the name step)."""
     key = _code_key(email)
     try:
-        stored = await redis.hgetall(key)
-        if not stored:
+        tries = int(
+            await redis.eval(CHECK, 1, key, _code_hash(settings, email, code), CODE_TRIES)  # type: ignore[misc]
+        )
+        if tries < 0:
             raise ApiError("code_invalid", "That code has expired. Ask for a new one.", status=401)
-        if not hmac.compare_digest(str(stored.get("h", "")), _code_hash(settings, email, code)):
-            tries = await redis.hincrby(key, "t", 1)
+        if tries > 0:
             if tries >= CODE_TRIES:
-                await redis.delete(key)
                 raise ApiError(
                     "code_invalid", "Too many wrong codes. Ask for a new one.", status=401
                 )
@@ -289,7 +339,7 @@ async def verify(
     email = normalise_email(email)
     user = await db.scalar(select(User).where(User.email == email))
     if door == "staff" and (user is None or not user.is_staff):
-        # Unreachable for a real staff member; a stranger never had a code sent.
+        # A stranger's decoy matches no code, so this answers like a wrong staff code.
         await check_code(redis, settings, email, code, consume=False)
         raise ApiError("code_invalid", "That code isn't right.", status=401)
 
@@ -337,6 +387,7 @@ async def create_session(
     sid: str | None,
     now: datetime,
 ) -> tuple[str, Session]:
+    await db.execute(delete(Session).where(Session.expires_at < now))  # no cron: prune here
     token = secrets.token_urlsafe(32)
     days = MOBILE_DAYS if kind == SessionKind.MOBILE else WEB_DAYS
     session = Session(
@@ -403,10 +454,17 @@ def set_sid_cookie(response: Response, settings: Settings, sid: str) -> None:
     )
 
 
-def client_ip(request: Request) -> str | None:
-    forwarded = request.headers.get("x-forwarded-for", "")
-    first = forwarded.split(",")[0].strip()
-    return first or (request.client.host if request.client else None)
+def client_ip(request: Request, settings: Settings) -> str | None:
+    """The visitor's address from headers a client can't forge: the web tier's forwarded address
+    when it proves itself with PROXY_SECRET (browsers reach us through its `/api` rewrite), else
+    the platform's `x-real-ip` (Vercel sets it), else the socket. Never the client-supplied left
+    end of `X-Forwarded-For`."""
+    secret = settings.proxy_secret
+    forwarded = request.headers.get("x-frontrow-client-ip")
+    proof = request.headers.get("x-frontrow-proxy", "")
+    if secret and forwarded and hmac.compare_digest(proof, secret.get_secret_value()):
+        return forwarded.strip()
+    return request.headers.get("x-real-ip") or (request.client.host if request.client else None)
 
 
 # --- dependencies ---------------------------------------------------------------------------------
@@ -443,13 +501,15 @@ async def require_staff(auth: Annotated[Auth, Depends(require_auth)]) -> Auth:
 
 async def require_staff_writer(auth: Annotated[Auth, Depends(require_staff)]) -> Auth:
     """Staff who may decide. The demo staff account can look but not change anything."""
+    refuse_demo(auth)
+    return auth
+
+
+def refuse_demo(auth: Auth) -> None:
     if is_demo(auth.user):
         raise ApiError(
-            "demo_read_only",
-            "The demo staff account can look around but not make changes.",
-            status=403,
+            "demo_read_only", "Demo accounts can look around but not make changes.", status=403
         )
-    return auth
 
 
 @dataclass
@@ -469,6 +529,12 @@ async def require_owner(
             "forbidden", "Register your business first", details={"reason": "no_business"}
         )
     return Owner(auth=auth, business=found[0][0])
+
+
+async def require_owner_writer(owner: Annotated[Owner, Depends(require_owner)]) -> Owner:
+    """Owners who may change things. The demo owner's cinema is public, so it only looks."""
+    refuse_demo(owner.auth)
+    return owner
 
 
 def holder_of(

@@ -21,8 +21,9 @@ export function AccountLinks({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     let live = true;
     send<Me>("GET", "/auth/me")
-      .then((m) => live && setMe(m))
-      .catch(() => live && setMe(null));
+      // Announced, not just stored: the home page's demo buttons relabel for who's signed in.
+      .then((m) => live && announceAuth(m))
+      .catch(() => live && announceAuth(null));
     return () => {
       live = false;
     };

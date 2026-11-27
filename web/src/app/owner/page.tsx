@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { dayName } from "@/components/owner/format";
 import { ShowsTable } from "@/components/owner/ShowsTable";
 import { Empty, PageHead, Stat, StatusBadge } from "@/components/owner/ui";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export default async function OwnerOverview() {
   const sold = today.shows.reduce((a, s) => a + s.sold, 0);
   const revenue = today.shows.reduce((a, s) => a + s.revenue_paise, 0);
   const now = Date.now();
+  const next = today.dates.find((d) => d.show_count > 0 && d.date > today.date);
 
   return (
     <>
@@ -52,7 +54,7 @@ export default async function OwnerOverview() {
                 <h3 className="mt-1 font-cond text-xl font-bold uppercase">{s.title}</h3>
                 <p className="mt-1 text-sm text-ink-2">{s.body}</p>
                 {!s.done && s.href && (
-                  <Link href={s.href} className={cn(buttonVariants({ size: "sm" }), "mt-3")}>
+                  <Link href={s.href} className={cn(buttonVariants({ variant: "paper", size: "sm" }), "mt-3")}>
                     {s.title}
                   </Link>
                 )}
@@ -80,9 +82,13 @@ export default async function OwnerOverview() {
       ) : (
         <Empty
           title="No shows today"
-          body="Schedule a film on one of your screens — a day, a week or a month of shows in one go."
-          href="/owner/shows/new"
-          cta="Schedule shows"
+          body={
+            next
+              ? `${business.upcoming_shows} upcoming shows. The next day with shows is ${dayName(next.date)}.`
+              : "Schedule a film on one of your screens — a day, a week or a month of shows in one go."
+          }
+          href={next ? `/owner/shows?date=${next.date}` : "/owner/shows/new"}
+          cta={next ? `See ${dayName(next.date)} · ${next.show_count} shows` : "Schedule shows"}
         />
       )}
     </>

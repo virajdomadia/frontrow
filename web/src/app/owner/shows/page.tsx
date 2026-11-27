@@ -14,7 +14,10 @@ type Props = { searchParams: Promise<{ date?: string | string[] }> };
 export default async function OwnerShowsPage({ searchParams }: Props) {
   const raw = (await searchParams).date;
   const date = typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : undefined;
-  const data = await api("/owner/shows", { auth: true, searchParams: { date } });
+  let data = await api("/owner/shows", { auth: true, searchParams: { date } });
+  // Nothing today: open on the next day that has shows rather than an empty table.
+  const next = !date && !data.shows.length && data.dates.find((d) => d.show_count > 0);
+  if (next) data = await api("/owner/shows", { auth: true, searchParams: { date: next.date } });
   const total = data.shows.reduce((a, s) => a + s.sold, 0);
   return (
     <>

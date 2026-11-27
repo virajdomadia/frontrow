@@ -23,7 +23,7 @@ export default async function MoviesPage({ searchParams }: Props) {
   return (
     <>
       <SiteHeader active="movies" />
-      <main className="mx-auto grid w-[min(1240px,100%-32px)] gap-8 py-8">
+      <main id="main" className="mx-auto grid w-[min(1240px,100%-32px)] gap-8 py-8">
         <div className="grid gap-4">
           <h1 className="font-cond text-[clamp(40px,6vw,72px)] leading-[.92] font-extrabold uppercase">
             {q ? `Results for “${q}”` : "Movies in Bengaluru"}

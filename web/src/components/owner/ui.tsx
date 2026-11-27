@@ -53,7 +53,7 @@ export function Stat({ label, value, hint }: { label: string; value: React.React
   );
 }
 
-const badgeBase = "inline-block rounded-sm px-[7px] py-[3px] text-[11px] font-semibold tracking-[.06em] uppercase";
+const badgeBase = "inline-block rounded-sm px-[7px] py-[3px] text-xs font-semibold tracking-[.06em] uppercase";
 
 export type BadgeKind = "public" | "private" | "pending" | "verified" | "rejected" | "suspended" | "cancelled" | "past" | "open" | "added" | "declined";
 
@@ -118,7 +118,7 @@ export function Empty({
       <h2 className="font-cond text-2xl font-bold uppercase">{title}</h2>
       <p className="max-w-[52ch] text-muted-foreground">{body}</p>
       {href && cta && (
-        <Link href={href} className={buttonVariants({ size: "sm" })}>
+        <Link href={href} className={buttonVariants({ variant: "paper", size: "sm" })}>
           {cta}
         </Link>
       )}

@@ -16,7 +16,7 @@ export default async function StaffConsoleLayout({ children }: { children: React
     return (
       <>
         <SiteHeader />
-        <main className="mx-auto grid w-[min(1240px,100%-32px)] justify-items-start gap-4 py-16">
+        <main id="main" className="mx-auto grid w-[min(1240px,100%-32px)] justify-items-start gap-4 py-16">
           <h1 className="font-cond text-[clamp(36px,6vw,60px)] leading-[.95] font-extrabold uppercase">This area is for Frontrow staff</h1>
           <p className="max-w-[50ch] text-muted-foreground">
             You&apos;re signed in as {me.email}, which isn&apos;t a staff account. Your tickets and cinemas are where they always are.
@@ -37,7 +37,7 @@ export default async function StaffConsoleLayout({ children }: { children: React
   return (
     <>
       <SiteHeader nav={nav} badge="Staff" wide />
-      <main className="mx-auto w-[min(1440px,100%-32px)] py-8">
+      <main id="main" className="mx-auto w-[min(1280px,100%-32px)] lg:w-[min(1280px,100%-64px)] py-8">
         {me.is_demo && <DemoNotice />}
         {children}
       </main>

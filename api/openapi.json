@@ -1852,6 +1852,11 @@
             ],
             "title": "Razorpay Order Id"
           },
+          "refund_pending": {
+            "description": "Refunded, but the gateway hasn't taken it yet.",
+            "title": "Refund Pending",
+            "type": "boolean"
+          },
           "refund_reason": {
             "anyOf": [
               {
@@ -1908,6 +1913,7 @@
           "pay_by",
           "hold_expires_at",
           "refund_reason",
+          "refund_pending",
           "gateway",
           "razorpay_order_id",
           "key_id",
@@ -3945,7 +3951,7 @@
     },
     "/auth/demo": {
       "post": {
-        "description": "One click, no email: the seeded demo customer, theatre owner (Orbit Cinemas) or staff\nmember (view-only). The demo customer always has an upcoming and a past booking.",
+        "description": "One click, no email: the seeded demo customer, theatre owner (Orbit Cinemas) or staff\n    member (both view-only). The demo customer always has an upcoming and a past booking, and\nwhat earlier visitors booked as them is undone.",
         "operationId": "demo_auth_demo_post",
         "requestBody": {
           "content": {

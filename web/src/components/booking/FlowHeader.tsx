@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { Logo } from "@/components/site/Logo";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,14 @@ export function FlowHeader({ step, back, backLabel }: { step: 0 | 1 | 2; back: s
               className={cn("items-center aria-[current=step]:text-white", i === step ? "flex" : "hidden sm:flex", i < step && "sm:text-oxblood-ink/85")}
             >
               {i === step && <span aria-hidden="true" className="mr-2 inline-block size-2 rounded-full bg-white" />}
-              <span className="hidden sm:inline">{i + 1}&nbsp;</span>
+              {i < step ? (
+                <>
+                  <Check aria-hidden="true" className="mr-1.5 hidden size-4 sm:inline" />
+                  <span className="sr-only">Done: </span>
+                </>
+              ) : (
+                <span className="hidden sm:inline">{i + 1}.&nbsp;</span>
+              )}
               {s}
             </li>
           ))}

@@ -676,6 +676,16 @@ async def check_in(
     name = owner.name if owner else None
     if ticket.show_id != show.id:
         other = await db.get(Show, ticket.show_id)
+        theirs = other is not None and business.id != await db.scalar(
+            select(Cinema.business_id)
+            .join(Screen, Screen.cinema_id == Cinema.id)
+            .where(Screen.id == other.screen_id)
+        )
+        if other is None or theirs:  # another cinema's customer: nothing about them
+            admitted, sold = await counts()
+            return CheckInResult(
+                result="wrong_show", message="Not for this cinema", admitted=admitted, sold=sold
+            )
         film = await db.get(Film, other.film_id) if other else None
         when = other.starts_at.astimezone(IST).strftime("%a %d %b, %H:%M") if other else ""
         admitted, sold = await counts()

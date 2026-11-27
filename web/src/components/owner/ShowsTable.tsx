@@ -51,7 +51,7 @@ export function ShowsTable({ shows, now = Date.now() }: { shows: OwnerShow[]; no
                     <Link href={`/owner/shows/${s.id}/bookings`} className={buttonVariants({ variant: "paper", size: "sm" })}>
                       Bookings
                     </Link>
-                    <Link href={`/owner/checkin/${s.id}`} className={buttonVariants({ size: "sm" })}>
+                    <Link href={`/owner/checkin/${s.id}`} className={buttonVariants({ variant: "paper", size: "sm" })}>
                       Door
                     </Link>
                   </div>

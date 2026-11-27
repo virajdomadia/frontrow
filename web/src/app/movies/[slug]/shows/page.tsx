@@ -5,7 +5,7 @@ import { BookButton } from "@/components/movies/BookButton";
 import { CertBadge, FILL_LABEL } from "@/components/movies/badges";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
 import { api, ApiRequestError } from "@/lib/api";
-import { dayParts, duration, priceRange, showTime } from "@/lib/format";
+import { dayParts, duration, priceRange, rupees, showTime } from "@/lib/format";
 import type { Fill } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,7 @@ export default async function ShowtimesPage({ params, searchParams }: Props) {
   return (
     <>
       <SiteHeader active="movies" />
-      <main className="mx-auto grid w-[min(1240px,100%-32px)] gap-6 py-8">
+      <main id="main" className="mx-auto grid w-[min(1240px,100%-32px)] gap-6 py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="grid gap-2">
             <Link href={`/movies/${slug}`} className="text-sm font-semibold text-muted-foreground no-underline hover:text-ink">
@@ -79,12 +79,13 @@ export default async function ShowtimesPage({ params, searchParams }: Props) {
             </p>
           </div>
           {data.versions.length > 1 && (
-            <BookButton slug={slug} title={film.title} versions={data.versions} label="Change language / format" className="!px-4 !py-2 !text-base" />
+            <BookButton slug={slug} title={film.title} versions={data.versions} label="Change language / format" variant="outline" className="!px-4 !py-2 !text-base" />
           )}
         </div>
 
-        <nav aria-label="Dates" className="-mx-4 overflow-x-auto px-4">
-          <ol className="flex list-none gap-2 p-0">
+        {/* One row that scrolls sideways (no bar) and fades at the right edge, so it reads as more. */}
+        <nav aria-label="Dates" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [mask-image:linear-gradient(90deg,#000_calc(100%-32px),transparent)] [&::-webkit-scrollbar]:hidden">
+          <ol className="flex list-none gap-2 p-0 pr-8">
             {data.dates.map((d, i) => {
               const { weekday, date } = dayParts(`${d.date}T12:00:00+05:30`);
               const active = d.date === data.date;
@@ -95,7 +96,7 @@ export default async function ShowtimesPage({ params, searchParams }: Props) {
                     aria-current={active ? "date" : undefined}
                     aria-disabled={d.show_count === 0 || undefined}
                     className={cn(
-                      "grid min-w-[68px] justify-items-center rounded-card border-2 px-3 py-2 no-underline",
+                      "grid min-w-[76px] justify-items-center rounded-card border-2 px-3 py-2 whitespace-nowrap no-underline",
                       active ? "border-red bg-red text-white" : "border-ink/15 bg-plum-2 hover:border-ink/40",
                       d.show_count === 0 && !active && "pointer-events-none opacity-45",
                     )}
@@ -129,14 +130,14 @@ export default async function ShowtimesPage({ params, searchParams }: Props) {
                   <p className="mt-1 text-sm text-muted-foreground">{c.address}</p>
                   {c.facilities.length > 0 && <p className="mt-2 text-xs text-ink-3">{c.facilities.join(" · ")}</p>}
                 </div>
-                <div className="flex flex-wrap content-start gap-2.5">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(128px,1fr))] content-start gap-2.5 lg:max-w-[720px]">
                   {c.shows.map((s) => {
                     const prices = s.tiers.map((t) => t.price_paise);
                     const label = `${showTime(s.starts_at)}, ${s.screen_name}, ${FILL_LABEL[s.fill]}${prices.length ? `, ${priceRange(Math.min(...prices), Math.max(...prices))}` : ""}`;
                     return s.fill === "sold_out" ? (
                       <span key={s.id} aria-label={label} className={cn("grid rounded-btn border-2 px-3.5 py-1.5 text-center", TIME_STYLE.sold_out)}>
                         <b className="font-cond text-lg leading-tight">{showTime(s.starts_at)}</b>
-                        <span className="text-[11px] tracking-[.06em] uppercase">Sold out</span>
+                        <span className="text-xs tracking-[.06em] uppercase">Sold out</span>
                       </span>
                     ) : (
                       <Link
@@ -146,10 +147,11 @@ export default async function ShowtimesPage({ params, searchParams }: Props) {
                         className={cn("grid rounded-btn border-2 bg-white/50 px-3.5 py-1.5 text-center no-underline transition-colors", TIME_STYLE[s.fill])}
                       >
                         <b className="font-cond text-lg leading-tight">{showTime(s.starts_at)}</b>
-                        <span className="text-[11px] tracking-[.04em] uppercase opacity-90">
+                        <span className="text-xs tracking-[.04em] uppercase">
                           {s.screen_name}
                           {s.format !== "2D" ? ` · ${s.format}` : ""}
                         </span>
+                        {prices.length > 0 && <span className="text-xs font-semibold">from {rupees(Math.min(...prices))}</span>}
                       </Link>
                     );
                   })}

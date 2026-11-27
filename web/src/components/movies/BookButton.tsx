@@ -15,11 +15,12 @@ export function showsHref(slug: string, v?: { language: string; format: string }
  * "Book tickets" (C2 → C3 → C4). One language + format: straight to the showtimes. More than
  * one: a sheet to pick it first (BookMyShow's flow), grouped by language.
  */
-export function BookButton({ slug, title, versions, label = "Book tickets", className }: {
+export function BookButton({ slug, title, versions, label = "Book tickets", variant = "default", className }: {
   slug: string;
   title: string;
   versions: Version[];
   label?: string;
+  variant?: "default" | "outline";
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -34,7 +35,7 @@ export function BookButton({ slug, title, versions, label = "Book tickets", clas
 
   if (versions.length <= 1)
     return (
-      <Link href={showsHref(slug, versions[0])} className={cn(buttonVariants({ size: "lg" }), className)}>
+      <Link href={showsHref(slug, versions[0])} className={cn(buttonVariants({ size: "lg", variant }), className)}>
         {label}
       </Link>
     );
@@ -44,7 +45,7 @@ export function BookButton({ slug, title, versions, label = "Book tickets", clas
 
   return (
     <>
-      <Button size="lg" onClick={() => setOpen(true)} className={className}>
+      <Button size="lg" variant={variant} onClick={() => setOpen(true)} className={className}>
         {label}
       </Button>
       <dialog

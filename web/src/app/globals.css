@@ -2,7 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* The site is light (paper) since the 2026-11-15 colour change; nothing uses shadcn's `dark:`. */
+/* Light only, on purpose: the look is printed paper and ticket stock (2026-11-15), so there is no
+   prefers-color-scheme dark theme and nothing uses shadcn's `dark:`. */
 @custom-variant dark (&:is(.dark *));
 
 /* Box office style (docs/04-ui-mockups.md "Colour change — 2026-11-15"): Barlow Condensed /
@@ -12,12 +13,15 @@
 
    Token names are the ones the components already use: `--plum*` is now "the ground" (paper)
    and `--screen` is "text on the ground" (plum-ink), so `bg-plum-2 text-screen` reads as a card
-   on paper. `--paper` stays the cream of the stub, checkout and ticket. */
+   on paper. `--paper` stays the cream of the stub, checkout and ticket.
+
+   `--red` is #C92D3A, not the brand's #E63946: white button text on it is 5.3:1 (AA), the
+   brighter red was 4.2:1 (review 2026-11-27). */
 :root{
   --oxblood:#7E1A22; --oxblood-2:#65141B; --oxblood-ink:#FFF6EE;
   --plum:#EFE7DA; --plum-2:#FBF7F0; --plum-3:#E5DACA; --screen:#2A0B1E;
   --paper:#FFFBF4; --paper-2:#F1E7D8; --ink:#2A0B1E; --ink-2:#5A3A50; --ink-3:#6E5468;
-  --red:#E63946; --red-dark:#B8232F; --amber:#C9711F; --amber-soft:#F4A261; --muted:#5A3A50; --muted-2:#6E5468;
+  --red:#C92D3A; --red-dark:#A61E2A; --amber:#C9711F; --amber-soft:#F4A261; --muted:#5A3A50; --muted-2:#6E5468;
   --held:#A8949F; --sold:#3A1230; --classic:#5E9BD3; --prime:#D9A42C; --recliner:#A35BDB; --mint:#3FA88A;
   --line:rgb(42 11 30 / .14);
   --cond:var(--font-barlow-cond),Impact,'Arial Narrow',sans-serif; --sans:var(--font-barlow),system-ui,sans-serif;
@@ -79,10 +83,11 @@ p{margin:0}
 .sm-seat{cursor:pointer;outline:none;transition:fill .18s,transform .18s;transform-box:fill-box;transform-origin:center}
 .sm-seat.t-classic{fill:var(--classic)} .sm-seat.t-mint{fill:var(--mint)} .sm-seat.t-prime{fill:var(--prime)} .sm-seat.t-recliner{fill:var(--recliner)}
 .sm-seat.held{fill:var(--held);cursor:not-allowed}
-.sm-seat.sold{fill:var(--sold);stroke:rgb(255 251 244 / .25);stroke-width:1;cursor:not-allowed}
+/* Sold recedes (pale, crossed: url(#sm-sold) in SeatMap) so the seats you can take lead. */
+.sm-seat.sold{fill:url(#sm-sold);stroke:rgb(42 11 30 / .18);stroke-width:1;cursor:not-allowed}
 .sm-seat.off{fill:transparent;stroke:rgb(42 11 30 / .25);stroke-width:1;cursor:not-allowed}
-.sm-seat.mine{fill:var(--red);filter:drop-shadow(0 0 6px rgb(230 57 70 / .75))}
-.sm-seat:focus-visible{stroke:var(--amber);stroke-width:3;paint-order:stroke}
+.sm-seat.mine{fill:var(--red);filter:drop-shadow(0 0 6px rgb(201 45 58 / .75))}
+.sm-seat:focus-visible{outline:2px solid var(--ink);outline-offset:2px;stroke:var(--paper);stroke-width:2}
 .is-overview .sm-seat{cursor:zoom-in}
 @media (hover:hover){.sm-map:not(.is-overview) .sm-seat:is(.free,.mine):hover{transform:scale(1.14)}}
 

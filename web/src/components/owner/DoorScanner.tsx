@@ -148,27 +148,6 @@ export function DoorScanner({ showId, initialAdmitted, sold }: { showId: string;
           </p>
         )}
 
-        <div className="grid gap-2">
-          <div className="relative overflow-hidden rounded-card border border-border bg-ink">
-            <video ref={videoRef} muted playsInline className={cn("aspect-[4/3] w-full object-cover", !cameraOn && "hidden")} />
-            {cameraOn && <div aria-hidden="true" className="pointer-events-none absolute inset-[18%] rounded-card border-4 border-white/80" />}
-            {!cameraOn && (
-              <div className="grid aspect-[4/3] w-full place-items-center p-6 text-center text-paper/80">
-                {supported === false
-                  ? "This browser can't read QR codes from the camera — type or paste the ticket code below (Chrome on Android can)."
-                  : "Camera off"}
-              </div>
-            )}
-          </div>
-          {supported && (
-            <Button type="button" variant={cameraOn ? "paper" : "default"} onClick={cameraOn ? stopCamera : startCamera} className="w-full">
-              {cameraOn ? <CameraOff /> : <Camera />}
-              {cameraOn ? "Stop camera" : "Scan with camera"}
-            </Button>
-          )}
-          {cameraError && <p className="text-sm font-medium text-red-dark">{cameraError}</p>}
-        </div>
-
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -191,6 +170,31 @@ export function DoorScanner({ showId, initialAdmitted, sold }: { showId: string;
             Check ticket
           </Button>
         </form>
+        {/* The code field comes first; the camera only where this browser can read QR codes. */}
+        {supported === false ? (
+          <p className="text-sm text-ink-3">
+            This browser can&apos;t read QR codes from the camera — type or paste the code (Chrome on Android can scan).
+          </p>
+        ) : (
+          <div className="grid gap-2">
+          <div className="relative overflow-hidden rounded-card border border-border bg-ink">
+            <video ref={videoRef} muted playsInline className={cn("aspect-[4/3] w-full object-cover", !cameraOn && "hidden")} />
+            {cameraOn && <div aria-hidden="true" className="pointer-events-none absolute inset-[18%] rounded-card border-4 border-white/80" />}
+            {!cameraOn && (
+              <div className="grid aspect-[4/3] w-full place-items-center p-6 text-center text-paper/80">
+                Camera off
+              </div>
+            )}
+          </div>
+          {supported && (
+            <Button type="button" variant={cameraOn ? "paper" : "default"} onClick={cameraOn ? stopCamera : startCamera} className="w-full">
+              {cameraOn ? <CameraOff /> : <Camera />}
+              {cameraOn ? "Stop camera" : "Scan with camera"}
+            </Button>
+          )}
+          {cameraError && <p className="text-sm font-medium text-red-dark">{cameraError}</p>}
+        </div>
+        )}
       </div>
 
       <aside className="grid content-start gap-3">

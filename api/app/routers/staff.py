@@ -1,5 +1,6 @@
 """Frontrow staff routes (06 §C 🛠): staff only (customers and owners get 403); the demo staff
-account reads everything and changes nothing (403 `demo_read_only`)."""
+account reads everything and changes nothing (403 `demo_read_only`), and sees owners' contact
+details masked and their request notes left out — anyone on the internet can open it."""
 
 from datetime import UTC, datetime
 from typing import Annotated, Literal
@@ -18,7 +19,15 @@ from app.schemas.staff import (
     StaffFilmRequest,
 )
 from app.services import staff as svc
-from app.services.auth import Auth, require_staff, require_staff_writer
+from app.services.auth import (
+    Auth,
+    initials,
+    is_demo,
+    mask_email,
+    mask_phone,
+    require_staff,
+    require_staff_writer,
+)
 
 router = APIRouter(prefix="/staff", tags=["frontrow staff"])
 
@@ -70,7 +79,11 @@ async def film_requests(
     status: Literal["open", "added", "declined"] | None = None,
 ) -> list[StaffFilmRequest]:
     _now(response)
-    return await svc.list_requests(db, status)
+    out = await svc.list_requests(db, status)
+    if is_demo(staff.user):
+        for r in out:
+            r.note = None
+    return out
 
 
 @router.patch("/film-requests/{request_id}", response_model=StaffFilmRequest)
@@ -91,7 +104,13 @@ async def businesses(
         Literal["pending", "verified", "rejected", "suspended"] | None, Query()
     ] = None,
 ) -> list[StaffBusiness]:
-    return await svc.list_businesses(db, status, _now(response))
+    out = await svc.list_businesses(db, status, _now(response))
+    if is_demo(staff.user):
+        for b in out:
+            b.phone = mask_phone(b.phone)
+            for p in b.owners:
+                p.name, p.email = initials(p.name), mask_email(p.email)
+    return out
 
 
 @router.patch("/businesses/{business_id}", response_model=StaffBusiness)

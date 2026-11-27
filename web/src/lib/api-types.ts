@@ -37,7 +37,8 @@ export interface paths {
         /**
          * Demo
          * @description One click, no email: the seeded demo customer, theatre owner (Orbit Cinemas) or staff
-         *     member (view-only). The demo customer always has an upcoming and a past booking.
+         *         member (both view-only). The demo customer always has an upcoming and a past booking, and
+         *     what earlier visitors booked as them is undone.
          */
         post: operations["demo_auth_demo_post"];
         delete?: never;
@@ -1507,6 +1508,11 @@ export interface components {
             payment_method: string | null;
             /** Razorpay Order Id */
             razorpay_order_id: string | null;
+            /**
+             * Refund Pending
+             * @description Refunded, but the gateway hasn't taken it yet.
+             */
+            refund_pending: boolean;
             /**
              * Refund Reason
              * @description `seat_sold` when paid after the hold lapsed.

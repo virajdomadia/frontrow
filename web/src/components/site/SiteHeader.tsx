@@ -31,7 +31,7 @@ export function SiteHeader({
     <header className="fr-header no-print">
       <nav
         aria-label="Main"
-        className={cn("mx-auto flex items-center justify-between gap-4 py-3.5", wide ? "w-[min(1440px,100%-32px)]" : "w-[min(1240px,100%-32px)]")}
+        className={cn("mx-auto flex items-center justify-between gap-4 py-3.5", wide ? "w-[min(1280px,100%-32px)] lg:w-[min(1280px,100%-64px)]" : "w-[min(1240px,100%-32px)]")}
       >
         <div className="flex min-w-0 items-center gap-3">
           <Logo />

@@ -78,13 +78,13 @@ cd web && pnpm install && cp .env.example .env.local && pnpm dev
 
 pnpm gen:api   # in web/: regenerate api/openapi.json + src/lib/api-types.ts after changing the contract
 ```
-Sign-in is by emailed 6-digit code only — three doors: `/sign-in` (customers), `/business` (theatre owners), `/staff` (hidden; seeded staff only, `STAFF_EMAILS`). Locally, with no `SMTP_*` set, the code is printed in the api log. The home page has one-click demo buttons for all three roles: the demo customer (always has an upcoming and a past booking), the demo theatre owner (Orbit Cinemas) and demo staff (view only).
+Sign-in is by emailed 6-digit code only — three doors: `/sign-in` (customers), `/business` (theatre owners), `/staff` (hidden; seeded staff only, `STAFF_EMAILS`). Locally, with no `SMTP_*` set, the code is printed in the api log. The home page has one-click demo buttons for all three roles: the demo customer (always has an upcoming and a past booking), the demo theatre owner (Orbit Cinemas, view only, customer details masked) and demo staff (view only, owner contacts masked). What visitors book as the demo customer is undone on a later demo sign-in.
 
 The catalogue is real films (Hindi and Hollywood in Indian cinemas, late Nov 2026 – Jan 2027: `api/app/seed/content.py`) at fictional cinemas; posters are original typographic art (`api/scripts/make_posters.py`), never studio artwork. It never empties: seeded cinemas have open-ended weekly schedules whose shows are created 14 days ahead the first time someone reads after the horizon moves (no cron, no reseed), and a coming-soon film gets shows from its release date and turns now-showing that day. `python -m app.seed` is idempotent and never deletes shows of current films; it retires the films listed in `RETIRED_FILMS` (keeping only shows a real visitor holds tickets for).
 
 Payments: with `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET` set on the api, checkout opens Razorpay in test mode (card 4111 1111 1111 1111). Without them the api runs a built-in demo gateway: checkout shows a clearly-labelled test payment that confirms through the same code path as the webhook.
 
-Tests: `cd api && TEST_DATABASE_URL=… TEST_REDIS_URL=redis://localhost:6379/15 uv run pytest` (68) · `cd web && pnpm test` (20).
+Tests: `cd api && TEST_DATABASE_URL=… TEST_REDIS_URL=redis://localhost:6379/15 uv run pytest` (86) · `cd web && pnpm test` (20).
 
 Ports 3000/8000 are used by another project on this machine, so the examples use 8002.
 

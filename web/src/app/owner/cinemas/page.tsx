@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { TEMPLATE_LABEL } from "@/components/owner/format";
 import { Empty, PageHead } from "@/components/owner/ui";
@@ -25,14 +24,10 @@ export default async function CinemasPage() {
         <ul className="grid list-none gap-4 p-0 lg:grid-cols-2">
           {cinemas.map((c) => (
             <li key={c.id} className="grid overflow-hidden rounded-card border border-border bg-plum-2 sm:grid-cols-[180px_1fr]">
-              <div className="relative min-h-[120px] bg-paper-2">
-                {c.photo_url ? (
-                  <Image src={c.photo_url} alt="" fill sizes="180px" className="object-cover" />
-                ) : (
-                  <span aria-hidden="true" className="grid size-full place-items-center font-cond text-5xl font-extrabold text-ink/20">
-                    {c.name[0]}
-                  </span>
-                )}
+              {/* A typographic cover for every cinema, like the posters: no mix of stock photos and blanks. */}
+              <div aria-hidden="true" className="grid min-h-[120px] place-content-center gap-1 bg-oxblood p-4 text-center font-cond text-oxblood-ink uppercase">
+                <b className="text-3xl leading-none font-extrabold">{c.area}</b>
+                <span className="text-xs tracking-[.2em] opacity-80">{c.name}</span>
               </div>
               <div className="grid gap-3 p-4">
                 <div>
@@ -63,7 +58,7 @@ export default async function CinemasPage() {
                   <Link href={`/owner/cinemas/${c.id}`} className={buttonVariants({ variant: "paper", size: "sm" })}>
                     Edit
                   </Link>
-                  <Link href={`/owner/cinemas/${c.id}/screens/new`} className={buttonVariants({ size: "sm" })}>
+                  <Link href={`/owner/cinemas/${c.id}/screens/new`} className={buttonVariants({ variant: "paper", size: "sm" })}>
                     Add screen
                   </Link>
                 </div>
