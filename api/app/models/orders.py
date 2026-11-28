@@ -7,7 +7,16 @@ the final guard on confirm, so even a Redis mishap cannot double-sell.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Text, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, CreatedMixin, UuidMixin, pg_enum
@@ -104,3 +113,27 @@ class WebhookEvent(Base):
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+class EmailOutbox(UuidMixin, CreatedMixin, Base):
+    """Customer emails about money (L5), recorded with the change they report and sent after it
+    commits: a send can fail or be off without touching the refund (`services/outbox.py`)."""
+
+    __tablename__ = "email_outbox"
+    __table_args__ = (
+        Index("ix_email_outbox_created_at", "created_at"),
+        Index("ix_email_outbox_status", "status"),
+        CheckConstraint(
+            "status in ('queued', 'sent', 'failed', 'not_sent', 'logged', 'skipped')",
+            name="status",
+        ),
+    )
+
+    to_email: Mapped[str] = mapped_column(Text, nullable=False)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    kind: Mapped[str] = mapped_column(Text, nullable=False)  # show_cancelled · refunded · resend
+    order_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"))
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default="queued")
+    error: Mapped[str | None] = mapped_column(Text)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -110,3 +110,18 @@ class StaffCounts(ApiModel):
     pending_businesses: int
     open_requests: int
     films: int
+
+
+class OutboxItem(ApiModel):
+    """One customer email (L5): what was or would have been sent, and why it was or wasn't."""
+
+    id: UUID
+    to: str = Field(description="Masked for the demo staff account.")
+    subject: str
+    body: str
+    kind: str
+    status: Literal["queued", "sent", "failed", "not_sent", "logged", "skipped"]
+    error: str | None
+    order_id: UUID | None
+    created_at: datetime
+    sent_at: datetime | None

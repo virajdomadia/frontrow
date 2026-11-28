@@ -21,6 +21,7 @@ from app.models import (
     BlockedSeat,
     Business,
     Cinema,
+    EmailOutbox,
     Film,
     Order,
     OrderSeat,
@@ -32,11 +33,14 @@ from app.models import (
     User,
 )
 from app.models.enums import OrderChannel, OrderStatus, ShowStatus
-from app.schemas.owner import OwnerToday, RecentOrder
-from app.services import holds
+from app.schemas.owner import CancelResult, OwnerToday, RecentOrder
+from app.services import holds, outbox
+from app.services import orders as order_svc
 from app.services import owner as owner_svc
 from app.services.auth import initials
+from app.services.mail import Mailer
 from app.services.orders import PAY_WINDOW
+from app.services.payments import Gateway
 from app.services.schedules import IST, ist_today
 from app.services.shows import check_seats, parse_id, show_lock, taken_seats
 
@@ -307,3 +311,116 @@ async def counter_sale(
         ) from e
     await holds.clear_sold(redis, show.id, ids)
     return order
+
+
+# --- L5: cancel a show ----------------------------------------------------------------------------
+
+
+def rupees(paise: int) -> str:
+    return f"₹{paise / 100:,.2f}".removesuffix(".00")
+
+
+REFUND_BATCH = 25  # orders per call: a full hall is refunded over a few calls, each well in time
+
+
+async def cancel_show(
+    db: AsyncSession,
+    redis: Redis | None,
+    gateway: Gateway,
+    mailer: Mailer | None,
+    business: Business,
+    show_id: str,
+    reason: str,
+    *,
+    web_url: str,
+    now: datetime,
+) -> CancelResult:
+    """Cancel a show, refund every buyer in full and email them. Safe to call again and again:
+    the first call cancels (under the show lock, so no payment lands halfway) and later calls
+    finish what's left: refunds the gateway didn't take, buyers beyond this call's batch, emails
+    still queued. Each order is refunded exactly once (`orders.refund_order`)."""
+    show, _ = await own_show_row(db, business, show_id)
+    if show.status != ShowStatus.CANCELLED:
+        if show.starts_at <= now:
+            raise ApiError("show_closed", "This show has already started", status=410)
+        await show_lock(db, show.id)
+        show.status = ShowStatus.CANCELLED
+        show.cancel_reason = reason
+        await db.commit()
+        await holds.announce(redis, show.id, "x")  # open seat maps close
+    film = await db.get(Film, show.film_id)
+    cinema = await db.scalar(
+        select(Cinema)
+        .join(Screen, Screen.cinema_id == Cinema.id)
+        .where(Screen.id == show.screen_id)
+    )
+    assert film is not None and cinema is not None
+    todo = list(
+        await db.scalars(
+            select(Order.id)
+            .where(
+                Order.show_id == show.id,
+                (Order.status == OrderStatus.PAID)
+                | (
+                    (Order.status == OrderStatus.REFUNDED)
+                    & Order.refund_id.is_(None)
+                    & Order.razorpay_payment_id.is_not(None)
+                ),
+            )
+            .order_by(Order.paid_at)
+            .limit(REFUND_BATCH)
+        )
+    )
+    when = show.starts_at.astimezone(IST).strftime("%a %d %b, %I:%M %p")
+    for order_id in todo:
+        order = await order_svc.refund_order(db, gateway, order_id, order_svc.SHOW_CANCELLED)
+        if order.channel != OrderChannel.ONLINE or order.user_id is None:
+            continue  # counter buyers get their cash back at the box office
+        emailed = await db.scalar(
+            select(EmailOutbox.id).where(
+                EmailOutbox.order_id == order.id, EmailOutbox.kind == "show_cancelled"
+            )
+        )
+        buyer = await db.get(User, order.user_id)
+        if emailed is None and buyer is not None:
+            outbox.queue(
+                db, to=buyer.email, kind="show_cancelled", order_id=order.id,
+                subject=f"Cancelled: {film.title}, {when}",
+                text=(
+                    f"{cinema.name} has cancelled {film.title} on {when}.\n\n"
+                    f"Their reason: {reason}\n\n"
+                    f"We've refunded {rupees(order.total_paise)} in full to the way you paid. "
+                    "It reaches your account in 5 to 7 working days.\n\n"
+                    f"Your order: {web_url.rstrip('/')}/checkout/{order.id}"
+                ),
+            )  # fmt: skip
+            await db.commit()
+    mails = list(
+        await db.scalars(
+            select(EmailOutbox.id)
+            .join(Order, Order.id == EmailOutbox.order_id)
+            .where(Order.show_id == show.id, EmailOutbox.kind == "show_cancelled")
+        )
+    )
+    await outbox.deliver(db, mailer, mails, now=now)
+    return await cancel_state(db, show.id)
+
+
+async def cancel_state(db: AsyncSession, show_id: uuid.UUID) -> CancelResult:
+    orders = list(await db.scalars(select(Order).where(Order.show_id == show_id)))
+    statuses = (
+        await db.execute(
+            select(EmailOutbox.status, func.count())
+            .join(Order, Order.id == EmailOutbox.order_id)
+            .where(Order.show_id == show_id, EmailOutbox.kind == "show_cancelled")
+            .group_by(EmailOutbox.status)
+        )
+    ).tuples()
+    refunded = [o for o in orders if o.status == OrderStatus.REFUNDED]
+    return CancelResult(
+        refunded=len(refunded),
+        refunded_paise=sum(o.total_paise for o in refunded),
+        refund_pending=sum(1 for o in refunded if o.refund_id is None and o.razorpay_payment_id),
+        remaining=sum(1 for o in orders if o.status == OrderStatus.PAID),
+        emails={status: n for status, n in statuses},
+    )

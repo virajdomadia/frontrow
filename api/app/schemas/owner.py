@@ -281,3 +281,21 @@ class CounterSaleIn(ApiModel):
 
     seat_ids: list[str] = Field(min_length=1, max_length=10)
     idempotency_key: str = Field(pattern=r"^[A-Za-z0-9_-]{8,64}$")
+
+
+class CancelIn(ApiModel):
+    reason: str = Field(min_length=3, max_length=300, description="Shown to every buyer.")
+
+
+class CancelResult(ApiModel):
+    """Where a cancellation stands. Call cancel again while `remaining` or `refund_pending` is
+    above 0, or emails are `queued`: it carries on from where it stopped."""
+
+    refunded: int
+    refunded_paise: int
+    refund_pending: int = Field(description="Refunded orders the gateway hasn't confirmed yet.")
+    remaining: int = Field(description="Paid orders not refunded yet (beyond this call's batch).")
+    emails: dict[str, int] = Field(
+        description="Buyer emails by status: sent, queued, failed, not_sent (SMTP off), "
+        "logged (local), skipped (demo accounts)."
+    )

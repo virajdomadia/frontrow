@@ -86,8 +86,15 @@ class RazorpayGateway:
         return hmac.compare_digest(expected, signature)
 
     async def refund(self, payment_id: str, amount_paise: int) -> str | None:
+        """Refund `amount_paise`, or adopt the refund Razorpay already has for this payment: a
+        retry after a lost answer must not refund twice (L5)."""
         try:
             async with self._client() as client:
+                seen = await client.get(f"/payments/{payment_id}/refunds")
+                seen.raise_for_status()
+                done = [r for r in seen.json().get("items", []) if r.get("status") != "failed"]
+                if sum(int(r.get("amount", 0)) for r in done) >= amount_paise:
+                    return str(done[0]["id"])
                 res = await client.post(
                     f"/payments/{payment_id}/refund", json={"amount": amount_paise}
                 )

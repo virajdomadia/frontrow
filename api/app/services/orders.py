@@ -24,14 +24,14 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 
 from redis.asyncio import Redis
-from sqlalchemy import func, insert, select
+from sqlalchemy import delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.errors import ApiError
 from app.models import Cinema, Film, Order, OrderSeat, Screen, Seat, Show, ShowPrice, Ticket, User
-from app.models.enums import OrderChannel, OrderStatus
+from app.models.enums import OrderChannel, OrderStatus, ShowStatus
 from app.schemas.orders import (
     Customer,
     MyTickets,
@@ -55,6 +55,8 @@ log = logging.getLogger(__name__)
 PAY_WINDOW = timedelta(minutes=15)
 SEAT_SOLD = "seat_sold"
 SEAT_UNAVAILABLE = "seat_unavailable"  # the cinema blocked it while the customer paid (L3)
+SHOW_CANCELLED = "show_cancelled"  # the cinema cancelled the show (L5)
+CASH_REFUND = "cash"  # a counter sale's refund is cash handed back at the box office (L5)
 
 OnPaid = Callable[[Order], Awaitable[None]]
 
@@ -222,15 +224,57 @@ async def seats_out(db: AsyncSession, order: Order, screen: Screen) -> list[Orde
 
 
 async def settle_refund(db: AsyncSession, gateway: Gateway, order: Order) -> None:
-    """Retry a refund the gateway didn't take the first time."""
-    if (
+    """Retry a refund the gateway didn't take the first time — under the order's row lock, so
+    two readers (or a reader and a cancel) never ask the gateway twice."""
+    if not (
         order.status == OrderStatus.REFUNDED
         and order.refund_id is None
         and order.razorpay_payment_id
     ):
-        order.refund_id = await gateway.refund(order.razorpay_payment_id, order.total_paise)
-        if order.refund_id:
-            await db.commit()
+        return
+    locked = await db.scalar(select(Order).where(Order.id == order.id).with_for_update())
+    if locked is not None and locked.refund_id is None and locked.razorpay_payment_id:
+        locked.refund_id = await gateway.refund(locked.razorpay_payment_id, locked.total_paise)
+    await db.commit()
+
+
+async def refund_order(
+    db: AsyncSession, gateway: Gateway, order_id: uuid.UUID, reason: str
+) -> Order:
+    """Refund a paid order in full, once, however often it's called (L5 cancel, L7 support).
+
+    1. Under the order's row lock: paid → `refunded` with `reason`, and its tickets are voided
+       (deleted, so the seats free up and the QR stops opening the door; the order and its seats
+       stay as the record). A ticket already scanned in → 409: the customer has been admitted.
+    2. Committed, then under the lock again: the gateway refund, unless one is recorded. A
+       counter sale's refund is cash at the box office (`refund_id = "cash"`). A gateway that
+       fails leaves `refund_id` empty ("refund in progress"), retried by the next call or read;
+       `Gateway.refund` itself adopts a refund Razorpay already has, so a retry after a lost
+       answer can't refund twice."""
+    order = await db.scalar(select(Order).where(Order.id == order_id).with_for_update())
+    if order is None:
+        raise ApiError("not_found", "No such order")
+    if order.status == OrderStatus.PAID:
+        admitted = await db.scalar(
+            select(func.count())
+            .select_from(Ticket)
+            .where(Ticket.order_id == order.id, Ticket.checked_in_at.is_not(None))
+        )
+        if admitted:
+            raise ApiError(
+                "already_admitted", "A ticket on this order was already scanned in at the door",
+                status=409,
+            )  # fmt: skip
+        await db.execute(delete(Ticket).where(Ticket.order_id == order.id))
+        order.status = OrderStatus.REFUNDED
+        order.refund_reason = reason
+        if order.channel == OrderChannel.COUNTER:
+            order.refund_id = CASH_REFUND
+    elif order.status != OrderStatus.REFUNDED:
+        raise ApiError("conflict", "Only a paid order can be refunded", status=409)
+    await db.commit()
+    await settle_refund(db, gateway, order)
+    return order
 
 
 async def view(
@@ -317,6 +361,8 @@ async def confirm(
     await show_lock(db, order.show_id)
     _, blocked = await taken_seats(db, order.show_id)
     reason = SEAT_UNAVAILABLE if set(blocked) & {str(s.seat_id) for s in seats} else None
+    if await db.scalar(select(Show.status).where(Show.id == order.show_id)) == ShowStatus.CANCELLED:
+        reason = SHOW_CANCELLED  # paid after the cinema cancelled (L5): no tickets, full refund
     if reason is None:
         try:
             async with db.begin_nested():

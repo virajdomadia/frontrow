@@ -24,7 +24,18 @@ type Mode = "sell" | "block";
 const MAX_SALE = 10;
 
 /** One show's live map on the Today board: loads its layout and seats, then the live part. */
-export function ShowFloor({ show, demo, onChange }: { show: OwnerShow; demo: boolean; onChange: () => void }) {
+export function ShowFloor({
+  show,
+  demo,
+  onChange,
+  onCancelled,
+}: {
+  show: OwnerShow;
+  demo: boolean;
+  onChange: () => void;
+  onCancelled: (summary: string) => void;
+}) {
+  const [cancelling, setCancelling] = useState(false);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState("");
   const titleId = useId();
@@ -41,9 +52,17 @@ export function ShowFloor({ show, demo, onChange }: { show: OwnerShow; demo: boo
 
   return (
     <section aria-labelledby={titleId} className="rounded-card border border-border bg-paper p-4 sm:p-5">
-      <h2 id={titleId} className="font-cond text-2xl font-bold uppercase">
-        {show.film.title} <span className="font-normal text-muted-foreground normal-case">· {showTime(show.starts_at)} · {show.screen_name}</span>
-      </h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h2 id={titleId} className="font-cond text-2xl font-bold uppercase">
+          {show.film.title} <span className="font-normal text-muted-foreground normal-case">· {showTime(show.starts_at)} · {show.screen_name}</span>
+        </h2>
+        {new Date(show.starts_at).getTime() > Date.now() && (
+          <Button variant="paper" size="sm" disabled={demo} onClick={() => setCancelling(true)}>
+            Cancel show
+          </Button>
+        )}
+      </div>
+      <CancelDialog open={cancelling} show={show} onClose={() => setCancelling(false)} onDone={onCancelled} />
       {error ? (
         <p role="alert" className="mt-3 text-sm text-red-dark">
           {error}
@@ -305,6 +324,109 @@ function Receipt({ bundle, onClose }: { bundle: TicketBundle | null; onClose: ()
           </Button>
         </>
       )}
+    </dialog>
+  );
+}
+
+type CancelResult = { refunded: number; refunded_paise: number; refund_pending: number; remaining: number; emails?: Record<string, number> };
+
+const EMAIL_WORDS: Record<string, string> = {
+  sent: "sent",
+  queued: "still to send",
+  failed: "failed",
+  not_sent: "not sent (email is off on this site)",
+  logged: "written to the server log",
+  skipped: "skipped (demo accounts)",
+};
+
+/** L5 · Cancel a show: a reason for the buyers, then refund everyone and email them. The API
+ *  works in batches and is safe to repeat, so the dialog calls it until nothing is left. */
+function CancelDialog({ open, show, onClose, onDone }: { open: boolean; show: OwnerShow; onClose: () => void; onDone: (summary: string) => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+
+  async function cancel(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      let r: CancelResult | null = null;
+      for (let i = 0; i < 40; i++) {
+        r = await send<CancelResult>("POST", `/owner/shows/${show.id}/cancel`, { reason: reason.trim() });
+        if (!r.remaining && !r.emails?.queued) break;
+      }
+      if (!r) return;
+      const mail = Object.entries(r.emails ?? {})
+        .map(([k, n]) => `${n} ${EMAIL_WORDS[k] ?? k}`)
+        .join(", ");
+      onDone(
+        `${show.film.title} at ${showTime(show.starts_at)} is cancelled. ${r.refunded} ${r.refunded === 1 ? "order" : "orders"} refunded (${rupees(
+          r.refunded_paise,
+        )})${r.refund_pending ? `, ${r.refund_pending} still waiting on the bank` : ""}. Buyer emails: ${mail || "none"}. Counter buyers get cash back at the box office.`,
+      );
+      onClose();
+    } catch (err) {
+      setError(messageOf(err, "The show couldn't be cancelled. Nothing was refunded twice: try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      aria-labelledby={titleId}
+      className="m-auto max-h-[calc(100dvh-32px)] w-[min(520px,100%-32px)] overflow-y-auto rounded-card bg-paper p-6 text-ink shadow-[0_30px_80px_rgb(42_11_30_/_.35)] backdrop:bg-ink/60"
+    >
+      <form onSubmit={(e) => void cancel(e)} className="grid gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <h2 id={titleId} className="font-cond text-3xl font-extrabold uppercase">
+            Cancel this show?
+          </h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="-mt-1 -mr-2 cursor-pointer rounded-btn p-2 text-ink-2 hover:bg-ink/10 hover:text-ink">
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+        <p className="text-sm text-ink-2">
+          {show.film.title} · {showTime(show.starts_at)} · {show.screen_name}. {show.sold} {show.sold === 1 ? "ticket" : "tickets"} sold: every
+          online buyer is refunded in full and emailed; counter buyers get cash back at the box office. This can&apos;t be undone.
+        </p>
+        <label className="grid gap-1.5 text-sm font-semibold">
+          Reason (buyers see it)
+          <textarea
+            required
+            minLength={3}
+            maxLength={300}
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="rounded-btn border border-input bg-white px-3 py-2 text-[15px] font-normal text-ink"
+          />
+        </label>
+        {error && (
+          <p role="alert" className="text-sm text-red-dark">
+            {error}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button type="button" variant="paper" onClick={onClose}>
+            Keep the show
+          </Button>
+          <Button type="submit" disabled={busy || reason.trim().length < 3}>
+            {busy ? "Refunding…" : "Cancel and refund everyone"}
+          </Button>
+        </div>
+      </form>
     </dialog>
   );
 }

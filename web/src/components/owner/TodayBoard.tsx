@@ -17,6 +17,7 @@ const REFRESH_MS = 20_000;
  */
 export function TodayBoard({ initial, demo }: { initial: OwnerToday; demo: boolean }) {
   const [day, setDay] = useState(initial);
+  const [done, setDone] = useState("");
   const upcoming = (s: OwnerShow) => new Date(s.starts_at).getTime() > Date.now();
   const [picked, setPicked] = useState<string | null>(() => (initial.shows.find(upcoming) ?? initial.shows[0])?.id ?? null);
 
@@ -89,7 +90,23 @@ export function TodayBoard({ initial, demo }: { initial: OwnerToday; demo: boole
           </section>
 
           <div className="grid min-w-0 content-start gap-6">
-            {show && <ShowFloor key={show.id} show={show} demo={demo} onChange={refresh} />}
+            {done && (
+              <p role="status" className="rounded-card border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-ink">
+                {done}
+              </p>
+            )}
+            {show && (
+              <ShowFloor
+                key={show.id}
+                show={show}
+                demo={demo}
+                onChange={refresh}
+                onCancelled={(summary) => {
+                  setDone(summary);
+                  void refresh();
+                }}
+              />
+            )}
             <section aria-labelledby="today-recent">
               <h2 id="today-recent" className="mb-3 font-cond text-2xl font-bold uppercase">
                 Latest sales

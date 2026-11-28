@@ -613,6 +613,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/owner/shows/{show_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Show
+         * @description Cancel the show, refund every buyer in full (once) and email them. Idempotent: call it
+         *     again to finish refunds and emails that are still pending.
+         */
+        post: operations["cancel_show_owner_shows__show_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/owner/shows/{show_id}/counter-orders": {
         parameters: {
             query?: never;
@@ -921,6 +942,27 @@ export interface paths {
         patch: operations["edit_film_staff_films__film_id__patch"];
         trace?: never;
     };
+    "/staff/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Email Outbox
+         * @description The latest 100 customer emails with their send status: the preview of what customers
+         *     get while SMTP is off. Demo staff see addresses masked.
+         */
+        get: operations["email_outbox_staff_outbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tickets/{order_id}": {
         parameters: {
             query?: never;
@@ -1144,6 +1186,42 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "verified" | "rejected" | "suspended";
+        };
+        /** CancelIn */
+        CancelIn: {
+            /**
+             * Reason
+             * @description Shown to every buyer.
+             */
+            reason: string;
+        };
+        /**
+         * CancelResult
+         * @description Where a cancellation stands. Call cancel again while `remaining` or `refund_pending` is
+         *     above 0, or emails are `queued`: it carries on from where it stopped.
+         */
+        CancelResult: {
+            /**
+             * Emails
+             * @description Buyer emails by status: sent, queued, failed, not_sent (SMTP off), logged (local), skipped (demo accounts).
+             */
+            emails: {
+                [key: string]: number;
+            };
+            /**
+             * Refund Pending
+             * @description Refunded orders the gateway hasn't confirmed yet.
+             */
+            refund_pending: number;
+            /** Refunded */
+            refunded: number;
+            /** Refunded Paise */
+            refunded_paise: number;
+            /**
+             * Remaining
+             * @description Paid orders not refunded yet (beyond this call's batch).
+             */
+            remaining: number;
         };
         /** CastMember */
         CastMember: {
@@ -1843,6 +1921,44 @@ export interface components {
              * Format: date-time
              */
             starts_at: string;
+        };
+        /**
+         * OutboxItem
+         * @description One customer email (L5): what was or would have been sent, and why it was or wasn't.
+         */
+        OutboxItem: {
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Order Id */
+            order_id: string | null;
+            /** Sent At */
+            sent_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "sent" | "failed" | "not_sent" | "logged" | "skipped";
+            /** Subject */
+            subject: string;
+            /**
+             * To
+             * @description Masked for the demo staff account.
+             */
+            to: string;
         };
         /** OwnerBusiness */
         OwnerBusiness: {
@@ -3997,6 +4113,41 @@ export interface operations {
             };
         };
     };
+    cancel_show_owner_shows__show_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                show_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelResult"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     counter_sale_owner_shows__show_id__counter_orders_post: {
         parameters: {
             query?: never;
@@ -4610,6 +4761,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffFilm"];
+                };
+            };
+            /** @description Error envelope (06 §C) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    email_outbox_staff_outbox_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutboxItem"][];
                 };
             };
             /** @description Error envelope (06 §C) */
