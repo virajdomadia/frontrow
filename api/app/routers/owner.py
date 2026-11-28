@@ -22,6 +22,8 @@ from app.schemas.owner import (
     BulkResult,
     BulkShows,
     BusinessPatch,
+    CancelIn,
+    CancelResult,
     CheckIn,
     CheckInResult,
     CinemaIn,
@@ -54,6 +56,7 @@ from app.services.auth import (
     require_owner,
     require_owner_writer,
 )
+from app.services.mail import mailer_for
 from app.services.payments import gateway_for
 from app.services.screens import preview
 
@@ -340,4 +343,25 @@ async def counter_sale(
     return await order_svc.ticket_bundle(
         db, request.app.state.settings, gateway_for(request.app), str(order.id),
         user=seller, now=now,
+    )  # fmt: skip
+
+
+# --- L5: cancel a show ----------------------------------------------------------------------------
+
+
+@router.post("/shows/{show_id}/cancel", response_model=CancelResult)
+async def cancel_show(
+    show_id: str,
+    body: CancelIn,
+    request: Request,
+    response: Response,
+    db: Db,
+    redis: OptRedis,
+    owner: Writer,
+) -> CancelResult:
+    """Cancel the show, refund every buyer in full (once) and email them. Idempotent: call it
+    again to finish refunds and emails that are still pending."""
+    return await boxoffice.cancel_show(
+        db, redis, gateway_for(request.app), mailer_for(request.app), owner.business, show_id,
+        body.reason, web_url=request.app.state.settings.web_url, now=_now(response),
     )  # fmt: skip

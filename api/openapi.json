@@ -409,6 +409,62 @@
         "title": "BusinessRef",
         "type": "object"
       },
+      "CancelIn": {
+        "properties": {
+          "reason": {
+            "description": "Shown to every buyer.",
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "CancelIn",
+        "type": "object"
+      },
+      "CancelResult": {
+        "description": "Where a cancellation stands. Call cancel again while `remaining` or `refund_pending` is\nabove 0, or emails are `queued`: it carries on from where it stopped.",
+        "properties": {
+          "emails": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Buyer emails by status: sent, queued, failed, not_sent (SMTP off), logged (local), skipped (demo accounts).",
+            "title": "Emails",
+            "type": "object"
+          },
+          "refund_pending": {
+            "description": "Refunded orders the gateway hasn't confirmed yet.",
+            "title": "Refund Pending",
+            "type": "integer"
+          },
+          "refunded": {
+            "title": "Refunded",
+            "type": "integer"
+          },
+          "refunded_paise": {
+            "title": "Refunded Paise",
+            "type": "integer"
+          },
+          "remaining": {
+            "description": "Paid orders not refunded yet (beyond this call's batch).",
+            "title": "Remaining",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "refunded",
+          "refunded_paise",
+          "refund_pending",
+          "remaining",
+          "emails"
+        ],
+        "title": "CancelResult",
+        "type": "object"
+      },
       "CastMember": {
         "properties": {
           "name": {
@@ -2191,6 +2247,99 @@
           "cinema"
         ],
         "title": "OrderShow",
+        "type": "object"
+      },
+      "OutboxItem": {
+        "description": "One customer email (L5): what was or would have been sent, and why it was or wasn't.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "sent",
+              "failed",
+              "not_sent",
+              "logged",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "to": {
+            "description": "Masked for the demo staff account.",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "to",
+          "subject",
+          "body",
+          "kind",
+          "status",
+          "error",
+          "order_id",
+          "created_at",
+          "sent_at"
+        ],
+        "title": "OutboxItem",
         "type": "object"
       },
       "OwnerBusiness": {
@@ -5811,6 +5960,59 @@
         ]
       }
     },
+    "/owner/shows/{show_id}/cancel": {
+      "post": {
+        "description": "Cancel the show, refund every buyer in full (once) and email them. Idempotent: call it\nagain to finish refunds and emails that are still pending.",
+        "operationId": "cancel_show_owner_shows__show_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "show_id",
+            "required": true,
+            "schema": {
+              "title": "Show Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Cancel Show",
+        "tags": [
+          "theatre owner"
+        ]
+      }
+    },
     "/owner/shows/{show_id}/counter-orders": {
       "post": {
         "description": "Sell seats at the box office, paid in cash: tickets at once, one QR per seat for the\ndoor. Same guards as an online sale; a retried key returns the first sale.",
@@ -6662,6 +6864,42 @@
           }
         },
         "summary": "Edit Film",
+        "tags": [
+          "frontrow staff"
+        ]
+      }
+    },
+    "/staff/outbox": {
+      "get": {
+        "description": "The latest 100 customer emails with their send status: the preview of what customers\nget while SMTP is off. Demo staff see addresses masked.",
+        "operationId": "email_outbox_staff_outbox_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OutboxItem"
+                  },
+                  "title": "Response Email Outbox Staff Outbox Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (06 §C)"
+          }
+        },
+        "summary": "Email Outbox",
         "tags": [
           "frontrow staff"
         ]

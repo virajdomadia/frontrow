@@ -33,6 +33,7 @@ export default async function StaffConsoleLayout({ children }: { children: React
     { key: "approvals", href: "/staff/businesses?status=pending", label: `Approvals (${counts.pending_businesses})` },
     { key: "requests", href: "/staff/requests", label: `Film requests (${counts.open_requests})` },
     { key: "films", href: "/staff/films", label: `Film catalogue (${counts.films})` },
+    { key: "outbox", href: "/staff/outbox", label: "Emails" },
   ];
   return (
     <>

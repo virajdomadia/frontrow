@@ -6,12 +6,15 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Response
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
+from app.models import EmailOutbox
 from app.schemas.staff import (
     BusinessDecision,
     FilmIn,
+    OutboxItem,
     RequestDecision,
     StaffBusiness,
     StaffCounts,
@@ -119,3 +122,27 @@ async def decide_business(
 ) -> StaffBusiness:
     """Approve (their shows go public) or reject with a reason."""
     return await svc.decide_business(db, business_id, body, _now(response))
+
+
+@router.get("/outbox", response_model=list[OutboxItem])
+async def email_outbox(response: Response, db: Db, staff: Reader) -> list[OutboxItem]:
+    """The latest 100 customer emails with their send status: the preview of what customers
+    get while SMTP is off. Demo staff see addresses masked."""
+    _now(response)
+    rows = await db.scalars(select(EmailOutbox).order_by(EmailOutbox.created_at.desc()).limit(100))
+    demo = is_demo(staff.user)
+    return [
+        OutboxItem(
+            id=r.id,
+            to=mask_email(r.to_email) if demo else r.to_email,
+            subject=r.subject,
+            body=r.body,
+            kind=r.kind,
+            status=r.status,  # type: ignore[arg-type]
+            error=r.error,
+            order_id=r.order_id,
+            created_at=r.created_at,
+            sent_at=r.sent_at,
+        )
+        for r in rows
+    ]

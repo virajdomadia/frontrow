@@ -326,6 +326,15 @@ function Outcome({ order, holdLapsed }: { order: Order; holdLapsed: boolean }) {
     case "paid":
       return <p className={p}>Payment received and your tickets are issued.</p>;
     case "refunded":
+      if (order.refund_reason === "show_cancelled")
+        return (
+          <p className={p}>
+            The cinema cancelled this show.{" "}
+            {order.refund_pending
+              ? `Your ${rupees(order.total_paise)} refund is in progress and reaches your account in 5 to 7 working days after the bank takes it.`
+              : `We refunded your ${rupees(order.total_paise)} in full. It reaches your account in 5 to 7 working days.`}
+          </p>
+        );
       return (
         <p className={p}>
           Your hold ran out before the payment arrived, and in the meantime{" "}
